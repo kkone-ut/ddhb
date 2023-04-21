@@ -25,6 +25,7 @@ from villager import SampleVillager
 from werewolf import SampleWerewolf
 
 
+# サンプルプレイヤー
 class SamplePlayer(AbstractPlayer):
 
     villager: AbstractPlayer
@@ -44,6 +45,7 @@ class SamplePlayer(AbstractPlayer):
         self.werewolf = SampleWerewolf()
         self.player = self.villager
 
+    # オーバーライドしていく
     def attack(self) -> Agent:
         return self.player.attack()
 
@@ -59,6 +61,7 @@ class SamplePlayer(AbstractPlayer):
     def guard(self) -> Agent:
         return self.player.guard()
 
+    # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         role: Role = game_info.my_role
         if role == Role.VILLAGER:

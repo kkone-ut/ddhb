@@ -25,15 +25,15 @@ from aiwolf.constant import AGENT_NONE
 from const import CONTENT_SKIP, JUDGE_EMPTY
 from possessed import SamplePossessed
 
-
+# 人狼
 class SampleWerewolf(SamplePossessed):
     """Sample werewolf agent."""
 
-    allies: List[Agent]
+    allies: List[Agent] # 仲間の人狼
     """Allies."""
-    humans: List[Agent]
+    humans: List[Agent] # 村陣営
     """Humans."""
-    attack_vote_candidate: Agent
+    attack_vote_candidate: Agent # 襲撃対象
     """The candidate for the attack voting."""
 
     def __init__(self) -> None:
@@ -48,18 +48,23 @@ class SampleWerewolf(SamplePossessed):
         self.allies = list(self.game_info.role_map.keys())
         self.humans = [a for a in self.game_info.agent_list if a not in self.allies]
         # Do comingout on the day that randomly selected from the 1st, 2nd and 3rd day.
-        self.co_date = random.randint(1, 3)
+        self.co_date = random.randint(1, 3) # COする日にち
         # Choose fake role randomly.
+        # 騙りはランダムに
         self.fake_role = random.choice([r for r in [Role.VILLAGER, Role.SEER, Role.MEDIUM]
                                         if r in self.game_info.existing_role_list])
 
+    # 偽結果生成
     def get_fake_judge(self) -> Judge:
         """Generate a fake judgement."""
         # Determine the target of the fake judgement.
+        # 対象の決定
         target: Agent = AGENT_NONE
+        # 占い騙り → ランダムセレクト
         if self.fake_role == Role.SEER:  # Fake seer chooses a target randomly.
             if self.game_info.day != 0:
                 target = self.random_select(self.get_alive(self.not_judged_agents))
+        # 霊媒騙り → 死者
         elif self.fake_role == Role.MEDIUM:
             target = self.game_info.executed_agent if self.game_info.executed_agent is not None \
                 else AGENT_NONE
@@ -69,6 +74,8 @@ class SampleWerewolf(SamplePossessed):
         # If the target is a human
         # and the number of werewolves found is less than the total number of werewolves,
         # judge as a werewolf with a probability of 0.3.
+        # 騙り結果 → 変更する
+        # 発見人狼数が人狼総数より少ない and 確率0.3 で黒結果
         result: Species = Species.WEREWOLF if target in self.humans \
             and len(self.werewolves) < self.num_wolves and random.random() < 0.3 \
             else Species.HUMAN
@@ -78,6 +85,7 @@ class SampleWerewolf(SamplePossessed):
         super().day_start()
         self.attack_vote_candidate = AGENT_NONE
 
+    # 内通
     def whisper(self) -> Content:
         # Declare the fake role on the 1st day,
         # and declare the target of attack vote after that.

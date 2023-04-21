@@ -25,9 +25,11 @@ from sample import SamplePlayer
 if __name__ == "__main__":
     agent: AbstractPlayer = SamplePlayer()
     parser: ArgumentParser = ArgumentParser(add_help=False)
+    # 引数の仕様を定義する
     parser.add_argument("-p", type=int, action="store", dest="port", required=True)
     parser.add_argument("-h", type=str, action="store", dest="hostname", required=True)
-    parser.add_argument("-r", type=str, action="store", dest="role", default="none")
-    parser.add_argument("-n", type=str, action="store", dest="name")
+    parser.add_argument("-r", type=str, action="store", dest="role", default="none") # 役指定
+    parser.add_argument("-n", type=str, action="store", dest="name") # プレイヤー名
+    # 引数を解析する
     input_args = parser.parse_args()
     TcpipClient(agent, input_args.name, input_args.hostname, input_args.port, input_args.role).connect()

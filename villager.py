@@ -25,25 +25,25 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
 
-
+# 村役職
 class SampleVillager(AbstractPlayer):
     """Sample villager agent."""
 
-    me: Agent
+    me: Agent # 自身
     """Myself."""
-    vote_candidate: Agent
+    vote_candidate: Agent # 投票候補
     """Candidate for voting."""
-    game_info: GameInfo
+    game_info: GameInfo # ゲーム情報
     """Information about current game."""
-    game_setting: GameSetting
+    game_setting: GameSetting # ゲーム設定
     """Settings of current game."""
-    comingout_map: Dict[Agent, Role]
+    comingout_map: Dict[Agent, Role] # CO辞書
     """Mapping between an agent and the role it claims that it is."""
-    divination_reports: List[Judge]
+    divination_reports: List[Judge] # 占い結果
     """Time series of divination reports."""
-    identification_reports: List[Judge]
+    identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    talk_list_head: int
+    talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
 
     def __init__(self) -> None:
@@ -57,6 +57,7 @@ class SampleVillager(AbstractPlayer):
         self.identification_reports = []
         self.talk_list_head = 0
 
+    # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
         """Return whether the agent is alive.
 
@@ -68,6 +69,7 @@ class SampleVillager(AbstractPlayer):
         """
         return self.game_info.status_map[agent] == Status.ALIVE
 
+    # 自分以外のエージェントリスト
     def get_others(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of agents excluding myself from the given list of agents.
 
@@ -79,6 +81,7 @@ class SampleVillager(AbstractPlayer):
         """
         return [a for a in agent_list if a != self.me]
 
+    # 生存するエージェントリスト
     def get_alive(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of alive agents contained in the given list of agents.
 
@@ -90,6 +93,7 @@ class SampleVillager(AbstractPlayer):
         """
         return [a for a in agent_list if self.is_alive(a)]
 
+    # 自分以外の生存するエージェントリスト
     def get_alive_others(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of alive agents that is contained in the given list of agents
         and is not equal to myself.
@@ -103,6 +107,7 @@ class SampleVillager(AbstractPlayer):
         """
         return self.get_alive(self.get_others(agent_list))
 
+    # ランダムセレクト
     def random_select(self, agent_list: List[Agent]) -> Agent:
         """Return one agent randomly chosen from the given list of agents.
 
@@ -114,6 +119,7 @@ class SampleVillager(AbstractPlayer):
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
 
+    # 初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         self.game_info = game_info
         self.game_setting = game_setting
@@ -123,10 +129,13 @@ class SampleVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
 
+    # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
+    # ゲーム情報の更新
+    # talk-listの処理
     def update(self, game_info: GameInfo) -> None:
         self.game_info = game_info  # Update game information.
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
@@ -134,6 +143,7 @@ class SampleVillager(AbstractPlayer):
             talker: Agent = tk.agent
             if talker == self.me:  # Skip my talk.
                 continue
+            # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
@@ -143,23 +153,30 @@ class SampleVillager(AbstractPlayer):
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
+    # 会話
     def talk(self) -> Content:
         # Choose an agent to be voted for while talking.
         #
         # The list of fake seers that reported me as a werewolf.
+        # 偽占い
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports
                                    if j.target == self.me and j.result == Species.WEREWOLF]
         # Vote for one of the alive agents that were judged as werewolves by non-fake seers.
+        # 偽占い以外の黒結果
         reported_wolves: List[Agent] = [j.target for j in self.divination_reports
                                         if j.agent not in fake_seers and j.result == Species.WEREWOLF]
+        # 投票候補：黒結果
         candidates: List[Agent] = self.get_alive_others(reported_wolves)
         # Vote for one of the alive fake seers if there are no candidates.
+        # 候補なし → 偽占い
         if not candidates:
             candidates = self.get_alive(fake_seers)
         # Vote for one of the alive agents if there are no candidates.
+        # 候補なし → 生存者
         if not candidates:
             candidates = self.get_alive_others(self.game_info.agent_list)
         # Declare which to vote for if not declare yet or the candidate is changed.
+        # 候補からランダムセレクト
         if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
             self.vote_candidate = self.random_select(candidates)
             if self.vote_candidate != AGENT_NONE:
