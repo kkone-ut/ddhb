@@ -24,11 +24,11 @@ from aiwolf import (Agent, ComingoutContentBuilder, Content, GameInfo,
 from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
-from villager import SampleVillager
+from ddhbVillager import ddhbVillager
 
 # 霊媒
-class SampleMedium(SampleVillager):
-    """ Sample medium agent. """
+class ddhbMedium(ddhbVillager):
+    """ ddhb medium agent. """
 
     co_date: int # COする日にち
     """Scheduled comingout date."""
@@ -40,7 +40,7 @@ class SampleMedium(SampleVillager):
     """Queue of medium results."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SampleMedium."""
+        """Initialize a new instance of ddhbMedium."""
         super().__init__()
         self.co_date = 0
         self.found_wolf = False

@@ -23,11 +23,11 @@ from aiwolf import (Agent, AttackContentBuilder, ComingoutContentBuilder,
 from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP, JUDGE_EMPTY
-from possessed import SamplePossessed
+from ddhbPossessed import ddhbPossessed
 
 # 人狼
-class SampleWerewolf(SamplePossessed):
-    """Sample werewolf agent."""
+class ddhbWerewolf(ddhbPossessed):
+    """ddhb werewolf agent."""
 
     allies: List[Agent] # 仲間の人狼
     """Allies."""
@@ -37,7 +37,7 @@ class SampleWerewolf(SamplePossessed):
     """The candidate for the attack voting."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SampleWerewolf."""
+        """Initialize a new instance of ddhbWerewolf."""
         super().__init__()
         self.allies = []
         self.humans = []

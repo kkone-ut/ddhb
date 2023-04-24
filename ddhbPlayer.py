@@ -1,5 +1,5 @@
 #
-# sample.py
+# ddhbPlyaer.py
 #
 # Copyright 2022 OTSUKI Takashi
 #
@@ -17,16 +17,16 @@
 
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 
-from bodyguard import SampleBodyguard
-from medium import SampleMedium
-from possessed import SamplePossessed
-from seer import SampleSeer
-from villager import SampleVillager
-from werewolf import SampleWerewolf
+from ddhbBodyguard import ddhbBodyguard
+from ddhbMedium import ddhbMedium
+from ddhbPossessed import ddhbPossessed
+from ddhbSeer import ddhbSeer
+from ddhbVillager import ddhbVillager
+from ddhbWerewolf import ddhbWerewolf
 
 
-# サンプルプレイヤー
-class SamplePlayer(AbstractPlayer):
+# ddhbプレイヤー
+class ddhbPlayer(AbstractPlayer):
 
     villager: AbstractPlayer
     bodyguard: AbstractPlayer
@@ -37,12 +37,12 @@ class SamplePlayer(AbstractPlayer):
     player: AbstractPlayer
 
     def __init__(self) -> None:
-        self.villager = SampleVillager()
-        self.bodyguard = SampleBodyguard()
-        self.medium = SampleMedium()
-        self.seer = SampleSeer()
-        self.possessed = SamplePossessed()
-        self.werewolf = SampleWerewolf()
+        self.villager = ddhbVillager()
+        self.bodyguard = ddhbBodyguard()
+        self.medium = ddhbMedium()
+        self.seer = ddhbSeer()
+        self.possessed = ddhbPossessed()
+        self.werewolf = ddhbWerewolf()
         self.player = self.villager
 
     # オーバーライドしていく

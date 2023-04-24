@@ -20,18 +20,18 @@ from typing import List
 from aiwolf import Agent, GameInfo, GameSetting, Role, Species
 from aiwolf.constant import AGENT_NONE
 
-from villager import SampleVillager
+from ddhbVillager import ddhbVillager
 
 # 狩人
-class SampleBodyguard(SampleVillager):
-    """Sample bodyguard agent."""
+class ddhbBodyguard(ddhbVillager):
+    """ddhb bodyguard agent."""
 
     
     to_be_guarded: Agent # 護衛先
     """Target of guard."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SampleBodyguard."""
+        """Initialize a new instance of ddhbBodyguard."""
         super().__init__()
         self.to_be_guarded = AGENT_NONE
 

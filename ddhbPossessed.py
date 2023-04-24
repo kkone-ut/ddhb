@@ -26,11 +26,11 @@ from aiwolf import (Agent, ComingoutContentBuilder, Content,
 from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP, JUDGE_EMPTY
-from villager import SampleVillager
+from ddhbVillager import ddhbVillager
 
 # 裏切り者
-class SamplePossessed(SampleVillager):
-    """Sample possessed agent."""
+class ddhbPossessed(ddhbVillager):
+    """ddhb possessed agent."""
 
     fake_role: Role # 騙る役職
     """Fake role."""
@@ -48,7 +48,7 @@ class SamplePossessed(SampleVillager):
     """Fake werewolves."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SamplePossessed."""
+        """Initialize a new instance of ddhbPossessed."""
         super().__init__()
         self.fake_role = Role.SEER
         self.co_date = 0

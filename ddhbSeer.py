@@ -24,11 +24,11 @@ from aiwolf import (Agent, ComingoutContentBuilder, Content,
 from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
-from villager import SampleVillager
+from ddhbVillager import ddhbVillager
 
 # 占い
-class SampleSeer(SampleVillager):
-    """Sample seer agent."""
+class ddhbSeer(ddhbVillager):
+    """ddhb seer agent."""
 
     co_date: int # COする日にち
     """Scheduled comingout date."""
@@ -42,7 +42,7 @@ class SampleSeer(SampleVillager):
     """Found werewolves."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SampleSeer."""
+        """Initialize a new instance of ddhbSeer."""
         super().__init__()
         self.co_date = 0
         self.has_co = False

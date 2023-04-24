@@ -26,8 +26,8 @@ from aiwolf.constant import AGENT_NONE
 from const import CONTENT_SKIP
 
 # 村役職
-class SampleVillager(AbstractPlayer):
-    """Sample villager agent."""
+class ddhbVillager(AbstractPlayer):
+    """ddhb villager agent."""
 
     me: Agent # 自身
     """Myself."""
@@ -47,7 +47,7 @@ class SampleVillager(AbstractPlayer):
     """Index of the talk to be analysed next."""
 
     def __init__(self) -> None:
-        """Initialize a new instance of SampleVillager."""
+        """Initialize a new instance of ddhbVillager."""
 
         self.me = AGENT_NONE
         self.vote_candidate = AGENT_NONE
