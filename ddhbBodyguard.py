@@ -39,6 +39,18 @@ class ddhbBodyguard(ddhbVillager):
         super().initialize(game_info, game_setting)
         self.to_be_guarded = AGENT_NONE
 
+    def day_start(self) -> None:
+        super().day_start()
+
+        print("guarded: ", self.game_info.guarded_agent)
+
+        # 護衛が成功した場合
+        if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+            print("護衛成功: エージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
+            self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
+        elif self.game_info.guarded_agent != None:
+            print("護衛失敗: エージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
+
     # 護衛先選び → 変更する
     def guard(self) -> Agent:
         # Guard one of the alive non-fake seers.
@@ -58,6 +70,8 @@ class ddhbBodyguard(ddhbVillager):
         # 護衛先 → 候補からランダムセレクト
         if self.to_be_guarded == AGENT_NONE or self.to_be_guarded not in candidates:
             self.to_be_guarded = self.random_select(candidates)
+
+        self.to_be_guarded = self.random_select(self.get_alive_others(self.game_info.agent_list))
         return self.to_be_guarded if self.to_be_guarded != AGENT_NONE else self.me
     
     # talk追加はありかも→白圧迫

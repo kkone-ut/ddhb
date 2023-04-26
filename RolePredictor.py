@@ -38,13 +38,13 @@ class RolePredictor:
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
 
         # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
-        time_start = time.time()
+        # time_start = time.time()
         for assignment in self.assignments[:]:
             if assignment.evaluate(self.score_matrix) == -float('inf'):
                 self.assignments.remove(assignment)
-        time_end = time.time()
-        print('time: ', time_end - time_start)
+        # time_end = time.time()
+        # print('time: ', time_end - time_start)
 
-        print(len(self.assignments))
+        # print(len(self.assignments))
 
         pass

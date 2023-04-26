@@ -71,6 +71,7 @@ class ddhbSeer(ddhbVillager):
             # 人狼発見 → 人狼結果リストに追加
             if judge.result == Species.WEREWOLF:
                 self.werewolves.append(judge.target)
+            self.score_matrix.my_divined(self.game_info, self.game_setting, judge.target, judge.result)
 
     # CO、結果報告
     def talk(self) -> Content:

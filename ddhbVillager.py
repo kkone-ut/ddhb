@@ -137,10 +137,14 @@ class ddhbVillager(AbstractPlayer):
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
 
+        print(game_info.my_role)
+
     # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
+
+        print("killed:", self.game_info.last_dead_agent_list[0] if len(self.game_info.last_dead_agent_list) == 1 else None)
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -155,11 +159,13 @@ class ddhbVillager(AbstractPlayer):
             content: Content = Content.compile(tk.text)
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
+                self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
             elif content.topic == Topic.DIVINED:
                 self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
+                self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話

@@ -77,7 +77,7 @@ class ScoreMatrix:
 
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
         # 護衛が成功したエージェントは人狼ではない
-        self.set_score(id, Role.WEREWOLF, id, Role.WEREWOLF, -float('inf'))
+        self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
 
     # 他の人の発言から推測する
 
