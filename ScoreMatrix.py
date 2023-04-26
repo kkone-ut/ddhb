@@ -71,9 +71,34 @@ class ScoreMatrix:
         pass
 
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
+        id_talker = talker.agent_idx()
+        id_target = target.agent_idx()
+
+        if species == Species.WEREWOLF:
+            # 本物の占い師が間違って黒出しする可能性を考慮してスコアに有限の値を加算する
+            # (5人村で占い結果が白だったとき、別のエージェントに黒出しすることがある)
+            self.score_matrix[id_talker, Role.SEER, id_target, Role.WEREWOLF] += 1
+        elif species == Species.HUMAN:
+            # 本物の占い師が人狼に白出しすることはないと仮定する
+            self.score_matrix[id_talker, Role.SEER, id_target, Role.WEREWOLF] = -float('inf')
+        else:
+            pass
+
         pass
 
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
+        id_talker = talker.agent_idx()
+        id_target = target.agent_idx()
+
+        # 本物の霊媒師が嘘を言うことは無いと仮定する
+        if species == Species.WEREWOLF:
+            self.score_matrix[id_talker, Role.MEDIUM, id_target, :] = -float('inf')
+            self.score_matrix[id_talker, Role.MEDIUM, id_target, Role.WEREWOLF] = 0
+        elif species == Species.HUMAN:
+            self.score_matrix[id_talker, Role.MEDIUM, id_target, Role.WEREWOLF] = -float('inf')
+        else:
+            pass
+        
         pass
 
     # 1日目の終わりに推測する (主に5人村の場合)
