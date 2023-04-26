@@ -25,6 +25,9 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
 
+from ScoreMatrix import ScoreMatrix
+from RolePredictor import RolePredictor
+
 # 村役職
 class ddhbVillager(AbstractPlayer):
     """ddhb villager agent."""
@@ -56,6 +59,8 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports = []
         self.identification_reports = []
         self.talk_list_head = 0
+
+        self.role_predictor = None
 
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
@@ -129,6 +134,9 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
 
+        self.score_matrix = ScoreMatrix(game_info, game_setting, self)
+        self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
+
     # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
@@ -149,12 +157,14 @@ class ddhbVillager(AbstractPlayer):
                 self.comingout_map[talker] = content.role
             elif content.topic == Topic.DIVINED:
                 self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
+                self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
     def talk(self) -> Content:
+        self.role_predictor.update(self.game_info, self.game_setting)
         # Choose an agent to be voted for while talking.
         #
         # The list of fake seers that reported me as a werewolf.
