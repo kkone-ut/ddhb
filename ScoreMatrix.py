@@ -15,6 +15,9 @@ class ScoreMatrix:
         self.player = _player
         self.me = _player.me
 
+    def get_score(self, i: int, role1: Role, j: int, role2: Role) -> float:
+        return self.score_matrix[i, role1, j, role2]
+
     # 公開情報から推測する
 
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
@@ -84,8 +87,6 @@ class ScoreMatrix:
         else:
             pass
 
-        pass
-
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         id_talker = talker.agent_idx()
         id_target = target.agent_idx()
@@ -98,8 +99,6 @@ class ScoreMatrix:
             self.score_matrix[id_talker, Role.MEDIUM, id_target, Role.WEREWOLF] = -float('inf')
         else:
             pass
-        
-        pass
 
     # 1日目の終わりに推測する (主に5人村の場合)
 
