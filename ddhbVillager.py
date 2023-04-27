@@ -138,7 +138,7 @@ class ddhbVillager(AbstractPlayer):
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
 
-        print(game_info.my_role)
+        Util.debug_print("------", game_info.my_role)
 
     # 昼スタート
     def day_start(self) -> None:
