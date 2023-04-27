@@ -60,6 +60,7 @@ class ScoreMatrix:
         pass
 
     # 自身の能力の結果から推測する
+    # 確定情報なのでスコアを +inf または -inf にする
     
     def my_divined(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         if species == Species.WEREWOLF:
@@ -86,6 +87,7 @@ class ScoreMatrix:
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
 
     # 他の人の発言から推測する
+    # 確定情報ではないので有限の値を加減算する
 
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role) -> None:
         pass
@@ -98,21 +100,21 @@ class ScoreMatrix:
 
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         if species == Species.WEREWOLF:
-            # 本物の占い師が間違って黒出しする可能性を考慮してスコアに有限の値を加算する
+            # 本物の占い師が間違って黒出しする可能性を考慮して少し低めにする
             # (5人村で占い結果が白だったとき、別のエージェントに黒出しすることがある)
-            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, 1)
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, 50)
         elif species == Species.HUMAN:
             # 本物の占い師が人狼に白出しすることはないと仮定する
-            self.set_score(talker, Role.SEER, target, Role.WEREWOLF, -float('inf'))
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -100)
         else:
             Util.error('talk_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
         if species == Species.WEREWOLF:
-            self.set_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +float('inf'))
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +100)
         elif species == Species.HUMAN:
-            self.set_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -float('inf'))
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -100)
         else:
             Util.error('talk_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
@@ -125,7 +127,9 @@ class ScoreMatrix:
     # 新プロトコルでの発言に対応する
 
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
-        pass
+        if len(game_info.last_dead_agent_list) == 0:
+            # 護衛が成功していたら護衛対象は人狼ではない
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
 
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         pass
