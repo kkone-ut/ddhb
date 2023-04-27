@@ -60,7 +60,7 @@ class ScoreMatrix:
     
     def my_divined(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         if species == Species.WEREWOLF:
-            # 人狼であることが確定しているので、他の役職のスコアを-inf(相対確率0)にする
+            # 人狼であることが確定しているので、人狼のスコアを+inf(実際には他の役職のスコアを-inf(相対確率0)にする)
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, +float('inf'))
         elif species == Species.HUMAN:
             # 人狼でないことが確定しているので、人狼のスコアを-inf(相対確率0)にする

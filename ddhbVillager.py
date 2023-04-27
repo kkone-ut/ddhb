@@ -145,7 +145,17 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
-        Util.debug_print("killed:", self.game_info.last_dead_agent_list[0] if len(self.game_info.last_dead_agent_list) == 1 else None)
+        # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
+        # (self.game_info.executed_agent が昨夜処刑されたエージェント)
+        killed = self.game_info.last_dead_agent_list
+        if len(killed) > 0:
+            self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
+            Util.debug_print("Killed:", self.game_info.last_dead_agent_list[0])
+            # 本来複数人殺されることはないが、念のためkilled()は呼び出した上でエラーログを出しておく
+            if len(killed) > 1:
+                Util.error_print("Killed:", *self.game_info.last_dead_agent_list)
+        else:
+            Util.debug_print("Killed: None")
 
     # ゲーム情報の更新
     # talk-listの処理

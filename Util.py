@@ -1,12 +1,18 @@
 from collections import Counter
 from heapq import merge
 from itertools import product
+import sys
 
 class Util:
 
     def debug_print(*args, **kwargs):
         # デバッグログが要らない場合は次の行をコメントアウトする
         print(*args, **kwargs)
+        pass
+
+    def error_print(*args, **kwargs):
+        # エラーログが要らない場合は次の行をコメントアウトする
+        print(*args, **kwargs, file=sys.stderr)
         pass
 
     # 基本的には set(itertools.permutations) と同じ
