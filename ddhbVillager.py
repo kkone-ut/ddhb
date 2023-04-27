@@ -25,6 +25,10 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
 
+from Util import Util
+from ScoreMatrix import ScoreMatrix
+from RolePredictor import RolePredictor
+
 # 村役職
 class ddhbVillager(AbstractPlayer):
     """ddhb villager agent."""
@@ -56,6 +60,8 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports = []
         self.identification_reports = []
         self.talk_list_head = 0
+
+        self.role_predictor = None
 
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
@@ -129,10 +135,27 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
 
+        self.score_matrix = ScoreMatrix(game_info, game_setting, self)
+        self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
+
+        Util.debug_print("------", game_info.my_role)
+
     # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
+
+        # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
+        # (self.game_info.executed_agent が昨夜処刑されたエージェント)
+        killed = self.game_info.last_dead_agent_list
+        if len(killed) > 0:
+            self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
+            Util.debug_print("Killed:", self.game_info.last_dead_agent_list[0])
+            # 本来複数人殺されることはないが、念のためkilled()は呼び出した上でエラーログを出しておく
+            if len(killed) > 1:
+                Util.error_print("Killed:", *self.game_info.last_dead_agent_list)
+        else:
+            Util.debug_print("Killed: None")
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -147,14 +170,27 @@ class ddhbVillager(AbstractPlayer):
             content: Content = Content.compile(tk.text)
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
+                self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
             elif content.topic == Topic.DIVINED:
                 self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
+                self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
+                self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
+            elif content.topic == Topic.VOTE:
+                self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.VOTED:
+                self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.GUARDED:
+                self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.ESTIMATE:
+                self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
+
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
     def talk(self) -> Content:
+        self.role_predictor.update(self.game_info, self.game_setting)
         # Choose an agent to be voted for while talking.
         #
         # The list of fake seers that reported me as a werewolf.

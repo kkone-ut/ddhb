@@ -63,6 +63,7 @@ class ddhbMedium(ddhbVillager):
             self.my_judge_queue.append(judge) # 結果追加
             if judge.result == Species.WEREWOLF: # 黒結果
                 self.found_wolf = True
+            self.score_matrix.my_identified(self.game_info, self.game_setting, judge.target, judge.result)
 
     # CO、結果報告
     def talk(self) -> Content:
