@@ -25,6 +25,7 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
 
+from Util import Util
 from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
 
@@ -144,7 +145,7 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
-        print("killed:", self.game_info.last_dead_agent_list[0] if len(self.game_info.last_dead_agent_list) == 1 else None)
+        Util.debug_print("killed:", self.game_info.last_dead_agent_list[0] if len(self.game_info.last_dead_agent_list) == 1 else None)
 
     # ゲーム情報の更新
     # talk-listの処理

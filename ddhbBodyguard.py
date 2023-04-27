@@ -20,6 +20,7 @@ from typing import List
 from aiwolf import Agent, GameInfo, GameSetting, Role, Species
 from aiwolf.constant import AGENT_NONE
 
+from Util import Util
 from ddhbVillager import ddhbVillager
 
 # 狩人
@@ -42,7 +43,7 @@ class ddhbBodyguard(ddhbVillager):
     def day_start(self) -> None:
         super().day_start()
 
-        print("guarded: ", self.game_info.guarded_agent)
+        Util.debug_print("guarded: ", self.game_info.guarded_agent)
 
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
@@ -71,7 +72,6 @@ class ddhbBodyguard(ddhbVillager):
         if self.to_be_guarded == AGENT_NONE or self.to_be_guarded not in candidates:
             self.to_be_guarded = self.random_select(candidates)
 
-        self.to_be_guarded = self.random_select(self.get_alive_others(self.game_info.agent_list))
         return self.to_be_guarded if self.to_be_guarded != AGENT_NONE else self.me
     
     # talk追加はありかも→白圧迫

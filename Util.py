@@ -4,6 +4,11 @@ from itertools import product
 
 class Util:
 
+    def debug_print(*args, **kwargs):
+        # デバッグログが要らない場合は次の行をコメントアウトする
+        print(*args, **kwargs)
+        pass
+
     # 基本的には set(itertools.permutations) と同じ
     # ただし、fixed_positions で指定した位置に固定値を入れることができる
     def unique_permutations(lst, fixed_positions=None):
