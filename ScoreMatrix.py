@@ -107,7 +107,7 @@ class ScoreMatrix:
             # 本物の占い師が人狼に白出しすることはないと仮定する
             self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -100)
         else:
-            Util.error('talk_divined: species is not Species.WEREWOLF or Species.HUMAN')
+            pass # 有益な情報ではないので無視する
 
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
@@ -116,7 +116,7 @@ class ScoreMatrix:
         elif species == Species.HUMAN:
             self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -100)
         else:
-            Util.error('talk_identified: species is not Species.WEREWOLF or Species.HUMAN')
+            pass # 有益な情報ではないので無視する
 
     # 1日目の終わりに推測する (主に5人村の場合)
 
@@ -132,4 +132,5 @@ class ScoreMatrix:
             self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
 
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
+        # latest_vote_list で参照できるので意味がないかも
         pass
