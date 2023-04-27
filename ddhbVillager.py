@@ -177,6 +177,15 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
+            elif content.topic == Topic.VOTE:
+                self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.VOTED:
+                self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.GUARDED:
+                self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target)
+            elif content.topic == Topic.ESTIMATE:
+                self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
+
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話

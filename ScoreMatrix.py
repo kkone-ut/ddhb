@@ -2,7 +2,9 @@ from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic)
 
 import numpy as np
+from Util import Util
 import ddhbVillager
+
 
 class ScoreMatrix:
 
@@ -53,6 +55,7 @@ class ScoreMatrix:
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
 
+    # 呼び出し未実装
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
         pass
 
@@ -66,7 +69,8 @@ class ScoreMatrix:
             # 人狼でないことが確定しているので、人狼のスコアを-inf(相対確率0)にする
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
         else:
-            pass # 万が一不確定(Species.UNC, Species.ANY)の場合は何もしない
+            # 万が一不確定(Species.UNC, Species.ANY)の場合
+            Util.error('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
     def my_identified(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         # my_divinedと同様
@@ -74,6 +78,8 @@ class ScoreMatrix:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, +float('inf'))
         elif species == Species.HUMAN:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
+        else:
+            Util.error('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
         # 護衛が成功したエージェントは人狼ではない
@@ -87,6 +93,9 @@ class ScoreMatrix:
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         pass
 
+    def talk_estimate(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, role: Role) -> None:
+        pass
+
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         if species == Species.WEREWOLF:
             # 本物の占い師が間違って黒出しする可能性を考慮してスコアに有限の値を加算する
@@ -96,7 +105,7 @@ class ScoreMatrix:
             # 本物の占い師が人狼に白出しすることはないと仮定する
             self.set_score(talker, Role.SEER, target, Role.WEREWOLF, -float('inf'))
         else:
-            pass
+            Util.error('talk_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
@@ -105,10 +114,11 @@ class ScoreMatrix:
         elif species == Species.HUMAN:
             self.set_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -float('inf'))
         else:
-            pass
+            Util.error('talk_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
     # 1日目の終わりに推測する (主に5人村の場合)
 
+    # 呼び出し未実装
     def first_turn_end(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         pass
 
