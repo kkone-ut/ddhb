@@ -24,6 +24,12 @@ class ScoreMatrix:
         self.medium_co_id = []
         self.bodyguard_co_count = 0
         self.bodyguard_co_id = []
+    
+    # スコアは相対確率の対数を表す
+    # スコア = log(相対確率)
+    # スコアの付け方
+    # 確定情報: +inf または -inf
+    # 非確定情報: 有限値 最大を100で統一する
 
     # スコアの取得
     # agent1, agent2: Agent or int
@@ -56,6 +62,7 @@ class ScoreMatrix:
         score = self.get_score(agent1, role1, agent2, role2) + score
         self.set_score(agent1, role1, agent2, role2, score)
     
+    # スコアの加算をまとめて行う
     def add_scores(self, talker: Agent, score_dict: Dict[Role, float]) -> None:
         for key, value in score_dict.items():
             self.add_scores(talker, key, talker, key, value)
