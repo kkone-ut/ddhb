@@ -12,23 +12,22 @@ class Assignment:
         self.score = 0
         self.assignment = _assignment
 
+    # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
     def __getitem__(self, i: int) -> Role:
         return self.assignment[i]
         
+    # 役職の割り当ての評価値を計算する
     def evaluate(self, score_matrix: ScoreMatrix) -> float:
-        # 役職の割り当ての評価値を計算する
         self.score = 0
         for i in range(self.N):
             for j in range(self.N):
                 self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
-                # self.score += score_matrix.score_matrix[i, score_matrix.rtoi[self.assignment[i]], j, score_matrix.rtoi[self.assignment[j]]]
         
         return self.score
     
-    # エージェントiとエージェントjの役職を入れ替える
-    # 全通りの割当を考える場合は不要
+    # エージェント i とエージェント j の役職を入れ替える
     def swap(self, i: int, j: int) -> None:
-        pass
+        self.assignment[i], self.assignment[j] = self.assignment[j], self.assignment[i]
 
     # リストをシャッフルする
     # fixed_positions で指定した位置はシャッフルしない

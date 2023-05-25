@@ -1,8 +1,6 @@
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
-import itertools
 import time
-import copy
 from collections import defaultdict
 
 from Util import Util
@@ -52,18 +50,22 @@ class RolePredictor:
         
         print("my role:", game_info.my_role)
         print("my idx:", self.me.agent_idx-1)
-            
+    
+    # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
 
-        # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
         time_start = time.time()
 
+        # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
         for assignment in self.assignments[:]:
             if assignment.evaluate(self.score_matrix) == -float('inf'):
                 self.assignments.remove(assignment)
 
+        # 新しい割り当てを追加する
         for _ in range(10):
             self.addAssignments(game_info, game_setting)
+        
+        # 評価値の高い順にソートして、上位500個だけ残す
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:500]
 
         time_end = time.time()
@@ -77,7 +79,7 @@ class RolePredictor:
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
         base = np.random.choice(self.assignments).assignment
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
-        times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値
+        times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
         assignment.shuffle(times, self.fixed_positions)
         self.assignments.append(assignment)
 
@@ -90,15 +92,17 @@ class RolePredictor:
         relative_prob = np.zeros(len(self.assignments))
         sum_relative_prob = 0
         for i, assignment in enumerate(self.assignments):
+            # スコアは対数尤度なので、exp して相対確率に変換する
             relative_prob[i] = np.exp(assignment.score)
             sum_relative_prob += relative_prob[i]
         
-        # 各割り当ての確率を計算する
+        # 各割り当ての相対確率を確率に変換する
         assignment_prob = np.zeros(len(self.assignments))
         for i in range(len(assignment_prob)):
             assignment_prob[i] = relative_prob[i] / sum_relative_prob
 
         # 各プレイヤーの役職の確率を計算する
+        # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
         probs = np.array([defaultdict[Role, float](float) for _ in range(self.N)])
 
         for i, assignment in enumerate(self.assignments):
@@ -107,6 +111,8 @@ class RolePredictor:
         
         return probs
     
+    # i 番目のプレイヤーが役職 role である確率を返す
+    # 複数回呼び出す場合は getProbAll() を呼んだほうが効率的
     def getProb(self, i: int, role: Role) -> float:
         p = self.getProbAll()
         return p[i][role]
