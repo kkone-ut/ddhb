@@ -11,6 +11,9 @@ class Assignment:
         self.me = _player.me
         self.score = 0
         self.assignment = _assignment
+
+    def __getitem__(self, i: int) -> Role:
+        return self.assignment[i]
         
     def evaluate(self, score_matrix: ScoreMatrix) -> float:
         # 役職の割り当ての評価値を計算する

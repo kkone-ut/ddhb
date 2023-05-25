@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 import time
 import copy
+from collections import defaultdict
 
 from Util import Util
 from Assignment import Assignment
@@ -12,6 +13,7 @@ from ScoreMatrix import ScoreMatrix
 class RolePredictor:
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
+        self.geme_setting = game_setting
         self.N = game_setting.player_num
         self.M = len(game_setting.role_num_map)
         self.player = _player
@@ -37,7 +39,7 @@ class RolePredictor:
         if self.N == 5:
             time_start = time.time()
             for p in Util.unique_permutations(assignment):
-                self.assignments.append(Assignment(game_info, game_setting, _player, p))
+                self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
             time_end = time.time()
             print('time: ', time_end - time_start)
             print(len(self.assignments))
@@ -68,6 +70,8 @@ class RolePredictor:
         Util.debug_print("len:", len(self.assignments))
         Util.debug_print("time:", time_end - time_start)
         Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
+
+        self.getProbAll()
     
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
@@ -77,16 +81,32 @@ class RolePredictor:
         assignment.shuffle(times, self.fixed_positions)
         self.assignments.append(assignment)
 
+    # 各プレイヤーの役職の確率を表す二次元配列を返す
+    # (実際には defaultdict[Role, float] の配列)
+    # p[i][r] は i 番目のプレイヤーが役職 r である確率 (i: int, r: Role)
     def getProbAll(self) -> np.ndarray:
-        prob = np.zeros(self.N, self.M)
-        return prob
-        # for assignment in self.assignments:
-        #     prob += assignment.getProb()
-        # return prob / len(self.assignments)
+
+        # 各割り当ての相対確率を計算する
+        relative_prob = np.zeros(len(self.assignments))
+        sum_relative_prob = 0
+        for i, assignment in enumerate(self.assignments):
+            relative_prob[i] = np.exp(assignment.score)
+            sum_relative_prob += relative_prob[i]
+        
+        # 各割り当ての確率を計算する
+        assignment_prob = np.zeros(len(self.assignments))
+        for i in range(len(assignment_prob)):
+            assignment_prob[i] = relative_prob[i] / sum_relative_prob
+
+        # 各プレイヤーの役職の確率を計算する
+        probs = np.array([defaultdict[Role, float](float) for _ in range(self.N)])
+
+        for i, assignment in enumerate(self.assignments):
+            for j in range(self.N):
+                probs[j][assignment[j]] += assignment_prob[i]
+        
+        return probs
     
     def getProb(self, i: int, role: Role) -> float:
-        prob = 0
-        return prob
-        # for assignment in self.assignments:
-        #     prob += assignment.getProb(i, role)
-        # return prob / len(self.assignments)
+        p = self.getProbAll()
+        return p[i][role]
