@@ -16,7 +16,8 @@ class Assignment:
         self.score = 0
         for i in range(self.N):
             for j in range(self.N):
-                self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                # self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                self.score += score_matrix.score_matrix[i, score_matrix.rtoi[self.assignment[i]], j, score_matrix.rtoi[self.assignment[j]]]
         
         return self.score
     

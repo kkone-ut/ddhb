@@ -186,6 +186,7 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
+        self.role_predictor.update(game_info, self.game_setting)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
