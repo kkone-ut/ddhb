@@ -145,6 +145,8 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
+        Util.debug_print("DayStart:", self.game_info.day)
+
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
         killed = self.game_info.last_dead_agent_list

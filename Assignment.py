@@ -1,5 +1,6 @@
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import ScoreMatrix
+import numpy as np
 
 class Assignment:
 
@@ -16,8 +17,8 @@ class Assignment:
         self.score = 0
         for i in range(self.N):
             for j in range(self.N):
-                # self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
-                self.score += score_matrix.score_matrix[i, score_matrix.rtoi[self.assignment[i]], j, score_matrix.rtoi[self.assignment[j]]]
+                self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                # self.score += score_matrix.score_matrix[i, score_matrix.rtoi[self.assignment[i]], j, score_matrix.rtoi[self.assignment[j]]]
         
         return self.score
     
@@ -25,3 +26,18 @@ class Assignment:
     # 全通りの割当を考える場合は不要
     def swap(self, i: int, j: int) -> None:
         pass
+
+    # リストをシャッフルする
+    # fixed_positions で指定した位置はシャッフルしない
+    def shuffle(self, times=-1, fixed_positions=[]):
+        times = times if times != -1 else self.N
+
+        a = np.arange(self.N)
+        a = np.setdiff1d(a, np.array(fixed_positions))
+
+        for _ in range(times):
+            i = np.random.randint(len(a))
+            j = np.random.randint(len(a))
+            i = a[i]
+            j = a[j]
+            self.assignment[i], self.assignment[j] = self.assignment[j], self.assignment[i]
