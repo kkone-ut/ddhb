@@ -36,27 +36,42 @@ class RolePredictor:
             print('time: ', time_end - time_start)
             print(len(self.assignments))
         else:
-            fixed_positions = {}
-            perms_gen = Util.unique_permutations_stack(assignment, fixed_positions)
-            time_start = time.time()
-            for p in perms_gen:
-                self.assignments.append(Assignment(game_info, game_setting, _player, p))
-                if time.time() - time_start > 0.01:
-                    break
-            time_end = time.time()
-            Util.debug_print("len:", len(self.assignments))
-            Util.debug_print("time:", time_end - time_start)
+            # fixed_positions = {}
+            # perms_gen = Util.unique_permutations_stack(assignment, fixed_positions)
+            # time_start = time.time()
+            # for p in perms_gen:
+            #     self.assignments.append(Assignment(game_info, game_setting, _player, p))
+            #     if time.time() - time_start > 0.01:
+            #         break
+            # time_end = time.time()
+            # Util.debug_print("len:", len(self.assignments))
+            # Util.debug_print("time:", time_end - time_start)
+            pass
             
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
 
         # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
-        time_start = time.time()
-        for assignment in self.assignments[:]:
-            if assignment.evaluate(self.score_matrix) == -float('inf'):
-                self.assignments.remove(assignment)
-        time_end = time.time()
-        Util.debug_print("len:", len(self.assignments))
-        Util.debug_print("time:", time_end - time_start)
-        Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
+        # time_start = time.time()
+        # for assignment in self.assignments[:]:
+        #     if assignment.evaluate(self.score_matrix) == -float('inf'):
+        #         self.assignments.remove(assignment)
+        # time_end = time.time()
+        # Util.debug_print("len:", len(self.assignments))
+        # Util.debug_print("time:", time_end - time_start)
+        # Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
 
         pass
+
+    def getProbAll(self) -> np.ndarray:
+        prob = np.zeros(self.N, self.M)
+        return prob
+        # for assignment in self.assignments:
+        #     prob += assignment.getProb()
+        # return prob / len(self.assignments)
+    
+    def getProb(self, i: int, role: Role) -> float:
+        prob = 0
+        return prob
+        # for assignment in self.assignments:
+        #     prob += assignment.getProb(i, role)
+        # return prob / len(self.assignments)
