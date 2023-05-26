@@ -18,7 +18,7 @@
 import random
 from typing import Dict, List
 
-from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
+from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
                     VoteContentBuilder)
 from aiwolf.constant import AGENT_NONE
@@ -50,7 +50,7 @@ class ddhbVillager(AbstractPlayer):
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
 
-    def __init__(self) -> None:
+    def __init__(self, game_setting: GameSetting) -> None:
         """Initialize a new instance of ddhbVillager."""
 
         self.me = AGENT_NONE
@@ -62,6 +62,11 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
 
         self.role_predictor = None
+        self.N = game_setting.player_num
+        self.M = len(game_setting.role_num_map)
+
+        # フルオープンしたかどうか
+        self.doFO = False
 
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
@@ -190,8 +195,28 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
+    # まだ実装途中です
     def talk(self) -> Content:
         self.role_predictor.update(self.game_info, self.game_setting)
+
+        # フルオープンの処理
+        if(self.doFO == False) :
+            self.doFO = True
+            return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
+        
+        # 元のコードでの投票先の決定
+        # RolePredictorにchoose_most_likely_werewolf()およびchoose_most_likely_executed()を記述していることを前提としている
+        c = 0
+
+        if (self.N == 5) :
+            c = self.role_predictor.chooseMostLikelyWolf
+        else :
+            c = self.role_predictor.chooseMostLikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
+            if (c == -1) :
+                c = self.role_predictor.chooseMostLikelyWolf
+
+
+
         # Choose an agent to be voted for while talking.
         #
         # The list of fake seers that reported me as a werewolf.
@@ -219,9 +244,18 @@ class ddhbVillager(AbstractPlayer):
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
-
+  
     def vote(self) -> Agent:
-        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        # RolePredictorにchoose_most_likely_werewolf()およびchoose_most_likely_executed()を記述していることを前提としている
+        c = 0
+        if self.N == 5:
+            c = self.role_predictor.choose_most_likely_werewolf()
+        else:
+            c = self.role_predictor.choose_most_likely_executed(len(self.game_info.alive_agent_list) * 0.5)
+            if c == -1:
+                c = self.role_predictor.choose_most_likely_werewolf()
+
+        return self.game_info.alive_agent_list[c]
 
     def attack(self) -> Agent:
         raise NotImplementedError()
