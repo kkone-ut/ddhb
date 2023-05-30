@@ -116,3 +116,8 @@ class RolePredictor:
     def getProb(self, i: int, role: Role) -> float:
         p = self.getProbAll()
         return p[i][role]
+    
+    # 指定された役職である確率が最も高いプレイヤーの番号を返す
+    def chooseMostLikely(self, role: Role) -> int:
+        p = self.getProbAll()
+        return np.argmax(p[:, role])
