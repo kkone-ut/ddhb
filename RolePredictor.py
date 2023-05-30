@@ -10,6 +10,11 @@ from ScoreMatrix import ScoreMatrix
 
 class RolePredictor:
 
+    # 保持しておく役職の割り当ての数
+    # これを超えたら評価の低いものから削除する
+    # 制限時間的に最大500個
+    ASSIGNMENT_NUM = 50
+
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
         self.geme_setting = game_setting
         self.N = game_setting.player_num
@@ -33,7 +38,7 @@ class RolePredictor:
 
         # assignment のすべての並び替えを列挙する
         # 5人村はすべて列挙する
-        # 15人村では重すぎるので、ランダムに500個だけ列挙し、少しずつ追加・削除を行う
+        # 15人村では重すぎるので、ランダムに ASSIGNMENT_NUM 個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
             time_start = time.time()
             for p in Util.unique_permutations(assignment):
@@ -42,7 +47,7 @@ class RolePredictor:
             print('time: ', time_end - time_start)
             print(len(self.assignments))
         else:
-            for _ in range(500):
+            for _ in range(self.ASSIGNMENT_NUM):
                 a = Assignment(game_info, game_setting, _player, np.copy(assignment))
                 a.shuffle(fixed_positions=self.fixed_positions)
                 self.assignments.append(a)
@@ -65,13 +70,14 @@ class RolePredictor:
         for _ in range(10):
             self.addAssignments(game_info, game_setting)
         
-        # 評価値の高い順にソートして、上位500個だけ残す
-        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:500]
+        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
+        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
         time_end = time.time()
-        Util.debug_print("len:", len(self.assignments))
-        Util.debug_print("time:", time_end - time_start)
-        Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
+        if time_end - time_start > 0.1:
+            Util.debug_print("len:", len(self.assignments))
+            Util.debug_print("time:", time_end - time_start)
+            Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
 
         self.getProbAll()
     
@@ -118,6 +124,6 @@ class RolePredictor:
         return p[i][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
-    def chooseMostLikely(self, role: Role) -> int:
+    def chooseMostLikely(self, role: Role) -> Agent:
         p = self.getProbAll()
-        return np.argmax(p[:, role])
+        return self.game_info.agent_list[np.argmax(p[:, role])]

@@ -50,7 +50,7 @@ class ddhbVillager(AbstractPlayer):
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
 
-    def __init__(self, game_setting: GameSetting) -> None:
+    def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
 
         self.me = AGENT_NONE
@@ -62,8 +62,6 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
 
         self.role_predictor = None
-        self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
 
         # フルオープンしたかどうか
         self.doFO = False
@@ -132,7 +130,7 @@ class ddhbVillager(AbstractPlayer):
     
     # 最も処刑されそうなエージェントを返す
     def chooseMostlikelyExecuted(self, n : float) -> Agent:
-        return self.random_select
+        return self.random_select(self.get_alive_others(self.game_info.agent_list))
         # max = 0
         # for i  in range(self.N):
         #     # 自分じゃないなら
@@ -154,6 +152,9 @@ class ddhbVillager(AbstractPlayer):
 
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
+
+        self.N = game_setting.player_num
+        self.M = len(game_setting.role_num_map)
 
         Util.debug_print("------", game_info.my_role)
 
@@ -259,15 +260,17 @@ class ddhbVillager(AbstractPlayer):
         return CONTENT_SKIP
   
     def vote(self) -> Agent:
-        c = 0
+        agent_vote_for: Agent = AGENT_NONE
         if self.N == 5:
-            c = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
         else:
-            c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
-            if c == -1:
-                c = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
+            if agent_vote_for == AGENT_NONE:
+                agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
 
-        return self.game_info.alive_agent_list[c]
+        Util.debug_print("vote", agent_vote_for)
+
+        return agent_vote_for
 
     def attack(self) -> Agent:
         raise NotImplementedError()
