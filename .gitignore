@@ -4,3 +4,4 @@ env/
 test.py
 *.code-workspace
 __pycache__/
+AIWolf-ver0.6.3/
