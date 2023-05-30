@@ -16,8 +16,8 @@ class ScoreMatrix:
         # -infで相対確率は0になる
         self.score_matrix: np.ndarray = np.zeros((self.N, self.M, self.N, self.M))
         self.player = _player
-        self.me = _player.me
-        self.my_role = _player.my_role
+        self.me = _player.me # 自身のエージェント
+        self.my_role = game_info.my_role # 自身の役職
         self.rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
         self.seer_co_count = 0
         self.seer_co_id = []
@@ -64,9 +64,9 @@ class ScoreMatrix:
         self.set_score(agent1, role1, agent2, role2, score)
     
     # スコアの加算をまとめて行う
-    def add_scores(self, talker: Agent, score_dict: Dict[Role, float]) -> None:
+    def add_scores(self, agent: Agent, score_dict: Dict[Role, float]) -> None:
         for key, value in score_dict.items():
-            self.add_scores(talker, key, talker, key, value)
+            self.add_score(agent, key, agent, key, value)
 
 
     # 公開情報から推測する
@@ -240,10 +240,36 @@ class ScoreMatrix:
                 self.add_scores(talker, {Role.VILLAGER: +10})
 
 
-
+    # 投票意思を反映
+    # 
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
-        pass
+        N = self.N
+        if talker == self.me:
+            # 自分の投票意思は無視
+            return
+        if N == 5:
+            # 同じ対象に二回目以降の投票意思は無視→これは後で作る
+            
+            # 発言者が村人・占い師で、対象が人狼である確率を上げる
+            self.add_score(talker, Role.VILLAGER, target, Role.WEREWOLF, 0.1)
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, 1)
+            # 人狼は投票意思を示しがちだから、人狼である確率を上げる
+            self.add_scores(talker, {Role.WEREWOLF: 1})
+        elif N == 15:
+            # 同じ対象に二回目以降の投票意思は無視→これは後で作る
+            
+            # 発言者の役職ごとに、対象が人狼である確率を上げる
+            self.add_score(talker, Role.VILLAGER, target, Role.WEREWOLF, 0.005)
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, 0.02)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, 0.01)
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, 0.01)
+            # 人狼は投票意思を示しがちだから、人狼である確率を上げる
+            self.add_scores(talker, {Role.WEREWOLF: 0.01})
+            
+            
 
+
+    # Basketにないため、後で実装する
     def talk_estimate(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, role: Role) -> None:
         pass
 
@@ -282,7 +308,7 @@ class ScoreMatrix:
                 if species == Species.WEREWOLF:
                     if target == self.me:
                         # talkerの占い師である確率を下げる（結果の矛盾が起こっているから、値を大きくしている）
-                        self.add_score(talker, {Role.SEER: -50})
+                        self.add_scores(talker, {Role.SEER: -50})
                     else:
                         # talkerが占い師で、targetが人狼である確率を上げる
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
@@ -291,7 +317,7 @@ class ScoreMatrix:
                 elif species == Species.HUMAN:
                     if target == self.me:
                         # talkerの占い師である確率を上げる
-                        self.add_score(talker, {Role.SEER: +5, Role.POSSESSED: +1})
+                        self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
                     else:
                         # talkerが占い師で、targetが人狼である確率を下げる
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
@@ -314,13 +340,13 @@ class ScoreMatrix:
             else:
                 if species == Species.WEREWOLF:
                     if target == self.me:
-                        self.add_score(talker, {Role.SEER: -50})
+                        self.add_scores(talker, {Role.SEER: -50})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
                         self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
                 elif species == Species.HUMAN:
                     if target == self.me:
-                        self.add_score(talker, {Role.SEER: +5, Role.POSSESSED: +1})
+                        self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
                         self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
@@ -347,7 +373,7 @@ class ScoreMatrix:
         N = self.N
         if N == 5:
             for i in range(N):
-                my_role = game_info.role_map[i]
+                my_role = self.my_role
                 # 占いCOをしていない人の確率を操作する
                 if i not in self.seer_co_id:
                     # 占い師、人狼、狂人である確率を下げる
