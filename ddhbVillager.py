@@ -220,14 +220,14 @@ class ddhbVillager(AbstractPlayer):
             return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
         
         # 元のコードでの投票先の決定
-        c = 0
+        # c = 0
 
-        if (self.N == 5) :
-            c = self.role_predictor.chooseMostLikely(Role.Werewolf)
-        else :
-            c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
-            if (c == -1) :
-                c = self.role_predictor.chooseMostLikely(Role.Werewolf)
+        # if (self.N == 5) :
+        #     c = self.role_predictor.chooseMostLikely(Role.Werewolf)
+        # else :
+        #     c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
+        #     if (c == -1) :
+        #         c = self.role_predictor.chooseMostLikely(Role.Werewolf)
 
 
 
