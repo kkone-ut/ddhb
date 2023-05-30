@@ -84,10 +84,12 @@ class ScoreMatrix:
         if voter == self.me:
             # 自分の投票行動は無視
             return
-        if my_role == Role.VILLAGER:
-            self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
-        if my_role == Role.WEREWOLF:
-            self.add_score(voter, Role.)
+        if N == 5:
+            # 自分の役職によってスコアを変える
+            if my_role == Role.VILLAGER:
+                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
+            if my_role == Role.WEREWOLF:
+                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, -0.1)
         # pass
 
     # 自身の能力の結果から推測する
