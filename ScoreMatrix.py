@@ -76,9 +76,21 @@ class ScoreMatrix:
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
 
-    # 呼び出し未実装
+
+    # 投票行動を反映
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
-        pass
+        N = self.N
+        my_role = self.my_role
+        if voter == self.me:
+            # 自分の投票行動は無視
+            return
+        if N == 5:
+            # 自分の役職によってスコアを変える
+            if my_role == Role.VILLAGER:
+                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
+            if my_role == Role.WEREWOLF:
+                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, -0.1)
+        # pass
 
     # 自身の能力の結果から推測する
     # 確定情報なのでスコアを +inf または -inf にする
@@ -241,7 +253,7 @@ class ScoreMatrix:
 
 
     # 投票意思を反映
-    # 
+    # それほど重要ではないため、スコアの更新は少しにする
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         N = self.N
         if talker == self.me:
@@ -263,10 +275,11 @@ class ScoreMatrix:
             self.add_score(talker, Role.SEER, target, Role.WEREWOLF, 0.02)
             self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, 0.01)
             self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, 0.01)
+            # 人狼のライン切りを反映する？
+            
             # 人狼は投票意思を示しがちだから、人狼である確率を上げる
             self.add_scores(talker, {Role.WEREWOLF: 0.01})
-            
-            
+
 
 
     # Basketにないため、後で実装する
@@ -393,11 +406,13 @@ class ScoreMatrix:
 
     # 新プロトコルでの発言に対応する
     
+    # 護衛成功発言を反映
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         if len(game_info.last_dead_agent_list) == 0:
             # 護衛が成功していたら護衛対象は人狼ではない
             self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
 
+    # 投票した発言を反映
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
         pass
