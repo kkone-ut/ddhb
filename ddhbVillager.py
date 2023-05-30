@@ -129,6 +129,18 @@ class ddhbVillager(AbstractPlayer):
             A agent randomly chosen from agent_list.
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
+    
+    # 最も処刑されそうなエージェントを返す
+    def chooseMostlikelyExecuted(self, n : float) -> Agent:
+        return self.random_select
+        # max = 0
+        # for i  in range(self.N):
+        #     # 自分じゃないなら
+        #     if (agent_list[i] != self.me) :
+        #         #　生きているなら
+        #         if (self.is_alive(agent_list[i])) :
+        #             # (そのプレイヤーに投票宣言している人の数) + (人狼の可能性 ※0~1の間)
+        #             score = self.score_matrix.talk_will_vote(i) + self.role_predictor.getProb(i, Role.WEREWOLF)
 
     # 初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -207,15 +219,14 @@ class ddhbVillager(AbstractPlayer):
             return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
         
         # 元のコードでの投票先の決定
-        # RolePredictorにchoose_most_likely_werewolf()およびchoose_most_likely_executed()を記述していることを前提としている
         c = 0
 
         if (self.N == 5) :
-            c = self.role_predictor.chooseMostLikelyWolf
+            c = self.role_predictor.chooseMostLikely(Role.Werewolf)
         else :
-            c = self.role_predictor.chooseMostLikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
+            c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
             if (c == -1) :
-                c = self.role_predictor.chooseMostLikelyWolf
+                c = self.role_predictor.chooseMostLikely(Role.Werewolf)
 
 
 
@@ -248,14 +259,13 @@ class ddhbVillager(AbstractPlayer):
         return CONTENT_SKIP
   
     def vote(self) -> Agent:
-        # RolePredictorにchoose_most_likely_werewolf()およびchoose_most_likely_executed()を記述していることを前提としている
         c = 0
         if self.N == 5:
-            c = self.role_predictor.choose_most_likely_werewolf()
+            c = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
         else:
-            c = self.role_predictor.choose_most_likely_executed(len(self.game_info.alive_agent_list) * 0.5)
+            c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
             if c == -1:
-                c = self.role_predictor.choose_most_likely_werewolf()
+                c = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
 
         return self.game_info.alive_agent_list[c]
 
