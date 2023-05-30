@@ -17,6 +17,7 @@ class RolePredictor:
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
         self.geme_setting = game_setting
+        self.game_info = game_info
         self.N = game_setting.player_num
         self.M = len(game_setting.role_num_map)
         self.player = _player
@@ -58,6 +59,8 @@ class RolePredictor:
     
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+
+        self.game_info = game_info
 
         time_start = time.time()
 
@@ -126,4 +129,8 @@ class RolePredictor:
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
     def chooseMostLikely(self, role: Role) -> Agent:
         p = self.getProbAll()
-        return self.game_info.agent_list[np.argmax(p[:, role])]
+        idx = 0
+        for i in range(self.N):
+            if p[i][role] > p[idx][role]:
+                idx = i
+        return self.game_info.agent_list[idx]
