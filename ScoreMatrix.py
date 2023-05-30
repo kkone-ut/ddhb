@@ -72,13 +72,14 @@ class ScoreMatrix:
 
     # 公開情報から推測する
 
-    # 襲撃結果を反映
+    # 襲撃結果を反映→OK
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
 
 
-    # 投票行動を反映
+    # 投票行動を反映→とりあえずOK
+    # 後で修正する
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
         N = self.N
         my_role = self.my_role
@@ -86,17 +87,24 @@ class ScoreMatrix:
             # 自分の投票行動は無視
             return
         if N == 5:
-            # 自分の役職によってスコアを変える
-            if my_role == Role.VILLAGER:
-                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
-            if my_role == Role.WEREWOLF:
-                self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, -0.1)
+            # 投票者が村陣営で、投票対象が人狼である確率を上げる
+            self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
+            self.add_score(voter, Role.SEER, target, Role.WEREWOLF, +0.3)
+        elif N == 15:
+            # 投票者が村陣営で、投票対象が人狼である確率を上げる
+            self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, +0.1)
+            self.add_score(voter, Role.SEER, target, Role.WEREWOLF, +0.2)
+            self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, +0.1)
+            self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, +0.1)
+            # 人狼が仲間の人狼に投票する確率は低い
+            self.add_score(voter, Role.WEREWOLF, target, Role.WEREWOLF, -0.3)
         # pass
 
     # 自身の能力の結果から推測する
     # 確定情報なのでスコアを +inf または -inf にする
     
-    # 自分の占い結果を反映
+    # 自分の占い結果を反映→OK
+    # 結果騙りは考慮しない
     def my_divined(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         if species == Species.WEREWOLF:
             # 人狼であることが確定しているので、人狼のスコアを+inf(実際には他の役職のスコアを-inf(相対確率0)にする)
@@ -108,7 +116,8 @@ class ScoreMatrix:
             # 万が一不確定(Species.UNC, Species.ANY)の場合
             Util.error('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
-    # 自分の霊媒結果を反映
+    # 自分の霊媒結果を反映→OK
+    # 結果騙りは考慮しない
     def my_identified(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         # my_divinedと同様
         if species == Species.WEREWOLF:
@@ -118,7 +127,8 @@ class ScoreMatrix:
         else:
             Util.error('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
-    # 自分の護衛結果を反映
+    # 自分の護衛結果を反映→OK
+    # 人狼の自噛みはルール上なし
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
         # 護衛が成功したエージェントは人狼ではない
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
@@ -253,7 +263,7 @@ class ScoreMatrix:
                 self.add_scores(talker, {Role.VILLAGER: +10})
 
 
-    # 投票意思を反映
+    # 投票意思を反映→OK
     # それほど重要ではないため、スコアの更新は少しにする
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         N = self.N
@@ -380,20 +390,20 @@ class ScoreMatrix:
 
     # 1日目の終わりに推測する (主に5人村の場合)
 
-    # 5人村の場合、1日目の終わりに推測する
+    # 5人村の場合、1日目の終わりに推測する→とりあえずOK
     # ここは後で5人村用に最適化する
     def first_turn_end(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         # 5人村の場合、1日目の終わりに推測する
         N = self.N
+        my_role = self.my_role
         if N == 5:
             for i in range(N):
-                my_role = self.my_role
                 # 占いCOをしていない人の確率を操作する
                 if i not in self.seer_co_id:
                     # 占い師、人狼、狂人である確率を下げる
                     self.add_scores(i, {Role.SEER: -10, Role.WEREWOLF: -5, Role.POSSESSED: -10})
                 # 占いCOをしている人の確率を操作する
-                if i in self.seer_co_id:
+                elif i in self.seer_co_id:
                     # 自分のCOは無視
                     if i == self.me:
                         continue
@@ -407,13 +417,14 @@ class ScoreMatrix:
 
     # 新プロトコルでの発言に対応する
     
-    # 護衛成功発言を反映
+    # 護衛成功発言を反映→OK
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         if len(game_info.last_dead_agent_list) == 0:
             # 護衛が成功していたら護衛対象は人狼ではない
             self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
 
     # 投票した発言を反映
+    # 後で実装する→そんなに重要でない
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
         pass
