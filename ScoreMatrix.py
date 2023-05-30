@@ -8,6 +8,7 @@ from typing import Dict
 
 
 class ScoreMatrix:
+    # コメント
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
         self.N = game_setting.player_num
