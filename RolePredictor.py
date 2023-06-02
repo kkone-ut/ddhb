@@ -15,8 +15,22 @@ class RolePredictor:
     # 制限時間的に最大500個
     ASSIGNMENT_NUM = 50
 
+    def get_initail_assignment(self) -> np.ndarray:
+        # 役職の割り当ての初期値を設定する
+        # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
+        assignment = np.array([], dtype=Role)
+        for role, num in self.game_setting.role_num_map.items():
+            # self.assignment に num 個だけ role を追加する
+            assignment = np.append(assignment, np.full(num, role))
+
+        # プレイヤーの位置を固定する
+        idx = np.where(assignment == self.game_info.my_role)[0][0]
+        assignment[self.me.agent_idx-1], assignment[idx] = assignment[idx], assignment[self.me.agent_idx-1]
+
+        return assignment
+
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
-        self.geme_setting = game_setting
+        self.game_setting = game_setting
         self.game_info = game_info
         self.N = game_setting.player_num
         self.M = len(game_setting.role_num_map)
@@ -26,16 +40,7 @@ class RolePredictor:
         self.score_matrix = _score_matrix
         self.fixed_positions = [self.me.agent_idx-1]
 
-        # 役職の割り当ての初期値を設定する
-        # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
-        assignment = np.array([], dtype=Role)
-        for role, num in game_setting.role_num_map.items():
-            # self.assignment に num 個だけ role を追加する
-            assignment = np.append(assignment, np.full(num, role))
-
-        # プレイヤーの位置を固定する
-        idx = np.where(assignment == game_info.my_role)[0][0]
-        assignment[self.me.agent_idx-1], assignment[idx] = assignment[idx], assignment[self.me.agent_idx-1]
+        assignment = self.get_initail_assignment()
 
         # assignment のすべての並び替えを列挙する
         # 5人村はすべて列挙する
@@ -86,13 +91,16 @@ class RolePredictor:
     
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
-        try:
+        if len(self.assignments) == 0:
+            # もし割り当てがないなら、初期割り当てをシャッフルして追加する
+            base = self.get_initail_assignment()
+            times = self.N
+        else:
+            # 割り当てがあるなら、ランダムに選んで少しだけシャッフルして追加する
             base = np.random.choice(self.assignments).assignment
-        except ValueError:
-            Util.error_print("ValueError", len(self.assignments))
-            exit(1)
+            times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
+        
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
-        times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
         assignment.shuffle(times, self.fixed_positions)
         if assignment in self.assignments:
             return
