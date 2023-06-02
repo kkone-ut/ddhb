@@ -52,7 +52,7 @@ class RolePredictor:
                 a = Assignment(game_info, game_setting, _player, np.copy(assignment))
                 a.shuffle(fixed_positions=self.fixed_positions)
                 self.assignments.append(a)
-                print(a.assignment)
+                Util.debug_print(a)
         
         print("my role:", game_info.my_role)
         print("my idx:", self.me.agent_idx-1)
@@ -64,14 +64,14 @@ class RolePredictor:
 
         time_start = time.time()
 
+        # 新しい割り当てを追加する
+        for _ in range(10):
+            self.addAssignments(game_info, game_setting)
+
         # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
         for assignment in self.assignments[:]:
             if assignment.evaluate(self.score_matrix) == -float('inf'):
                 self.assignments.remove(assignment)
-
-        # 新しい割り当てを追加する
-        for _ in range(10):
-            self.addAssignments(game_info, game_setting)
         
         # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
@@ -86,10 +86,16 @@ class RolePredictor:
     
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
-        base = np.random.choice(self.assignments).assignment
+        try:
+            base = np.random.choice(self.assignments).assignment
+        except ValueError:
+            Util.error_print("ValueError", len(self.assignments))
+            exit(1)
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
         times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
         assignment.shuffle(times, self.fixed_positions)
+        if assignment in self.assignments:
+            return
         self.assignments.append(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す
@@ -102,7 +108,10 @@ class RolePredictor:
         sum_relative_prob = 0
         for i, assignment in enumerate(self.assignments):
             # スコアは対数尤度なので、exp して相対確率に変換する
-            relative_prob[i] = np.exp(assignment.score)
+            try:
+                relative_prob[i] = np.exp(assignment.score)
+            except RuntimeWarning:
+                Util.error_print("OverflowError", assignment.score)
             sum_relative_prob += relative_prob[i]
         
         # 各割り当ての相対確率を確率に変換する
