@@ -7,10 +7,11 @@ log=./log/
 setting=./SampleSetting.cfg
 client=false
 loop=false
+otherAgents="basket"
 
 help=false
 
-while getopts ":p:n:vg:clh" opt; do
+while getopts ":p:n:vg:a:clh" opt; do
   case $opt in
     p) port="$OPTARG"
     ;;
@@ -19,6 +20,8 @@ while getopts ":p:n:vg:clh" opt; do
     v) view="true"
     ;;
     g) game="$OPTARG"
+    ;;
+    a) otherAgents="$OPTARG"
     ;;
     c) client="true"
     ;;
@@ -59,15 +62,28 @@ echo "agent=${n}" >> AutoStarter.ini
 for i in $(seq 1 $n)
 do
     if [ "$i" -ne "$n" ] || ! "$client"; then
-        # echo "BasketPlayer${i},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
-        # echo "WasabiPlayer${i},java,jp.ac.shibaura_it.ma15082.player.WasabiRoleAssignPlayer" >> AutoStarter.ini
-        # echo "TomatoPlayer${i},java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini
-        # echo "IOHPlayer${i},java,org.aiwolf.IOH.IOHRoleAssignPlayer" >> AutoStarter.ini
-        # echo "KarmaPlayer${i},java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
-        # echo "TOKUPlayer${i},java,org.aiwolf.TOKU.TOKURoleAssginPlayer" >> AutoStarter.ini # TOKURoleAssginPlayer (スペルミス)
-        # echo "CamelliaPlayer${i},java,camellia.aiwolf.demo.DemoRoleAssignPlayer" >> AutoStarter.ini
-        # echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
-        echo "PythonPlayer${i},python,../start.py" >> AutoStarter.ini
+        if [ "$otherAgents" = "basket" ]; then
+            echo "BasketPlayer${i},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "wasabi" ]; then
+            echo "WasabiPlayer${i},java,jp.ac.shibaura_it.ma15082.player.WasabiRoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "tomato" ]; then
+            echo "TomatoPlayer${i},java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "ioh" ]; then
+            echo "IOHPlayer${i},java,org.aiwolf.IOH.IOHRoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "karma" ]; then
+            echo "KarmaPlayer${i},java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "toku" ]; then
+            echo "TOKUPlayer${i},java,org.aiwolf.TOKU.TOKURoleAssginPlayer" >> AutoStarter.ini # TOKURoleAssginPlayer (スペルミス)
+        elif [ "$otherAgents" = "camellia" ]; then
+            echo "CamelliaPlayer${i},java,camellia.aiwolf.demo.DemoRoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "daisyo" ]; then
+            echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
+        elif [ "$otherAgents" = "ddhb" ]; then
+            echo "PythonPlayer${i},python,../start.py" >> AutoStarter.ini
+        else
+            echo Agent \"$otherAgents\" is not supported.
+            exit 1
+        fi
     fi
 done
 
