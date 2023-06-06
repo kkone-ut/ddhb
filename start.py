@@ -25,6 +25,7 @@ from ddhbPlayer import ddhbPlayer
 import warnings
 
 if __name__ == "__main__":
+    # 警告をエラーとして扱う (デバッグ用)
     warnings.simplefilter('error')
 
     agent: AbstractPlayer = ddhbPlayer()
