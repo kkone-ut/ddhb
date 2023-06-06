@@ -206,12 +206,15 @@ class ddhbVillager(AbstractPlayer):
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
                 self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
+                Util.debug_print("CO:", talker, content.role)
             elif content.topic == Topic.DIVINED:
                 self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
+                Util.debug_print("DIVINED:", talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
+                Util.debug_print("IDENTIFIED:", talker, content.target, content.result)
             elif content.topic == Topic.VOTE:
                 # 古い投票先が上書きされる前にスコアを更新 (2回以上投票宣言している場合に信頼度を下げるため)
                 self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
@@ -221,6 +224,7 @@ class ddhbVillager(AbstractPlayer):
                 self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
             elif content.topic == Topic.GUARDED:
                 self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target)
+                Util.debug_print("GUARDED:", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
@@ -231,6 +235,7 @@ class ddhbVillager(AbstractPlayer):
     # 会話
     # まだ実装途中です
     def talk(self) -> Content:
+        # オーバーライドしたときもこのメソッドは呼び出さなければいけない (スコアの更新が行われなくなるため)
         self.role_predictor.update(self.game_info, self.game_setting)
 
         # フルオープンの処理
@@ -336,12 +341,26 @@ class ddhbVillager(AbstractPlayer):
                 score += 1
             elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM:
                 for r in Util.rtoi.keys():
-                    Util.debug_print(i+1, r, self.role_predictor.getProb(i, r))
+                    Util.debug_print(i+1, r, self.score_matrix.get_score(i, r, i, r), self.role_predictor.getProb(i, r))
         Util.debug_print("score", score, "/", self.N)
         Util.debug_print("")
 
         # 実際の割り当てが予測の割り当てに含まれていたのか
         Util.debug_print("in role_predictor.assignments:", actual_assignment in self.role_predictor.assignments)
+        Util.debug_print("")
+
+        # もし含まれていないなら、含まれていたときのスコアを表示
+        if actual_assignment not in self.role_predictor.assignments:
+            actual_assignment.evaluate(self.score_matrix)
+        
+        # 予測の割り当てのスコアを表示 (デバッグモード)
+        predicted_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("predicted score:", predicted_assignment.score)
+        Util.debug_print("")
+
+        # 実際の割り当てのスコアを表示 (デバッグモード)
+        actual_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("actual score:", actual_assignment.score)
         Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック

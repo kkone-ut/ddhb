@@ -1,7 +1,7 @@
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import ScoreMatrix
 import numpy as np
-import Util
+from Util import Util
 
 class Assignment:
 
@@ -35,11 +35,13 @@ class Assignment:
                 return self.assignment[0]
         
     # 役職の割り当ての評価値を計算する
-    def evaluate(self, score_matrix: ScoreMatrix) -> float:
+    def evaluate(self, score_matrix: ScoreMatrix, debug = False) -> float:
         self.score = 0
         for i in range(self.N):
             for j in range(self.N):
                 self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 0.45:
+                    Util.debug_print("score_matrix.get_score(", i, self.assignment[i], j, self.assignment[j], ") = ", score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]))
         
         return self.score
     
