@@ -15,7 +15,7 @@ class RolePredictor:
     # 保持しておく役職の割り当ての数
     # これを超えたら評価の低いものから削除する
     # 制限時間的に最大500個
-    ASSIGNMENT_NUM = 50
+    ASSIGNMENT_NUM = 500
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -59,7 +59,7 @@ class RolePredictor:
                 a = Assignment(game_info, game_setting, _player, np.copy(assignment))
                 a.shuffle(fixed_positions=self.fixed_positions)
                 self.assignments.append(a)
-                Util.debug_print(a)
+                # Util.debug_print(a)
         
         print("my role:", game_info.my_role)
         print("my idx:", self.me.agent_idx-1)
@@ -70,10 +70,6 @@ class RolePredictor:
         self.game_info = game_info
 
         time_start = time.time()
-
-        # 新しい割り当てを追加する
-        for _ in range(10):
-            self.addAssignments(game_info, game_setting)
 
         # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
         for assignment in self.assignments[:]:
@@ -90,22 +86,39 @@ class RolePredictor:
             Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
 
         self.getProbAll()
+
+    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+        time_start = time.time()
+
+        # 新しい割り当てを追加する
+        for _ in range(50):
+            self.addAssignment(game_info, game_setting)
+        
+        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
+        # ここではスコアの更新は行わない
+        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
+
+        time_end = time.time()
+        if time_end - time_start > 0.1:
+            Util.debug_print("time:", time_end - time_start)
+            Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
     
     # 今ある割り当てを少しだけ変更して追加する
-    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
+    def addAssignment(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
         if len(self.assignments) == 0:
             # もし割り当てがないなら、初期割り当てをシャッフルして追加する
             base = self.get_initail_assignment()
             times = self.N
         else:
             # 割り当てがあるなら、ランダムに選んで少しだけシャッフルして追加する
-            base = np.random.choice(self.assignments).assignment
+            base = np.random.choice(self.assignments[:50]).assignment
             times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
         
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
         assignment.shuffle(times, self.fixed_positions)
         if assignment in self.assignments:
             return
+        assignment.evaluate(self.score_matrix)
         self.assignments.append(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す

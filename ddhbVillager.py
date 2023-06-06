@@ -169,8 +169,6 @@ class ddhbVillager(AbstractPlayer):
         
         self.agent_idx_0based = self.me.agent_idx - 1
 
-        Util.debug_print("------", game_info.my_role)
-
     # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
@@ -226,7 +224,8 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
-        self.role_predictor.update(game_info, self.game_setting)
+        self.role_predictor.addAssignments(self.game_info, self.game_setting)
+        # self.role_predictor.update(game_info, self.game_setting)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
@@ -307,25 +306,52 @@ class ddhbVillager(AbstractPlayer):
     def finish(self) -> None:
         Util.debug_print("")
         p = self.role_predictor.getProbAll()
-        for a, r in self.game_info.role_map.items():
-            Util.debug_print("Agent:", a)
-            Util.debug_print("Role:", r)
-            Util.debug_print("Prob:", p[a][r])
-            likely_role = self.role_predictor.getMostLikelyRole(a)
-            Util.debug_print("MostLikely", likely_role)
-            Util.debug_print("Prob:", p[a][likely_role])
-            Util.debug_print("")
+        # for a, r in self.game_info.role_map.items():
+        #     Util.debug_print("Agent:", a)
+        #     Util.debug_print("Role:", r)
+        #     Util.debug_print("Prob:", p[a][r])
+        #     likely_role = self.role_predictor.getMostLikelyRole(a)
+        #     Util.debug_print("MostLikely", likely_role)
+        #     Util.debug_print("Prob:", p[a][likely_role])
+        #     Util.debug_print("")
+
+        for a, r in self.comingout_map.items():
+            Util.debug_print("CO:", a, r)
+        Util.debug_print("")
+
+        # 実際の割り当てと予測の割り当てを比較
         assignment = []
         for a, r in self.game_info.role_map.items():
             assignment.append(r)
-        assignment = Assignment(self.game_info, self.game_setting, self, assignment)
-        Util.debug_print("assignment(actual):\t", assignment)
-        Util.debug_print("assignment(predicted):\t", self.role_predictor.assignments[0])
-        # self.role_predictor.assignments[0]とassignmentの一致率を計算
+        actual_assignment = Assignment(self.game_info, self.game_setting, self, assignment)
+        predicted_assignment = self.role_predictor.assignments[0]
+        Util.debug_print("                   \t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
+        Util.debug_print("assignment(actual):\t", actual_assignment)
+        Util.debug_print("assignment(predicted):\t", predicted_assignment)
+        
+        # 一致率を計算
         score = 0
         for i in range(self.N):
-            if self.role_predictor.assignments[0][i] == assignment[i]:
+            if predicted_assignment[i] == actual_assignment[i]:
                 score += 1
+            elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM:
+                for r in Util.rtoi.keys():
+                    Util.debug_print(i+1, r, self.role_predictor.getProb(i, r))
         Util.debug_print("score", score, "/", self.N)
+        Util.debug_print("")
+
+        # 実際の割り当てが予測の割り当てに含まれていたのか
+        Util.debug_print("in role_predictor.assignments:", actual_assignment in self.role_predictor.assignments)
+        Util.debug_print("")
+
+        # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
+        for a in self.game_info.agent_list:
+            if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and (a not in self.comingout_map or predicted_assignment[a] != self.comingout_map[a]):
+                Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
+        Util.debug_print("")
+
         Util.debug_print("finish")
+        Util.debug_print("---------")
+        Util.debug_print("")
+
         pass
