@@ -6,7 +6,7 @@ import numpy as np
 from Util import Util
 import ddhbVillager
 from typing import Dict
-
+from Side import Side
 
 class ScoreMatrix:
     # コメント
@@ -63,6 +63,24 @@ class ScoreMatrix:
     # agent1, agent2: Agent or int
     # role1, rold2: Role or int or list (todo: Species, Side)
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
+        if type(role1) is Side:
+            role1 = role1.get_role_list(self.N)
+        if type(role2) is Side:
+            role2 = role2.get_role_list(self.N)
+        if type(role1) is Species:
+            if role1 == Species.HUMAN:
+                role1 = Side.VILLAGERS.get_role_list(self.N) + [Role.POSSESSED]
+            elif role1 == Species.WEREWOLF:
+                role1 = Role.WEREWOLF
+            else:
+                Util.error_print('role1 is not Species.HUMAN or Species.WEREWOLF')
+        if type(role2) is Species:
+            if role2 == Species.HUMAN:
+                role2 = Side.VILLAGERS.get_role_list(self.N) + [Role.POSSESSED]
+            elif role2 == Species.WEREWOLF:
+                role2 = Role.WEREWOLF
+            else:
+                Util.error_print('role2 is not Species.HUMAN or Species.WEREWOLF')
         if type(role1) is not list:
             role1 = [role1]
         if type(role2) is not list:
@@ -391,6 +409,9 @@ class ScoreMatrix:
                         self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
                         # review: 逆に target が人間だったときに talker が人狼陣営である可能性を上げておくべきか
                         # review: self.add_score(target, 市民陣営, talker, 人狼陣営, +5) のような感じ
+                        self.add_score(talker, Role.SEER, target, Species.HUMAN, -5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
                 elif species == Species.HUMAN:
                     if target == self.me:
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
@@ -398,16 +419,28 @@ class ScoreMatrix:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
                         self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
                         # review: こっちも逆を考えるべきか
+                        self.add_score(talker, Role.SEER, target, Species.HUMAN, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
 
 
     # 他者の霊媒結果を反映
     # 後でtalk_divinedと同じように条件分岐する
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
+        # review: 試しに逆を追加してみた
         if species == Species.WEREWOLF:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +100)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
+
+            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
+            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
         elif species == Species.HUMAN:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -100)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
+
+            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
+            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
         else:
             pass # 有益な情報ではないので無視する
 
