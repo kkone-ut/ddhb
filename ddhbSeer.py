@@ -41,6 +41,7 @@ class ddhbSeer(ddhbVillager):
     werewolves: List[Agent] # 人狼結果のエージェント
     """Found werewolves."""
 
+
     def __init__(self) -> None:
         """Initialize a new instance of ddhbSeer."""
         super().__init__()
@@ -57,6 +58,7 @@ class ddhbSeer(ddhbVillager):
         self.my_judge_queue.clear()
         self.not_divined_agents = self.get_others(self.game_info.agent_list)
         self.werewolves.clear()
+
 
     def day_start(self) -> None:
         super().day_start()
@@ -80,6 +82,13 @@ class ddhbSeer(ddhbVillager):
         if not self.has_co and (self.game_info.day == self.co_date or self.werewolves):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.SEER))
+        # 追加：他の占い師がCOしたら
+        # 注意：comingout_mapには、自分は含まれていない
+        others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
+        if not self.has_co and others_seer_co:
+            self.has_co = True
+            return Content(ComingoutContentBuilder(self.me, Role.SEER))
+        
         # Report the divination result after doing comingout.
         # 結果報告
         if self.has_co and self.my_judge_queue:
@@ -91,13 +100,15 @@ class ddhbSeer(ddhbVillager):
         # Vote for one of the alive fake seers if there are no candidates.
         # 候補なし → 偽占い
         if not candidates:
-            candidates = self.get_alive([a for a in self.comingout_map
-                                         if self.comingout_map[a] == Role.SEER])
+            # candidates = self.get_alive([a for a in self.comingout_map
+            #                              if self.comingout_map[a] == Role.SEER])
+            candidates = self.get_alive(others_seer_co)
         # Vote for one of the alive agents if there are no candidates.
         # 生存者
         if not candidates:
             candidates = self.get_alive_others(self.game_info.agent_list)
         # Declare which to vote for if not declare yet or the candidate is changed.
+        # 投票宣言
         # 候補からランダムセレクト
         if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
             self.vote_candidate = self.random_select(candidates)
@@ -110,4 +121,18 @@ class ddhbSeer(ddhbVillager):
         # Divine a agent randomly chosen from undivined agents.
         # ランダムセレクト → 変更する：怪しさの値追加
         target: Agent = self.random_select(self.not_divined_agents)
+        
+        # 最も人狼っぽいエージェントを占う
+        p = self.getProbAll()
+        idx = 0
+        # 生存者の中で占っていないエージェント
+        divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
+        
+        for i in range(self.N):
+            if not i in divine_candidates:
+                continue
+            if p[i][Role.SEER] > p[idx][Role.SEER]:
+                idx = i
+        target: Agent = self.game_info.agent_list[idx]
+        
         return target if target != AGENT_NONE else self.me

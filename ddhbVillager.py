@@ -62,6 +62,11 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
 
         self.role_predictor = None
+        
+        self.N = -1
+        self.M = -1
+        
+        self.agent_idx_0based = -1
 
         # フルオープンしたかどうか
         self.doFO = False
@@ -155,6 +160,8 @@ class ddhbVillager(AbstractPlayer):
 
         self.N = game_setting.player_num
         self.M = len(game_setting.role_num_map)
+        
+        self.agent_idx_0based = self.me.agent_idx - 1
 
         Util.debug_print("------", game_info.my_role)
 
