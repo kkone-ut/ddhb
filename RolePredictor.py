@@ -107,9 +107,9 @@ class RolePredictor:
         self.assignments.append(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す
-    # (実際には defaultdict[Role, float] の配列)
-    # p[i][r] は i 番目のプレイヤーが役職 r である確率 (i: int, r: Role)
-    def getProbAll(self) -> np.ndarray:
+    # (実際には defaultdict[Agent, defaultdict[Role, float]])
+    # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
+    def getProbAll(self) -> defaultdict[Agent, defaultdict[Role, float]]:
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -129,11 +129,11 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = np.array([defaultdict[Role, float](float) for _ in range(self.N)])
+        probs = defaultdict[Agent, defaultdict[Role, float]](lambda: defaultdict[Role, float](float))
 
         for i, assignment in enumerate(self.assignments):
-            for j in range(self.N):
-                probs[j][assignment[j]] += assignment_prob[i]
+            for a in self.game_info.agent_list:
+                probs[a][assignment[a]] += assignment_prob[i]
         
         return probs
     
