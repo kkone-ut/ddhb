@@ -29,6 +29,7 @@ from const import CONTENT_SKIP
 from Util import Util
 from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
+from Assignment import Assignment
 
 # 村役職
 class ddhbVillager(AbstractPlayer):
@@ -177,6 +178,9 @@ class ddhbVillager(AbstractPlayer):
 
         Util.debug_print("")
         Util.debug_print("DayStart:", self.game_info.day)
+        
+        for a, r in self.game_info.role_map.items():
+            Util.debug_print("Role:", a, r)
 
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
@@ -302,5 +306,26 @@ class ddhbVillager(AbstractPlayer):
 
     def finish(self) -> None:
         Util.debug_print("")
+        p = self.role_predictor.getProbAll()
+        for a, r in self.game_info.role_map.items():
+            Util.debug_print("Agent:", a)
+            Util.debug_print("Role:", r)
+            Util.debug_print("Prob:", p[a][r])
+            likely_role = self.role_predictor.getMostLikelyRole(a)
+            Util.debug_print("MostLikely", likely_role)
+            Util.debug_print("Prob:", p[a][likely_role])
+            Util.debug_print("")
+        assignment = []
+        for a, r in self.game_info.role_map.items():
+            assignment.append(r)
+        assignment = Assignment(self.game_info, self.game_setting, self, assignment)
+        Util.debug_print("assignment(actual):\t", assignment)
+        Util.debug_print("assignment(predicted):\t", self.role_predictor.assignments[0])
+        # self.role_predictor.assignments[0]とassignmentの一致率を計算
+        score = 0
+        for i in range(self.N):
+            if self.role_predictor.assignments[0][i] == assignment[i]:
+                score += 1
+        Util.debug_print("score", score, "/", self.N)
         Util.debug_print("finish")
         pass

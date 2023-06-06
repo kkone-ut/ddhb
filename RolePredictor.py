@@ -161,3 +161,11 @@ class RolePredictor:
                 ret_agent = a
                 
         return ret_agent
+
+    def getMostLikelyRole(self, agent: Agent) -> Role:
+        p = self.getProbAll()
+        ret_role = Role.VILLAGER
+        for r in Role:
+            if p[agent][r] > p[agent][ret_role]:
+                ret_role = r
+        return ret_role

@@ -160,6 +160,7 @@ class ScoreMatrix:
         if talker == self.me:
             # 自分のCOは無視
             return
+        Util.debug_print('talk_co: talker={}, role={}'.format(talker, role))
         my_role = self.my_role
         # 他者の占いCO
         if role == Role.SEER:
