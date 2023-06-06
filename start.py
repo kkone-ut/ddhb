@@ -20,10 +20,12 @@ from argparse import ArgumentParser
 
 from aiwolf import AbstractPlayer, TcpipClient
 
+
 from sample import SamplePlayer
 
 if __name__ == "__main__":
     agent: AbstractPlayer = SamplePlayer()
+
     parser: ArgumentParser = ArgumentParser(add_help=False)
     # 引数の仕様を定義する
     parser.add_argument("-p", type=int, action="store", dest="port", required=True)
