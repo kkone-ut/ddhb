@@ -27,6 +27,7 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP, JUDGE_EMPTY
 from ddhbVillager import ddhbVillager
+from RolePredictor import RolePredictor
 
 # 裏切り者
 class ddhbPossessed(ddhbVillager):
@@ -60,13 +61,21 @@ class ddhbPossessed(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        self.fake_role = Role.SEER # 占いのみ → 変更する
+        self.N = game_setting.player_num
+
+        # 5人なら占い師、15人なら65%占い師、35%霊媒師を騙る
+        if self.N == 5:
+            self.fake_role = Role.SEER
+        elif self.N == 15:
+            self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
+
         self.co_date = 1 # 最低でも1日目にCO → 変更する
         self.has_co = False
         self.my_judgee_queue.clear()
         self.not_judged_agents = self.get_others(self.game_info.agent_list)
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
+        self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
 
     # 偽結果生成
     def get_fake_judge(self) -> Judge:
@@ -108,6 +117,43 @@ class ddhbPossessed(ddhbVillager):
             if judge.result == Species.WEREWOLF:
                 self.werewolves.append(judge.target)
 
+    def vote(self) -> Agent:
+        max_score = -1
+        agent_vote_for : Agent = AGENT_NONE
+
+        #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
+        if(len(self.get_alive(self.game_info.agent_list)) <= 3) :
+            for i in range(self.N):
+                if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
+                    score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+                    if score > max_score :
+                        max_score = score
+                        agent_vote_for = self.game_info.agent_list[i]
+        else :
+            # 謎の処理
+            max_score = -100
+
+            # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
+            if(self.N == 5) :
+                for i in range(self.N):
+                    if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
+                        score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+                        if score > max_score :
+                            max_score = score
+                            agent_vote_for = self.game_info.agent_list[i]
+                        break
+            # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
+            else :
+                for i in range(self.N):
+                    if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
+                        score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                        if score > max_score :
+                            max_score = score
+                            agent_vote_for = self.game_info.agent_list[i]
+        return agent_vote_for
+    
+
+    
     # CO、結果報告
     def talk(self) -> Content:
         # Do comingout if it's on scheduled day or a werewolf is found.
