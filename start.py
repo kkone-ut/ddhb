@@ -22,7 +22,12 @@ from aiwolf import AbstractPlayer, TcpipClient
 
 from ddhbPlayer import ddhbPlayer
 
+import warnings
+
 if __name__ == "__main__":
+    # 警告をエラーとして扱う (デバッグ用)
+    warnings.simplefilter('error')
+
     agent: AbstractPlayer = ddhbPlayer()
     parser: ArgumentParser = ArgumentParser(add_help=False)
     # 引数の仕様を定義する

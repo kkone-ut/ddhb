@@ -6,8 +6,11 @@ lib=./
 log=./log/
 setting=./SampleSetting.cfg
 client=false
+loop=false
 
-while getopts ":p:n:vg:ch" opt; do
+help=false
+
+while getopts ":p:n:vg:clh" opt; do
   case $opt in
     p) port="$OPTARG"
     ;;
@@ -19,6 +22,8 @@ while getopts ":p:n:vg:ch" opt; do
     ;;
     c) client="true"
     ;;
+    l) loop="true"
+    ;;
     h) help="true"
     ;;
     \?) echo "Invalid option -$OPTARG" >&2
@@ -27,13 +32,14 @@ while getopts ":p:n:vg:ch" opt; do
 done
 
 # help を表示
-if [ "$help" = "true" ]; then
+if "$help"; then
     echo "Usage: server.sh [-p port] [-n number] [-v] [-g game] [-c] [-h]"
     echo "  -p port: port number"
     echo "  -n number: number of players"
     echo "  -v: view mode"
     echo "  -g game: number of games"
     echo "  -c: client mode"
+    echo "  -l: loop mode"
     echo "  -h help: show help"
     exit 1
 fi
@@ -48,13 +54,28 @@ echo "view=${view}" >> AutoStarter.ini
 echo "setting=${setting}" >> AutoStarter.ini
 echo "agent=${n}" >> AutoStarter.ini
 
-for i in $(seq 1 $(($n-1)))
+# クライアントを接続しない場合は全プレイヤーを記述
+# クライアントを接続する場合は最後のプレイヤーを除いて記述
+for i in $(seq 1 $n)
 do
-    echo "BasketPlayer${i},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
+    if [ "$i" -ne "$n" ] || ! "$client"; then
+        # echo "BasketPlayer${i},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
+        # echo "WasabiPlayer${i},java,jp.ac.shibaura_it.ma15082.player.WasabiRoleAssignPlayer" >> AutoStarter.ini
+        # echo "TomatoPlayer${i},java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini
+        # echo "IOHPlayer${i},java,org.aiwolf.IOH.IOHRoleAssignPlayer" >> AutoStarter.ini
+        # echo "KarmaPlayer${i},java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
+        # echo "TOKUPlayer${i},java,org.aiwolf.TOKU.TOKURoleAssginPlayer" >> AutoStarter.ini # TOKURoleAssginPlayer (スペルミス)
+        # echo "CamelliaPlayer${i},java,camellia.aiwolf.demo.DemoRoleAssignPlayer" >> AutoStarter.ini
+        # echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
+        echo "PythonPlayer${i},python,../start.py" >> AutoStarter.ini
+    fi
 done
 
-if [ "$client" = "false" ]; then
-    echo "BasketPlayer${n},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
+if "$loop"; then
+    while true
+    do
+        java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
+    done
+else
+    java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
 fi
-
-java -cp .:aiwolf-server.jar:aiwolf-common.jar:aiwolf-client.jar:aiwolf-viewer.jar:jsonic-1.3.10.jar org.aiwolf.ui.bin.AutoStarter AutoStarter.ini

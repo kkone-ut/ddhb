@@ -11,6 +11,15 @@ class Assignment:
         self.me = _player.me
         self.score = 0
         self.assignment = _assignment
+    
+    def __str__(self) -> str:
+        m = ""
+        for r in self.assignment:
+            m += r.name[0] + ", "
+        return m
+    
+    def __eq__(self, o: object) -> bool:
+        return np.array_equal(self.assignment, o.assignment)
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
     def __getitem__(self, i: int) -> Role:
