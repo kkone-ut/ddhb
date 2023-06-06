@@ -90,6 +90,10 @@ class ScoreMatrix:
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
         N = self.N
         my_role = self.my_role
+        # review: 日が進むほど判断材料が多くなるので、日にちで重み付けするのもありかもしれない
+        # review: 人狼陣営が村陣営に投票している可能性も上げるべきかもしれない
+        # review:   その場合人狼陣営が投票が集まりそうな人に投票している可能性もある
+        # review:   投票がバラけているときは重く、集まっているときは軽くするべきかもしれない
         if voter == self.me:
             # 自分の投票行動は無視
             return
@@ -366,28 +370,32 @@ class ScoreMatrix:
                 self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
             elif my_role == Role.WEREWOLF:
                 if species == Species.WEREWOLF:
-                    if target == self.me:
+                    if target == self.me: # review: 他の人狼に当たった場合も考慮すべきかも
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})                        
-                    else:
+                    else: # review: 他の人狼でもない場合は外れてるから占い師である可能性は下がって狂人である可能性は上がりそう
                         pass
                 elif species == Species.HUMAN:
-                    if target == self.me:
+                    if target == self.me: # review: これも他の人狼に当たった場合も考慮すべきかも
                         self.add_scores(talker, {Role.SEER: -50, Role.POSSESSED: +50})
-                    else:
+                    else: # review: 他の人狼でもない場合は当たっているから占い師である可能性が上がりそう
                         pass
             else:
                 if species == Species.WEREWOLF:
                     if target == self.me:
+                        # review: COの段階で占い師以外の市民の確率が下がっているので良さそうだが、CO無しの場合も念のため考慮して人狼陣営の可能性を上げたほうがいいかも
                         self.add_scores(talker, {Role.SEER: -50})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
                         self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
+                        # review: 逆に target が人間だったときに talker が人狼陣営である可能性を上げておくべきか
+                        # review: self.add_score(target, 市民陣営, talker, 人狼陣営, +5) のような感じ
                 elif species == Species.HUMAN:
                     if target == self.me:
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
                         self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
+                        # review: こっちも逆を考えるべきか
 
 
     # 他者の霊媒結果を反映
