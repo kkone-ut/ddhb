@@ -138,6 +138,7 @@ class ScoreMatrix:
     # 確定情報ではないので有限の値を加減算する
 
     # 他者のCOを反映 
+    # Basketでは、人外は3CO目のCOはしないので、3CO目は真占いである確率が極めて高い？
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role) -> None:
         if talker == self.me:
             # 自分のCOは無視
