@@ -34,7 +34,7 @@ class ddhbBodyguard(ddhbVillager):
     """Target of guard."""
     
     # 追加
-    co_data: int # COする日にち
+    co_date: int # COする日にち
     has_co: bool # COしたか
     guard_success: bool # 護衛成功したか
     has_report: bool # 報告したかどうか
@@ -45,17 +45,19 @@ class ddhbBodyguard(ddhbVillager):
         super().__init__()
         self.to_be_guarded = AGENT_NONE
         
-        self.co_data = 0
+        self.co_date = 0
         self.has_co = False
+        self.guard_success = False
         self.has_report = False
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
         self.to_be_guarded = AGENT_NONE
         
-        self.co_data = 4
+        self.co_date = 4
         self.has_co = False
-        self.has_co_data = False
+        self.guard_success = False
+        self.has_co_date = False
 
     def day_start(self) -> None:
         super().day_start()
@@ -123,5 +125,6 @@ class ddhbBodyguard(ddhbVillager):
         if self.has_co and self.guard_success and not self.has_report:
             self.has_report = True
             return Content(GuardedAgentContentBuilder(self.me, self.game_info.guarded_agent))
+        
             
         return CONTENT_SKIP
