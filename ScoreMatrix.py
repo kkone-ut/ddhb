@@ -1,5 +1,6 @@
 from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic)
+from aiwolf.constant import AGENT_NONE
 
 import numpy as np
 from Util import Util
@@ -60,10 +61,15 @@ class ScoreMatrix:
 
     # スコアの加算
     # agent1, agent2: Agent or int
-    # role1, role2: Role or int
+    # role1: Role or int
+    # role2: Role or int or list[Role] or list[int]
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
-        score = self.get_score(agent1, role1, agent2, role2) + score / 100
-        self.set_score(agent1, role1, agent2, role2, score)
+        if type(role2) == list:
+            for r in role2:
+                self.add_score(agent1, role1, agent2, r, score)
+        else:
+            score = self.get_score(agent1, role1, agent2, role2) + score / 100
+            self.set_score(agent1, role1, agent2, role2, score)
     
     # スコアの加算をまとめて行う
     def add_scores(self, agent: Agent, score_dict: Dict[Role, float]) -> None:
@@ -77,7 +83,7 @@ class ScoreMatrix:
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
-
+        self.review_on_judged(game_info, game_setting, agent, Species.HUMAN)
 
     # 投票行動を反映→とりあえずOK
     # 後で修正する
@@ -116,6 +122,8 @@ class ScoreMatrix:
         else:
             # 万が一不確定(Species.UNC, Species.ANY)の場合
             Util.error('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
+        
+        self.review_on_judged(game_info, game_setting, target, species)
 
     # 自分の霊媒結果を反映→OK
     # 結果騙りは考慮しない
@@ -127,12 +135,16 @@ class ScoreMatrix:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
         else:
             Util.error('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
+        
+        self.review_on_judged(game_info, game_setting, target, species)
 
     # 自分の護衛結果を反映→OK
     # 人狼の自噛みはルール上なし
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
         # 護衛が成功したエージェントは人狼ではない
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
+
+        self.review_on_judged(game_info, game_setting, target, Species.HUMAN)
 
     # 他の人の発言から推測する
     # 確定情報ではないので有限の値を加減算する
@@ -430,3 +442,31 @@ class ScoreMatrix:
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
         pass
+
+    # talker が role であることを仮定すると target が species であるという情報を反映する
+    # その情報と矛盾する発言をしていた人は怪しい
+    def review_on_judged(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species, talker: Agent = AGENT_NONE, role: Role = Role.ANY) -> None:
+        
+        # 前提条件が無い場合は便宜上自分自身を前提条件とする (100%信頼できる)
+        if talker == AGENT_NONE:
+            talker = self.me
+            role = self.my_role
+
+        # # 矛盾する占い結果を出した人は怪しい
+        # for judge in self.player.divination_reports:
+        #     if judge.target == target and judge.result != species:
+        #         self.add_score(talker, role, judge.agent, [Role.WEREWOLF, Role.POSSESSED], 100)
+    
+        # # 矛盾する霊媒結果を出した人は怪しい
+        # for judge in self.player.identification_reports:
+        #     if judge.target == target and judge.result != species:
+        #         self.add_score(talker, role, judge.agent, [Role.WEREWOLF, Role.POSSESSED], 100)
+
+        # 白に投票した人は怪しい
+        # todo: 複数回呼び出されないように工夫する必要がある
+        if species == Species.HUMAN:
+            for vote in game_info.vote_list:
+                if vote.target == target:
+                    # 日が進むほど判断材料は多いはずなので、日にちに応じてスコアを変える (後になるほど人狼陣営の可能性が大きくなる)
+                    self.add_score(talker, role, vote.agent, [Role.WEREWOLF, Role.POSSESSED], vote.day)
+        
