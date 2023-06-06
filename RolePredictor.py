@@ -2,10 +2,12 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
+from typing import List
 
 from Util import Util
 from Assignment import Assignment
 from ScoreMatrix import ScoreMatrix
+from aiwolf.constant import AGENT_NONE
 
 
 class RolePredictor:
@@ -139,15 +141,23 @@ class RolePredictor:
     
     # i 番目のプレイヤーが役職 role である確率を返す
     # 複数回呼び出す場合は getProbAll() を呼んだほうが効率的
-    def getProb(self, i: int, role: Role) -> float:
+    def getProb(self, agent, role: Role) -> float:
+        if type(agent) == int:
+            agent = self.game_info.agent_list[agent]
         p = self.getProbAll()
-        return p[i][role]
+        return p[agent][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
-    def chooseMostLikely(self, role: Role) -> Agent:
+    def chooseMostLikely(self, role: Role, agent_list: List[Agent] = None) -> Agent:
+        if agent_list is None:
+            agent_list = self.game_info.agent_list
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        
         p = self.getProbAll()
-        idx = 0
-        for i in range(self.N):
-            if p[i][role] > p[idx][role]:
-                idx = i
-        return self.game_info.agent_list[idx]
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            if p[a][role] > p[ret_agent][role]:
+                ret_agent = a
+                
+        return ret_agent
