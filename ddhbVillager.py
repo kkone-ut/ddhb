@@ -175,6 +175,7 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
+        Util.debug_print("")
         Util.debug_print("DayStart:", self.game_info.day)
 
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
@@ -188,8 +189,6 @@ class ddhbVillager(AbstractPlayer):
                 Util.error_print("Killed:", *self.game_info.last_dead_agent_list)
         else:
             Util.debug_print("Killed: None")
-
-        Util.debug_print()
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -302,4 +301,6 @@ class ddhbVillager(AbstractPlayer):
         raise NotImplementedError()
 
     def finish(self) -> None:
+        Util.debug_print("")
+        Util.debug_print("finish")
         pass
