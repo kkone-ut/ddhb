@@ -69,7 +69,7 @@ class ScoreMatrix:
             role2 = [role2]
         for r1 in role1:
             for r2 in role2:
-                score = self.get_score(agent1, r1, agent2, r2) + score / 100
+                score = self.get_score(agent1, r1, agent2, r2) + score / 10
                 self.set_score(agent1, r1, agent2, r2, score)
     
     # スコアの加算をまとめて行う
