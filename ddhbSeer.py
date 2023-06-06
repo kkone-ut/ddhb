@@ -25,6 +25,7 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
+from Util import Util
 
 # 占い
 class ddhbSeer(ddhbVillager):
@@ -113,6 +114,7 @@ class ddhbSeer(ddhbVillager):
         if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
             self.vote_candidate = self.random_select(candidates)
             if self.vote_candidate != AGENT_NONE:
+                Util.debug_print('vote_candidate: ' + str(self.vote_candidate))
                 return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
 
@@ -137,5 +139,5 @@ class ddhbSeer(ddhbVillager):
         return target if target != AGENT_NONE else self.me
     
     # 後でvoteも作る
-    def vote(self) -> Agent:
-        pass
+    # def vote(self) -> Agent:
+    #     pass
