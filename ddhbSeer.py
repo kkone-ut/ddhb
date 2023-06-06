@@ -123,16 +123,19 @@ class ddhbSeer(ddhbVillager):
         target: Agent = self.random_select(self.not_divined_agents)
         
         # 最も人狼っぽいエージェントを占う
-        p = self.getProbAll()
-        idx = 0
+        p = self.role_predictor.getProbAll()
+        mx_score = 0
         # 生存者の中で占っていないエージェント
         divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
         
-        for i in range(self.N):
-            if not i in divine_candidates:
-                continue
-            if p[i][Role.SEER] > p[idx][Role.SEER]:
-                idx = i
-        target: Agent = self.game_info.agent_list[idx]
+        for agent in divine_candidates:
+            score = p[agent][Role.SEER]
+            if score > mx_score:
+                mx_score = score
+                target = agent
         
         return target if target != AGENT_NONE else self.me
+    
+    # 後でvoteも作る
+    def vote(self) -> Agent:
+        pass
