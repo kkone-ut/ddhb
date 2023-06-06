@@ -61,15 +61,16 @@ class ScoreMatrix:
 
     # スコアの加算
     # agent1, agent2: Agent or int
-    # role1: Role or int
-    # role2: Role or int or list[Role] or list[int]
+    # role1, rold2: Role or int or list (todo: Species, Side)
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
-        if type(role2) == list:
-            for r in role2:
-                self.add_score(agent1, role1, agent2, r, score)
-        else:
-            score = self.get_score(agent1, role1, agent2, role2) + score / 100
-            self.set_score(agent1, role1, agent2, role2, score)
+        if type(role1) is not list:
+            role1 = [role1]
+        if type(role2) is not list:
+            role2 = [role2]
+        for r1 in role1:
+            for r2 in role2:
+                score = self.get_score(agent1, r1, agent2, r2) + score / 100
+                self.set_score(agent1, r1, agent2, r2, score)
     
     # スコアの加算をまとめて行う
     def add_scores(self, agent: Agent, score_dict: Dict[Role, float]) -> None:
