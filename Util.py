@@ -9,6 +9,7 @@ from aiwolf import Role
 class Util:
 
     rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
+    debug_mode = False
 
     def debug_print(*args, **kwargs):
         # デバッグログが要らない場合は次の行をコメントアウトする

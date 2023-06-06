@@ -1,6 +1,7 @@
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import ScoreMatrix
 import numpy as np
+import Util
 
 class Assignment:
 
@@ -22,8 +23,16 @@ class Assignment:
         return np.array_equal(self.assignment, o.assignment)
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
-    def __getitem__(self, i: int) -> Role:
-        return self.assignment[i]
+    def __getitem__(self, agent) -> Role:
+        if type(agent) is Agent:
+            return self.assignment[agent.agent_idx-1]
+        elif type(agent) is int:
+            return self.assignment[agent]
+        else:
+            if Util.debug_mode:
+                raise TypeError
+            else:
+                return self.assignment[0]
         
     # 役職の割り当ての評価値を計算する
     def evaluate(self, score_matrix: ScoreMatrix) -> float:

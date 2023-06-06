@@ -2,10 +2,12 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
+from typing import List
 
 from Util import Util
 from Assignment import Assignment
 from ScoreMatrix import ScoreMatrix
+from aiwolf.constant import AGENT_NONE
 
 
 class RolePredictor:
@@ -107,9 +109,9 @@ class RolePredictor:
         self.assignments.append(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す
-    # (実際には defaultdict[Role, float] の配列)
-    # p[i][r] は i 番目のプレイヤーが役職 r である確率 (i: int, r: Role)
-    def getProbAll(self) -> np.ndarray:
+    # (実際には defaultdict[Agent, defaultdict[Role, float]])
+    # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
+    def getProbAll(self) -> defaultdict[Agent, defaultdict[Role, float]]:
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -129,25 +131,33 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = np.array([defaultdict[Role, float](float) for _ in range(self.N)])
+        probs = defaultdict[Agent, defaultdict[Role, float]](lambda: defaultdict[Role, float](float))
 
         for i, assignment in enumerate(self.assignments):
-            for j in range(self.N):
-                probs[j][assignment[j]] += assignment_prob[i]
+            for a in self.game_info.agent_list:
+                probs[a][assignment[a]] += assignment_prob[i]
         
         return probs
     
     # i 番目のプレイヤーが役職 role である確率を返す
     # 複数回呼び出す場合は getProbAll() を呼んだほうが効率的
-    def getProb(self, i: int, role: Role) -> float:
+    def getProb(self, agent, role: Role) -> float:
+        if type(agent) == int:
+            agent = self.game_info.agent_list[agent]
         p = self.getProbAll()
-        return p[i][role]
+        return p[agent][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
-    def chooseMostLikely(self, role: Role) -> Agent:
+    def chooseMostLikely(self, role: Role, agent_list: List[Agent] = None) -> Agent:
+        if agent_list is None:
+            agent_list = self.game_info.agent_list
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        
         p = self.getProbAll()
-        idx = 0
-        for i in range(self.N):
-            if p[i][role] > p[idx][role]:
-                idx = i
-        return self.game_info.agent_list[idx]
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            if p[a][role] > p[ret_agent][role]:
+                ret_agent = a
+                
+        return ret_agent
