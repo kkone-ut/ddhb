@@ -31,7 +31,8 @@ class ScoreMatrix:
     # スコア = log(相対確率)
     # スコアの付け方
     # 確定情報: +inf または -inf
-    # 非確定情報: 有限値 最大を100で統一する
+    # 非確定情報: 有限値 最大を1で統一する
+    # 書くときは100を最大として、加算するときに1/100倍する
 
     # スコアの取得
     # agent1, agent2: Agent or int
@@ -61,7 +62,7 @@ class ScoreMatrix:
     # agent1, agent2: Agent or int
     # role1, role2: Role or int
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
-        score = self.get_score(agent1, role1, agent2, role2) + score
+        score = self.get_score(agent1, role1, agent2, role2) + score / 100
         self.set_score(agent1, role1, agent2, role2, score)
     
     # スコアの加算をまとめて行う

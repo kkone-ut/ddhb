@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import random
+from collections import defaultdict
 from typing import Dict, List
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
@@ -47,6 +48,7 @@ class ddhbVillager(AbstractPlayer):
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
+    will_vote_reports: defaultdict[Agent, Agent] # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
 
@@ -59,9 +61,15 @@ class ddhbVillager(AbstractPlayer):
         self.comingout_map = {}
         self.divination_reports = []
         self.identification_reports = []
+        self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_head = 0
 
         self.role_predictor = None
+        
+        self.N = -1
+        self.M = -1
+        
+        self.agent_idx_0based = -1
 
         # フルオープンしたかどうか
         self.doFO = False
@@ -130,15 +138,17 @@ class ddhbVillager(AbstractPlayer):
     
     # 最も処刑されそうなエージェントを返す
     def chooseMostlikelyExecuted(self, n : float) -> Agent:
-        return self.random_select(self.get_alive_others(self.game_info.agent_list))
-        # max = 0
-        # for i  in range(self.N):
-        #     # 自分じゃないなら
-        #     if (agent_list[i] != self.me) :
-        #         #　生きているなら
-        #         if (self.is_alive(agent_list[i])) :
-        #             # (そのプレイヤーに投票宣言している人の数) + (人狼の可能性 ※0~1の間)
-        #             score = self.score_matrix.talk_will_vote(i) + self.role_predictor.getProb(i, Role.WEREWOLF)
+        # return self.random_select(self.get_alive_others(self.game_info.agent_list))
+        count : defaultdict[Agent, float] = defaultdict(float)
+
+        for talker, target in self.will_vote_reports.items():
+            count[target] += 1
+        
+        if self.vote_candidate != AGENT_NONE:
+            count[self.vote_candidate] += 1
+        
+        return max(count.items(), key=lambda x: x[1])[0]
+        
 
     # 初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -155,6 +165,8 @@ class ddhbVillager(AbstractPlayer):
 
         self.N = game_setting.player_num
         self.M = len(game_setting.role_num_map)
+        
+        self.agent_idx_0based = self.me.agent_idx - 1
 
         Util.debug_print("------", game_info.my_role)
 
@@ -177,6 +189,8 @@ class ddhbVillager(AbstractPlayer):
         else:
             Util.debug_print("Killed: None")
 
+        Util.debug_print()
+
     # ゲーム情報の更新
     # talk-listの処理
     def update(self, game_info: GameInfo) -> None:
@@ -198,7 +212,10 @@ class ddhbVillager(AbstractPlayer):
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
             elif content.topic == Topic.VOTE:
+                # 古い投票先が上書きされる前にスコアを更新 (2回以上投票宣言している場合に信頼度を下げるため)
                 self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
+                # 投票先を保存
+                self.will_vote_reports[talker] = content.target
             elif content.topic == Topic.VOTED:
                 self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
             elif content.topic == Topic.GUARDED:
