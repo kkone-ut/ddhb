@@ -130,7 +130,7 @@ class RolePredictor:
         for i, assignment in enumerate(self.assignments):
             # スコアは対数尤度なので、exp して相対確率に変換する
             try:
-                relative_prob[i] = np.exp(assignment.score)
+                relative_prob[i] = np.exp(assignment.score / 10) # スコアが大きいとオーバーフローするので10で割る
             except RuntimeWarning:
                 Util.error_print("OverflowError", assignment.score)
             sum_relative_prob += relative_prob[i]
