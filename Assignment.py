@@ -41,7 +41,7 @@ class Assignment:
             for j in range(self.N):
                 self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
                 if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 0.45:
-                    Util.debug_print("score_matrix.get_score(", i, self.assignment[i], j, self.assignment[j], ") = ", score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]))
+                    Util.debug_print("score_matrix.get_score(", i+1, self.assignment[i], j+1, self.assignment[j], ")\t", "= ",round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])*10, 2))
         
         return self.score
     

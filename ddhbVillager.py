@@ -169,28 +169,30 @@ class ddhbVillager(AbstractPlayer):
 
         self.agent_idx_0based = self.me.agent_idx - 1
 
+        print("my role:\t", game_info.my_role)
+        print("my idx:\t", self.me.agent_idx-1)
+
     # 昼スタート
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
 
         Util.debug_print("")
-        Util.debug_print("DayStart:", self.game_info.day)
-        
-        for a, r in self.game_info.role_map.items():
-            Util.debug_print("Role:", a, r)
+        Util.debug_print("DayStart:\t", self.game_info.day)
 
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
         killed = self.game_info.last_dead_agent_list
         if len(killed) > 0:
             self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
-            Util.debug_print("Killed:", self.game_info.last_dead_agent_list[0])
+            Util.debug_print("Killed:\t", self.game_info.last_dead_agent_list[0])
             # 本来複数人殺されることはないが、念のためkilled()は呼び出した上でエラーログを出しておく
             if len(killed) > 1:
-                Util.error_print("Killed:", *self.game_info.last_dead_agent_list)
+                Util.error_print("Killed:\t", *self.game_info.last_dead_agent_list)
         else:
-            Util.debug_print("Killed: None")
+            Util.debug_print("Killed:\t", AGENT_NONE)
+
+        Util.debug_print("Executed:\t", self.game_info.executed_agent)
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -206,15 +208,15 @@ class ddhbVillager(AbstractPlayer):
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
                 self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
-                Util.debug_print("CO:", talker, content.role)
+                Util.debug_print("CO:\t", talker, content.role)
             elif content.topic == Topic.DIVINED:
                 self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
-                Util.debug_print("DIVINED:", talker, content.target, content.result)
+                Util.debug_print("DIVINED:\t", talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
                 self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
                 self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
-                Util.debug_print("IDENTIFIED:", talker, content.target, content.result)
+                Util.debug_print("IDENTIFIED:\t", talker, content.target, content.result)
             elif content.topic == Topic.VOTE:
                 # 古い投票先が上書きされる前にスコアを更新 (2回以上投票宣言している場合に信頼度を下げるため)
                 self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
@@ -224,7 +226,7 @@ class ddhbVillager(AbstractPlayer):
                 self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
             elif content.topic == Topic.GUARDED:
                 self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target)
-                Util.debug_print("GUARDED:", talker, content.target)
+                Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
@@ -292,8 +294,6 @@ class ddhbVillager(AbstractPlayer):
             if agent_vote_for == AGENT_NONE:
                 agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
 
-        Util.debug_print("vote", agent_vote_for)
-
         return agent_vote_for
 
     def attack(self) -> Agent:
@@ -321,7 +321,7 @@ class ddhbVillager(AbstractPlayer):
         #     Util.debug_print("")
 
         for a, r in self.comingout_map.items():
-            Util.debug_print("CO:", a, r)
+            Util.debug_print("CO:\t", a, r)
         Util.debug_print("")
 
         # 実際の割り当てと予測の割り当てを比較
@@ -330,23 +330,26 @@ class ddhbVillager(AbstractPlayer):
             assignment.append(r)
         actual_assignment = Assignment(self.game_info, self.game_setting, self, assignment)
         predicted_assignment = self.role_predictor.assignments[0]
-        Util.debug_print("                   \t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
-        Util.debug_print("assignment(actual):\t", actual_assignment)
-        Util.debug_print("assignment(predicted):\t", predicted_assignment)
+        Util.debug_print("\t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
+        Util.debug_print("actual:\t", actual_assignment)
+        Util.debug_print("predicted:\t", predicted_assignment)
         
         # 一致率を計算
         score = 0
         for i in range(self.N):
             if predicted_assignment[i] == actual_assignment[i]:
                 score += 1
-            elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM:
-                for r in Util.rtoi.keys():
-                    Util.debug_print(i+1, r, self.score_matrix.get_score(i, r, i, r), self.role_predictor.getProb(i, r))
-        Util.debug_print("score", score, "/", self.N)
+            elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM or predicted_assignment[i] == Role.SEER or actual_assignment[i] == Role.SEER:
+                Util.debug_print("")
+                for r in self.game_info.existing_role_list:
+                    Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
+        
+        Util.debug_print("")
+        Util.debug_print("score:\t", score, "/", self.N)
         Util.debug_print("")
 
         # 実際の割り当てが予測の割り当てに含まれていたのか
-        Util.debug_print("in role_predictor.assignments:", actual_assignment in self.role_predictor.assignments)
+        Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
         Util.debug_print("")
 
         # もし含まれていないなら、含まれていたときのスコアを表示
@@ -355,12 +358,12 @@ class ddhbVillager(AbstractPlayer):
         
         # 予測の割り当てのスコアを表示 (デバッグモード)
         predicted_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("predicted score:", predicted_assignment.score)
+        Util.debug_print("predicted score:\t", round(predicted_assignment.score, 4))
         Util.debug_print("")
 
         # 実際の割り当てのスコアを表示 (デバッグモード)
         actual_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("actual score:", actual_assignment.score)
+        Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
         Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック

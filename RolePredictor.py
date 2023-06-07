@@ -15,7 +15,8 @@ class RolePredictor:
     # 保持しておく役職の割り当ての数
     # これを超えたら評価の低いものから削除する
     # 制限時間的に最大500個
-    ASSIGNMENT_NUM = 500
+    ASSIGNMENT_NUM = 300
+    ADDITIONAL_ASSIGNMENT_NUM = 100
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -48,21 +49,13 @@ class RolePredictor:
         # 5人村はすべて列挙する
         # 15人村では重すぎるので、ランダムに ASSIGNMENT_NUM 個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
-            time_start = time.time()
             for p in Util.unique_permutations(assignment):
                 self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
-            time_end = time.time()
-            print('time: ', time_end - time_start)
-            print(len(self.assignments))
         else:
             for _ in range(self.ASSIGNMENT_NUM):
                 a = Assignment(game_info, game_setting, _player, np.copy(assignment))
                 a.shuffle(fixed_positions=self.fixed_positions)
                 self.assignments.append(a)
-                # Util.debug_print(a)
-        
-        print("my role:", game_info.my_role)
-        print("my idx:", self.me.agent_idx-1)
     
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -81,9 +74,12 @@ class RolePredictor:
 
         time_end = time.time()
         if time_end - time_start > 0.1:
-            Util.debug_print("len:", len(self.assignments))
-            Util.debug_print("time:", time_end - time_start)
-            Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
+            Util.error_print("")
+            Util.error_print("timeout!\t", "Role.Predictor.update()")
+            Util.error_print("time:\t", time_end - time_start)
+            Util.error_print("len:\t", len(self.assignments))
+            Util.error_print("avg:\t", (time_end - time_start) / len(self.assignments))
+            Util.error_print("")
 
         self.getProbAll()
 
@@ -91,7 +87,7 @@ class RolePredictor:
         time_start = time.time()
 
         # 新しい割り当てを追加する
-        for _ in range(50):
+        for _ in range(self.ADDITIONAL_ASSIGNMENT_NUM):
             self.addAssignment(game_info, game_setting)
         
         # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
@@ -100,8 +96,10 @@ class RolePredictor:
 
         time_end = time.time()
         if time_end - time_start > 0.1:
-            Util.debug_print("time:", time_end - time_start)
-            Util.debug_print("avg:", (time_end - time_start) / len(self.assignments))
+            Util.error_print("")
+            Util.error_print("timeout!\t", "Role.Predictor.addAssignments()")
+            Util.error_print("time:\t", time_end - time_start)
+            Util.error_print("")
     
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting, fixed_positions=[]) -> None:
