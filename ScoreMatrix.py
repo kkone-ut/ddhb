@@ -536,9 +536,9 @@ class ScoreMatrix:
 
         # 白に投票した人は怪しい
         # todo: 複数回呼び出されないように工夫する必要がある
-        if species == Species.HUMAN:
-            for vote in game_info.vote_list:
-                if vote.target == target:
-                    # 日が進むほど判断材料は多いはずなので、日にちに応じてスコアを変える (後になるほど人狼陣営の可能性が大きくなる)
-                    self.add_score(talker, role, vote.agent, [Role.WEREWOLF, Role.POSSESSED], vote.day)
+        # if species == Species.HUMAN:
+        #     for vote in game_info.vote_list:
+        #         if vote.target == target:
+        #             # 日が進むほど判断材料は多いはずなので、日にちに応じてスコアを変える (後になるほど人狼陣営の可能性が大きくなる)
+        #             self.add_score(talker, role, vote.agent, [Role.WEREWOLF, Role.POSSESSED], vote.day)
         
