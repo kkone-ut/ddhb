@@ -124,7 +124,8 @@ class ddhbBodyguard(ddhbVillager):
         # COしてて、護衛成功してて、報告してないなら
         if self.has_co and self.guard_success and not self.has_report:
             self.has_report = True
-            return Content(GuardedAgentContentBuilder(self.me, self.game_info.guarded_agent))
+            # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
+            return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
         
             
         return CONTENT_SKIP
