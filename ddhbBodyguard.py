@@ -115,7 +115,7 @@ class ddhbBodyguard(ddhbVillager):
         
         # 護衛成功報告
         # 予定の日にち-1 以降の日にちなら、まずCOして、次のターンに報告
-        if self.game_info.day == self.co_date - 1:
+        if not self.has_co and self.game_info.day == self.co_date - 1:
             if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
                 self.guard_success = True
                 self.has_co = True
