@@ -290,9 +290,10 @@ class ddhbVillager(AbstractPlayer):
         if self.N == 5:
             agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
         else:
-            agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
-            if agent_vote_for == AGENT_NONE:
-                agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            # agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
+            # if agent_vote_for == AGENT_NONE:
+            #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
 
         return agent_vote_for
 
