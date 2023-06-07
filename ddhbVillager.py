@@ -279,23 +279,32 @@ class ddhbVillager(AbstractPlayer):
             candidates = self.get_alive_others(self.game_info.agent_list)
         # Declare which to vote for if not declare yet or the candidate is changed.
         # 候補からランダムセレクト
-        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-            self.vote_candidate = self.random_select(candidates)
+        # if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
+        #     self.vote_candidate = self.random_select(candidates)
+        #     if self.vote_candidate != AGENT_NONE:
+        #         return Content(VoteContentBuilder(self.vote_candidate))
+
+        if self.vote_candidate == AGENT_NONE:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
+
         return CONTENT_SKIP
   
     def vote(self) -> Agent:
-        agent_vote_for: Agent = AGENT_NONE
-        if self.N == 5:
-            agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-        else:
-            agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-            # agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
-            # if agent_vote_for == AGENT_NONE:
-            #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
 
-        return agent_vote_for
+        # agent_vote_for: Agent = AGENT_NONE
+        # if self.N == 5:
+        #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+        # else:
+        #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+        #     # agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
+        #     # if agent_vote_for == AGENT_NONE:
+        #     #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+
+        # return agent_vote_for
+
+        return self.vote_candidate
 
     def attack(self) -> Agent:
         raise NotImplementedError()
