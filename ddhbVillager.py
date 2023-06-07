@@ -169,8 +169,8 @@ class ddhbVillager(AbstractPlayer):
 
         self.agent_idx_0based = self.me.agent_idx - 1
 
-        print("my role:\t", game_info.my_role)
-        print("my idx:\t", self.me.agent_idx-1)
+        Util.debug_print("my role:\t", game_info.my_role)
+        Util.debug_print("my idx:\t", self.me.agent_idx-1)
 
     # 昼スタート
     def day_start(self) -> None:

@@ -66,10 +66,10 @@ class ddhbBodyguard(ddhbVillager):
 
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
-            print("護衛成功: エージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
+            Util.debug_print("護衛成功:\tエージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
             self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
         elif self.game_info.guarded_agent != None:
-            print("護衛失敗: エージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
+            Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
 
     # 護衛先選び → 変更する
     def guard(self) -> Agent:

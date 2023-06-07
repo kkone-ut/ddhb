@@ -15,8 +15,8 @@ class RolePredictor:
     # 保持しておく役職の割り当ての数
     # これを超えたら評価の低いものから削除する
     # 制限時間的に最大500個
-    ASSIGNMENT_NUM = 300
-    ADDITIONAL_ASSIGNMENT_NUM = 100
+    ASSIGNMENT_NUM = 100
+    ADDITIONAL_ASSIGNMENT_NUM = 50
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
