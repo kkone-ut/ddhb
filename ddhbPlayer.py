@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Topic
 
 from ddhbBodyguard import ddhbBodyguard
 from ddhbMedium import ddhbMedium
@@ -24,6 +24,7 @@ from ddhbSeer import ddhbSeer
 from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
 
+from Util import Util
 
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
@@ -79,7 +80,10 @@ class ddhbPlayer(AbstractPlayer):
         self.player.initialize(game_info, game_setting)
 
     def talk(self) -> Content:
-        return self.player.talk()
+        content = self.player.talk()
+        if content.topic != Topic.Skip:
+            Util.debug_print("My Topic:\t", content.text)
+        return content
 
     def update(self, game_info: GameInfo) -> None:
         self.player.update(game_info)
