@@ -13,7 +13,7 @@ class ScoreMatrix:
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
         self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
+        self.M = len(game_info.existing_role_list)
         # score_matrix[エージェント1, 役職1, エージェント2, 役職2]: エージェント1が役職1、エージェント2が役職2である相対確率の対数
         # -infで相対確率は0になる
         self.score_matrix: np.ndarray = np.zeros((self.N, self.M, self.N, self.M))
@@ -430,6 +430,7 @@ class ScoreMatrix:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
         # review: 試しに逆を追加してみた
         if species == Species.WEREWOLF:
+            # review: +100 を +5 に変更 (Seer に合わせた)
             self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
 
             self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
@@ -478,7 +479,12 @@ class ScoreMatrix:
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         if len(game_info.last_dead_agent_list) == 0:
             # 護衛が成功していたら護衛対象は人狼ではない
-            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
+            # review: -100 から -5 に変更
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -5)
+            # review: 逆も追加
+            self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +5)
+            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
 
     # 投票した発言を反映
     # 後で実装する→そんなに重要でない

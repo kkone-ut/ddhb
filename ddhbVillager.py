@@ -165,8 +165,8 @@ class ddhbVillager(AbstractPlayer):
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
 
         self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
-        
+        self.M = len(game_info.existing_role_list)
+
         self.agent_idx_0based = self.me.agent_idx - 1
 
     # 昼スタート

@@ -35,7 +35,7 @@ class RolePredictor:
         self.game_setting = game_setting
         self.game_info = game_info
         self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
+        self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
         self.assignments = []
