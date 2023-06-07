@@ -178,7 +178,6 @@ class ScoreMatrix:
         if talker == self.me:
             # 自分のCOは無視
             return
-        Util.debug_print('talk_co: talker={}, role={}'.format(talker, role))
         my_role = self.my_role
         # 他者の占いCO
         if role == Role.SEER:
@@ -278,7 +277,8 @@ class ScoreMatrix:
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: 0})
                 else:
                     # 三人目以降COの村陣営の役職騙りは考慮しない
-                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: 0, Role.BODYGUARD: -100})
+                    # review: bodyguard と medium が逆っぽいので直した
+                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: 0})
                     # 三人目以降はHPが少なくてCOする場合があるから、人狼と狂人の確率を少し上げる
                     for i in range(2, self.bodyguard_co_count):
                         id = self.bodyguard_co_id[i]
@@ -406,7 +406,8 @@ class ScoreMatrix:
                         self.add_scores(talker, {Role.SEER: -50})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
-                        self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
+                        # review: 長生きするとどんどん人狼らしさが減るのでとりあえずコメントアウト
+                        # self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
                         # review: 逆に target が人間だったときに talker が人狼陣営である可能性を上げておくべきか
                         # review: self.add_score(target, 市民陣営, talker, 人狼陣営, +5) のような感じ
                         self.add_score(talker, Role.SEER, target, Species.HUMAN, -5)
@@ -417,7 +418,8 @@ class ScoreMatrix:
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
-                        self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
+                        # review: 長生きするとどんどん人狼らしさが減るのでとりあえずコメントアウト
+                        # self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
                         # review: こっちも逆を考えるべきか
                         self.add_score(talker, Role.SEER, target, Species.HUMAN, +5)
                         self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
