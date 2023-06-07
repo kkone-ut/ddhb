@@ -320,16 +320,24 @@ class ddhbVillager(AbstractPlayer):
 
     def finish(self) -> None:
         Util.debug_print("")
-        p = self.role_predictor.getProbAll()
-        # for a, r in self.game_info.role_map.items():
-        #     Util.debug_print("Agent:", a)
-        #     Util.debug_print("Role:", r)
-        #     Util.debug_print("Prob:", p[a][r])
-        #     likely_role = self.role_predictor.getMostLikelyRole(a)
-        #     Util.debug_print("MostLikely", likely_role)
-        #     Util.debug_print("Prob:", p[a][likely_role])
-        #     Util.debug_print("")
 
+        # 確率を表示
+        p = self.role_predictor.getProbAll()
+        Util.debug_print("", end="\t")
+        for r in self.game_info.existing_role_list:
+            Util.debug_print(r.name, end="\t")
+        Util.debug_print("")
+        for a in self.game_info.agent_list:
+            Util.debug_print(a, end="\t")
+            for r in self.game_info.existing_role_list:
+                if p[a][r] > 0.005:
+                    Util.debug_print(round(p[a][r], 2), end="\t")
+                else:
+                    Util.debug_print("-", end="\t")
+            Util.debug_print("")
+        Util.debug_print("")
+
+        # COを表示
         for a, r in self.comingout_map.items():
             Util.debug_print("CO:\t", a, r)
         Util.debug_print("")
@@ -368,11 +376,13 @@ class ddhbVillager(AbstractPlayer):
         
         # 予測の割り当てのスコアを表示 (デバッグモード)
         predicted_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
         Util.debug_print("predicted score:\t", round(predicted_assignment.score, 4))
         Util.debug_print("")
 
         # 実際の割り当てのスコアを表示 (デバッグモード)
         actual_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
         Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
         Util.debug_print("")
 
