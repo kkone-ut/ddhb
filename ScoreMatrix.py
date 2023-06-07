@@ -191,6 +191,10 @@ class ScoreMatrix:
                 if talker_id in self.seer_co_id:
                     # 既にCOしている場合→複数回COすることでscoreを稼ぐのを防ぐ
                     return
+                # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
+                for seer_id in self.seer_co_id:
+                    self.add_score(seer_id, Role.SEER, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.SEER, seer_id, Side.WEREWOLVES, 100)
                 # 初COの場合
                 self.seer_co_count += 1
                 self.seer_co_id.append(talker_id)
@@ -206,9 +210,6 @@ class ScoreMatrix:
                     # 二人目COの方が気持ち真っぽい←一人目がHPが少なくてCOする場合があるから
                     # 二人目CO人狼と狂人の確率を少し下げる
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: 0, Role.POSSESSED: -1, Role.WEREWOLF: -1, Role.MEDIUM: -100, Role.BODYGUARD: -100})
-                    # review: 片方を信じるならもう片方は人狼陣営という前提条件を追加
-                    self.add_score(seer_co_id_first, Role.SEER, talker, Side.WEREWOLVES, 100)
-                    self.add_score(talker, Role.SEER, seer_co_id_first, Side.WEREWOLVES, 100)
                 elif self.seer_co_count == 3:
                     seer_co_id_first = self.seer_co_id[0]
                     seer_co_id_second = self.seer_co_id[1]
@@ -217,11 +218,6 @@ class ScoreMatrix:
                     # 三人目COの村陣営の役職騙りは考慮しない
                     # 三人COの場合は、どの占いも同じくらい真っぽいと仮定する→scoreの変更はしない
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: 0, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})
-                    # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
-                    self.add_score(seer_co_id_first, Role.SEER, talker, Side.WEREWOLVES, 100)
-                    self.add_score(seer_co_id_second, Role.SEER, talker, Side.WEREWOLVES, 100)
-                    self.add_score(talker, Role.SEER, seer_co_id_first, Side.WEREWOLVES, 100)
-                    self.add_score(talker, Role.SEER, seer_co_id_second, Side.WEREWOLVES, 100)
                 else:
                     # 四人目以降COの村陣営の役職騙りは考慮しない
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: 0, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})
@@ -240,6 +236,10 @@ class ScoreMatrix:
                 if talker_id in self.medium_co_id:
                     # 既にCOしている場合→複数回COすることでscoreを稼ぐのを防ぐ
                     return
+                # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
+                for medium_id in self.medium_co_id:
+                    self.add_score(medium_id, Role.MEDIUM, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.MEDIUM, medium_id, Side.WEREWOLVES, 100)
                 # 初COの場合
                 self.medium_co_count += 1
                 self.medium_co_id.append(talker_id)
