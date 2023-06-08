@@ -46,6 +46,9 @@ class ddhbPlayer(AbstractPlayer):
         self.werewolf = ddhbWerewolf()
         self.player = self.villager
 
+        self.game_setting: GameSetting = None
+        self.game_info: GameInfo = None
+
     # オーバーライドしていく
     def attack(self) -> Agent:
         return self.player.attack()
@@ -64,6 +67,9 @@ class ddhbPlayer(AbstractPlayer):
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+        self.game_setting = game_setting
+        self.game_info = game_info
+
         role: Role = game_info.my_role
         if role == Role.VILLAGER:
             self.player = self.villager
@@ -87,6 +93,7 @@ class ddhbPlayer(AbstractPlayer):
         return content
 
     def update(self, game_info: GameInfo) -> None:
+        self.game_info = game_info
         self.player.update(game_info)
 
     def vote(self) -> Agent:
