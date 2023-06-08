@@ -21,6 +21,9 @@ class Assignment:
     
     def __eq__(self, o: object) -> bool:
         return np.array_equal(self.assignment, o.assignment)
+    
+    def __hash__(self) -> int:
+        return hash(tuple(self.assignment))
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
     def __getitem__(self, agent) -> Role:

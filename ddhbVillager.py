@@ -383,6 +383,7 @@ class ddhbVillager(AbstractPlayer):
 
         # 実際の割り当てが予測の割り当てに含まれていたのか
         Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
+        Util.debug_print("in role_predictor.assignments(set):\t", actual_assignment in self.role_predictor.assignments_set)
         Util.debug_print("")
 
         # もし含まれていないなら、含まれていたときのスコアを表示
@@ -392,13 +393,17 @@ class ddhbVillager(AbstractPlayer):
         # 予測の割り当てのスコアを表示 (デバッグモード)
         predicted_assignment.evaluate(self.score_matrix, debug=True)
         Util.debug_print("")
-        Util.debug_print("predicted score:\t", round(predicted_assignment.score, 4))
+        Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
         Util.debug_print("")
 
         # 実際の割り当てのスコアを表示 (デバッグモード)
         actual_assignment.evaluate(self.score_matrix, debug=True)
         Util.debug_print("")
         Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
+
+        # 最下位の割り当てのスコアを表示
+        Util.debug_print("")
+        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[-1].score, 4))
         Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
