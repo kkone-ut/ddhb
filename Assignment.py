@@ -1,4 +1,4 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
 import ScoreMatrix
 import numpy as np
 from Util import Util
@@ -39,11 +39,19 @@ class Assignment:
         self.score = 0
 
         # 既に負けているような割り当ての評価値は-inf
-        werewolf_num = len([r for r in self.assignment if r == Role.WEREWOLF])
-        if werewolf_num >= self.N/2:
-            if debug:
-                Util.debug_print("evaluate: -inf")
-            else:
+        if not debug:
+            werewolf_num = 0
+            alive_agent_num = 0
+            game_info = self.player.game_info
+            for i in range(self.N):
+                agent = game_info.agent_list[i]
+                status = game_info.status_map[agent]
+                if status == Status.ALIVE:
+                    alive_agent_num += 1
+                    if self.assignment[i] == Role.WEREWOLF:
+                        werewolf_num += 1
+            
+            if werewolf_num >= alive_agent_num / 2:
                 return -float("inf")
 
         for i in range(self.N):
