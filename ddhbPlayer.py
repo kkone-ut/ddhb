@@ -80,6 +80,7 @@ class ddhbPlayer(AbstractPlayer):
         self.player.initialize(game_info, game_setting)
 
     def talk(self) -> Content:
+        self.player.role_predictor.update(self.game_info, self.game_setting)
         content = self.player.talk()
         if content.topic != Topic.Skip:
             Util.debug_print("My Topic:\t", content.text)

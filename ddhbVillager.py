@@ -246,14 +246,11 @@ class ddhbVillager(AbstractPlayer):
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
         self.role_predictor.addAssignments(self.game_info, self.game_setting)
-        # self.role_predictor.update(game_info, self.game_setting)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
     # まだ実装途中です
     def talk(self) -> Content:
-        # オーバーライドしたときもこのメソッドは呼び出さなければいけない (スコアの更新が行われなくなるため)
-        self.role_predictor.update(self.game_info, self.game_setting)
 
         # フルオープンの処理
         if(self.doFO == False) :
