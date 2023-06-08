@@ -37,6 +37,15 @@ class Assignment:
     # 役職の割り当ての評価値を計算する
     def evaluate(self, score_matrix: ScoreMatrix, debug = False) -> float:
         self.score = 0
+
+        # 既に負けているような割り当ての評価値は-inf
+        werewolf_num = len([r for r in self.assignment if r == Role.WEREWOLF])
+        if werewolf_num >= self.N/2:
+            if debug:
+                Util.debug_print("evaluate: -inf")
+            else:
+                return -float("inf")
+
         for i in range(self.N):
             for j in range(self.N):
                 self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
