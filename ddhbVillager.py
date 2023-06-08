@@ -75,6 +75,11 @@ class ddhbVillager(AbstractPlayer):
         # フルオープンしたかどうか
         self.doFO = False
 
+        # 統計
+        self.game_count = 0
+        self.win_count = 0
+        self.sum_score = 0
+
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
         """Return whether the agent is alive.
@@ -171,6 +176,9 @@ class ddhbVillager(AbstractPlayer):
 
         Util.debug_print("my role:\t", game_info.my_role)
         Util.debug_print("my idx:\t", self.me.agent_idx-1)
+
+        # 統計
+        self.game_count += 1
 
     # 昼スタート
     def day_start(self) -> None:
@@ -331,6 +339,15 @@ class ddhbVillager(AbstractPlayer):
         raise NotImplementedError()
 
     def finish(self) -> None:
+        
+        # 自分が人狼陣営で人狼が生存しているか、自分が村人陣営で人狼が生存していない場合に勝利
+        alive_wolves = [a for a in self.game_info.alive_agent_list if self.game_info.role_map[a] == Role.WEREWOLF]
+        is_werewolf_side = self.game_info.my_role in [Role.WEREWOLF, Role.POSSESSED]
+        if (len(alive_wolves) > 0) == is_werewolf_side:
+            self.win_count += 1
+
+        Util.debug_print("")
+        Util.debug_print("win_rate:\t", self.win_count, "/", self.game_count, " = ", self.win_count / self.game_count)
         Util.debug_print("")
 
         # 確率を表示
@@ -374,8 +391,10 @@ class ddhbVillager(AbstractPlayer):
                 for r in self.game_info.existing_role_list:
                     Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
         
+        self.sum_score += score
         Util.debug_print("")
         Util.debug_print("score:\t", score, "/", self.N)
+        Util.debug_print("rate:\t", self.sum_score, "/", self.game_count, "=", round(self.sum_score / self.game_count, 2))
         Util.debug_print("")
 
         # 実際の割り当てが予測の割り当てに含まれていたのか
