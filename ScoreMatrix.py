@@ -106,13 +106,14 @@ class ScoreMatrix:
 
     # 投票行動を反映→とりあえずOK
     # 後で修正する
-    def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
+    def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent, day: int) -> None:
         N = self.N
         my_role = self.my_role
         # review: 日が進むほど判断材料が多くなるので、日にちで重み付けするのもありかもしれない
         # review: 人狼陣営が村陣営に投票している可能性も上げるべきかもしれない
         # review:   その場合人狼陣営が投票が集まりそうな人に投票している可能性もある
         # review:   投票がバラけているときは重く、集まっているときは軽くするべきかもしれない
+        # review:   will vote の順番を見て、その人の投票で結果が変わらないならその投票の重みは軽くなる
         if voter == self.me:
             # 自分の投票行動は無視
             return
@@ -128,6 +129,15 @@ class ScoreMatrix:
             self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, +0.1)
             # 人狼が仲間の人狼に投票する確率は低い
             self.add_score(voter, Role.WEREWOLF, target, Role.WEREWOLF, -0.3)
+            
+            # weight = day * 0.5
+            # self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, weight)
+            # self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight*2)
+            # self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight*2)
+            # self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
+
+            # self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -weight*2)
+            
         # pass
 
     # 自身の能力の結果から推測する

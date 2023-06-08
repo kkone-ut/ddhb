@@ -194,6 +194,9 @@ class ddhbVillager(AbstractPlayer):
 
         Util.debug_print("Executed:\t", self.game_info.executed_agent)
 
+        for v in self.game_info.vote_list:
+            self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
+
     # ゲーム情報の更新
     # talk-listの処理
     def update(self, game_info: GameInfo) -> None:
