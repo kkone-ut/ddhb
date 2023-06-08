@@ -73,10 +73,10 @@ if [ "$otherAgents" = "all" ]; then
         do
             echo "BasketPlayer${i},java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
             echo "WasabiPlayer${i},java,jp.ac.shibaura_it.ma15082.player.WasabiRoleAssignPlayer" >> AutoStarter.ini
-            echo "TomatoPlayer${i},java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini
+            # echo "TomatoPlayer${i},java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini # VOTE AGENT_ANY を使ってくる
             echo "IOHPlayer${i},java,org.aiwolf.IOH.IOHRoleAssignPlayer" >> AutoStarter.ini
             echo "KarmaPlayer${i},java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
-            # echo "TOKUPlayer${i},java,org.aiwolf.TOKU.TOKURoleAssginPlayer" >> AutoStarter.ini # TOKURoleAssginPlayer (スペルミス) # VOTE AGENT_ANY を使ってくる
+            echo "TOKUPlayer${i},java,org.aiwolf.TOKU.TOKURoleAssginPlayer" >> AutoStarter.ini # TOKURoleAssginPlayer (スペルミス)
             echo "CamelliaPlayer${i},java,camellia.aiwolf.demo.DemoRoleAssignPlayer" >> AutoStarter.ini
             echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
         done
