@@ -205,8 +205,18 @@ class ddhbVillager(AbstractPlayer):
                 continue
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
-            # todo: content.target が必要なトピックでは target をチェックする
-            # todo: target が AGENT_ANY(agent_idx=255) または不正(agent_idx=0 or agent_idx>self.N) なら無視する
+
+            # content.target が不要な場合デフォルトの AGENT_ANY が入っている
+            # 不正な場合はここで弾く
+            if content.target == AGENT_NONE or (content.target != AGENT_ANY and content.target.agent_idx > self.N):
+                Util.debug_print("Invalid target:\t", content.target)
+                continue
+            # target が不要なトピック以外で AGENT_ANY が入っている場合は弾く
+            if content.target == AGENT_ANY:
+                if content.topic not in [Topic.Over, Topic.Skip, Topic.OPERATOR, Topic.AGREE, Topic.DISAGREE, Topic.DUMMY]:
+                    Util.debug_print("Invalid target:\t", content.topic, content.target)
+                    continue
+
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
                 self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
@@ -288,7 +298,6 @@ class ddhbVillager(AbstractPlayer):
 
         if self.vote_candidate == AGENT_NONE:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-            self.vote_candidate = Agent(16)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
 
