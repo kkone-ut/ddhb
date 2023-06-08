@@ -22,7 +22,7 @@ from typing import Dict, List
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
                     VoteContentBuilder)
-from aiwolf.constant import AGENT_NONE
+from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
 
 from const import CONTENT_SKIP
 
@@ -205,6 +205,8 @@ class ddhbVillager(AbstractPlayer):
                 continue
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
+            # todo: content.target が必要なトピックでは target をチェックする
+            # todo: target が AGENT_ANY(agent_idx=255) または不正(agent_idx=0 or agent_idx>self.N) なら無視する
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
                 self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
@@ -286,6 +288,7 @@ class ddhbVillager(AbstractPlayer):
 
         if self.vote_candidate == AGENT_NONE:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            self.vote_candidate = Agent(16)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
 
