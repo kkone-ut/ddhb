@@ -130,13 +130,11 @@ class ddhbPossessed(ddhbVillager):
                         max_score = score
                         agent_vote_for = self.game_info.agent_list[i]
         else :
-            # 謎の処理
-            max_score = -100
-
             # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
             if(self.N == 5) :
                 for i in range(self.N):
                     if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
+                        # 元のコードでは、自分の役職を占い師としたときの確率から、狂人としたときの確率を引いている
                         score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
                         if score > max_score :
                             max_score = score
@@ -150,9 +148,9 @@ class ddhbPossessed(ddhbVillager):
                         if score > max_score :
                             max_score = score
                             agent_vote_for = self.game_info.agent_list[i]
+
         return agent_vote_for
     
-
     
     # CO、結果報告
     def talk(self) -> Content:
