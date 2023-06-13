@@ -49,7 +49,7 @@ class ddhbVillager(AbstractPlayer):
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    will_vote_reports: Dict[Agent, Agent] # 投票宣言
+    will_vote_reports: "defaultdict[Agent, Agent]" # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
 
@@ -62,7 +62,7 @@ class ddhbVillager(AbstractPlayer):
         self.comingout_map = {}
         self.divination_reports = []
         self.identification_reports = []
-        self.will_vote_reports = dict()
+        self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_head = 0
 
         self.role_predictor = None
@@ -143,7 +143,7 @@ class ddhbVillager(AbstractPlayer):
         return random.choice(agent_list) if agent_list else AGENT_NONE
     
     # 最も処刑されそうなエージェントを返す
-    def chooseMostlikelyExecuted(self, n : float) -> Agent:
+    def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count : defaultdict[Agent, float] = defaultdict(float)
 
@@ -165,9 +165,7 @@ class ddhbVillager(AbstractPlayer):
         self.comingout_map.clear()
         self.divination_reports.clear()
         self.identification_reports.clear()
-        # python3.9 以前だと defaultdict で型ヒントが使えないため Dict に変更し初期化処理を追加
-        for a in game_info.agent_list:
-            self.will_vote_reports[a] = AGENT_NONE
+        self.will_vote_reports.clear()
 
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
@@ -187,9 +185,7 @@ class ddhbVillager(AbstractPlayer):
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
-
-        for a in self.game_info.agent_list:
-            self.will_vote_reports[a] = AGENT_NONE
+        self.will_vote_reports.clear()
 
         Util.debug_print("")
         Util.debug_print("DayStart:\t", self.game_info.day)
@@ -311,6 +307,7 @@ class ddhbVillager(AbstractPlayer):
         #         return Content(VoteContentBuilder(self.vote_candidate))
 
         if self.vote_candidate == AGENT_NONE:
+            # self.vote_candidate = self.chooseMostlikelyExecuted()
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
