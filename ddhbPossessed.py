@@ -154,20 +154,43 @@ class ddhbPossessed(ddhbVillager):
     
     # CO、結果報告
     def talk(self) -> Content:
+        # もし占い師を語るならば
+        if self.fake_role == Role.SEER:
+            # 占い師が何人いるかを数える
+            num_seer = 0
+            for i in range(self.N):
+                if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
+                        and self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
+                    num_seer += 1
+            # 占い師が既に二人以上いるならば、狩人を騙る
+            if num_seer >= 2:
+                self.fake_role = Role.BODYGUARD
+
         # Do comingout if it's on scheduled day or a werewolf is found.
         # CO : 予定の日にち or 人狼発見
         if self.fake_role != Role.VILLAGER and not self.has_co \
                 and (self.game_info.day == self.co_date or self.werewolves):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, self.fake_role))
+        
         # Report the judgement after doing comingout.
         # 結果報告
         if self.has_co and self.my_judgee_queue:
+            # popleftで大丈夫だろうか
             judge: Judge = self.my_judgee_queue.popleft()
-            if self.fake_role == Role.SEER:
-                return Content(DivinedResultContentBuilder(judge.target, judge.result))
-            elif self.fake_role == Role.MEDIUM:
-                return Content(IdentContentBuilder(judge.target, judge.result))
+            # 5人村の時
+            if self.N == 5:
+                # 対抗がいたら、対抗が黒だという
+                for i in range(self.N):
+                    if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                        if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
+                            return Content(DivinedResultContentBuilder(self.my_judgee_queue[0].target, Species.WEREWOLF))
+                    
+                if self.fake_role == Role.SEER:
+                    return Content(DivinedResultContentBuilder(judge.target, judge.result))
+                elif self.fake_role == Role.MEDIUM:
+                    return Content(IdentContentBuilder(judge.target, judge.result))
+            
         # Vote for one of the alive fake werewolves.
         # 投票候補：人狼結果リスト
         candidates: List[Agent] = self.get_alive(self.werewolves)
