@@ -21,6 +21,7 @@ from argparse import ArgumentParser
 from aiwolf import AbstractPlayer, TcpipClient
 
 from ddhbPlayer import ddhbPlayer
+from Util import Util
 
 import warnings
 
@@ -35,6 +36,9 @@ if __name__ == "__main__":
     parser.add_argument("-h", type=str, action="store", dest="hostname", required=True)
     parser.add_argument("-r", type=str, action="store", dest="role", default="none") # 役指定
     parser.add_argument("-n", type=str, action="store", dest="name") # プレイヤー名
+    parser.add_argument("-d", action="store_true", dest="debug") # デバッグモード
     # 引数を解析する
     input_args = parser.parse_args()
+    if input_args.debug:
+        Util.debug_mode = True
     TcpipClient(agent, input_args.name, input_args.hostname, input_args.port, input_args.role).connect()

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Topic
 
 from ddhbBodyguard import ddhbBodyguard
 from ddhbMedium import ddhbMedium
@@ -24,6 +24,7 @@ from ddhbSeer import ddhbSeer
 from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
 
+from Util import Util
 
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
@@ -45,6 +46,9 @@ class ddhbPlayer(AbstractPlayer):
         self.werewolf = ddhbWerewolf()
         self.player = self.villager
 
+        self.game_setting: GameSetting = None
+        self.game_info: GameInfo = None
+
     # オーバーライドしていく
     def attack(self) -> Agent:
         return self.player.attack()
@@ -63,6 +67,9 @@ class ddhbPlayer(AbstractPlayer):
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+        self.game_setting = game_setting
+        self.game_info = game_info
+
         role: Role = game_info.my_role
         if role == Role.VILLAGER:
             self.player = self.villager
@@ -79,9 +86,14 @@ class ddhbPlayer(AbstractPlayer):
         self.player.initialize(game_info, game_setting)
 
     def talk(self) -> Content:
-        return self.player.talk()
+        self.player.role_predictor.update(self.game_info, self.game_setting)
+        content = self.player.talk()
+        if content.topic != Topic.Skip:
+            Util.debug_print("My Topic:\t", content.text)
+        return content
 
     def update(self, game_info: GameInfo) -> None:
+        self.game_info = game_info
         self.player.update(game_info)
 
     def vote(self) -> Agent:

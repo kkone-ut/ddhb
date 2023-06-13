@@ -1,12 +1,13 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
 import ScoreMatrix
 import numpy as np
+from Util import Util
 
 class Assignment:
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _assignment) -> None:
         self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
+        self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
         self.score = 0
@@ -20,17 +21,47 @@ class Assignment:
     
     def __eq__(self, o: object) -> bool:
         return np.array_equal(self.assignment, o.assignment)
+    
+    def __hash__(self) -> int:
+        return hash(tuple(self.assignment))
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
-    def __getitem__(self, i: int) -> Role:
-        return self.assignment[i]
+    def __getitem__(self, agent) -> Role:
+        if type(agent) is Agent:
+            return self.assignment[agent.agent_idx-1]
+        elif type(agent) is int:
+            return self.assignment[agent]
+        else:
+            if Util.debug_mode:
+                raise TypeError
+            else:
+                return self.assignment[0]
         
     # 役職の割り当ての評価値を計算する
-    def evaluate(self, score_matrix: ScoreMatrix) -> float:
+    def evaluate(self, score_matrix: ScoreMatrix, debug = False) -> float:
         self.score = 0
+
+        # 既に負けているような割り当ての評価値は-inf
+        if not debug:
+            werewolf_num = 0
+            alive_agent_num = 0
+            game_info = self.player.game_info
+            for i in range(self.N):
+                agent = game_info.agent_list[i]
+                status = game_info.status_map[agent]
+                if status == Status.ALIVE:
+                    alive_agent_num += 1
+                    if self.assignment[i] == Role.WEREWOLF:
+                        werewolf_num += 1
+            
+            if werewolf_num >= alive_agent_num / 2:
+                return -float("inf")
+
         for i in range(self.N):
             for j in range(self.N):
                 self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 4.5:
+                    Util.debug_print("score[", i+1, "\t", self.assignment[i], "\t", j+1, "\t", self.assignment[j], "\t] = ",round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]), 2))
         
         return self.score
     

@@ -1,18 +1,19 @@
 from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic)
+from aiwolf.constant import AGENT_NONE
 
 import numpy as np
 from Util import Util
 import ddhbVillager
 from typing import Dict
-
+from Side import Side
 
 class ScoreMatrix:
     # コメント
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
         self.N = game_setting.player_num
-        self.M = len(game_setting.role_num_map)
+        self.M = len(game_info.existing_role_list)
         # score_matrix[エージェント1, 役職1, エージェント2, 役職2]: エージェント1が役職1、エージェント2が役職2である相対確率の対数
         # -infで相対確率は0になる
         self.score_matrix: np.ndarray = np.zeros((self.N, self.M, self.N, self.M))
@@ -32,7 +33,7 @@ class ScoreMatrix:
     # スコアの付け方
     # 確定情報: +inf または -inf
     # 非確定情報: 有限値 最大を1で統一する
-    # 書くときは100を最大として、加算するときに1/100倍する
+    # 書くときは100を最大として、相対確率に直すときに1/10倍する
 
     # スコアの取得
     # agent1, agent2: Agent or int
@@ -60,10 +61,34 @@ class ScoreMatrix:
 
     # スコアの加算
     # agent1, agent2: Agent or int
-    # role1, role2: Role or int
+    # role1, rold2: Role or int or list (todo: Species, Side)
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
-        score = self.get_score(agent1, role1, agent2, role2) + score / 100
-        self.set_score(agent1, role1, agent2, role2, score)
+        if type(role1) is Side:
+            role1 = role1.get_role_list(self.N)
+        if type(role2) is Side:
+            role2 = role2.get_role_list(self.N)
+        if type(role1) is Species:
+            if role1 == Species.HUMAN:
+                role1 = Side.VILLAGERS.get_role_list(self.N) + [Role.POSSESSED]
+            elif role1 == Species.WEREWOLF:
+                role1 = Role.WEREWOLF
+            else:
+                Util.error_print('role1 is not Species.HUMAN or Species.WEREWOLF')
+        if type(role2) is Species:
+            if role2 == Species.HUMAN:
+                role2 = Side.VILLAGERS.get_role_list(self.N) + [Role.POSSESSED]
+            elif role2 == Species.WEREWOLF:
+                role2 = Role.WEREWOLF
+            else:
+                Util.error_print('role2 is not Species.HUMAN or Species.WEREWOLF')
+        if type(role1) is not list:
+            role1 = [role1]
+        if type(role2) is not list:
+            role2 = [role2]
+        for r1 in role1:
+            for r2 in role2:
+                modified_score = self.get_score(agent1, r1, agent2, r2) + score
+                self.set_score(agent1, r1, agent2, r2, modified_score)
     
     # スコアの加算をまとめて行う
     def add_scores(self, agent: Agent, score_dict: Dict[Role, float]) -> None:
@@ -77,13 +102,18 @@ class ScoreMatrix:
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
-
+        self.review_on_judged(game_info, game_setting, agent, Species.HUMAN)
 
     # 投票行動を反映→とりあえずOK
     # 後で修正する
-    def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent) -> None:
+    def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent, day: int) -> None:
         N = self.N
         my_role = self.my_role
+        # review: 日が進むほど判断材料が多くなるので、日にちで重み付けするのもありかもしれない
+        # review: 人狼陣営が村陣営に投票している可能性も上げるべきかもしれない
+        # review:   その場合人狼陣営が投票が集まりそうな人に投票している可能性もある
+        # review:   投票がバラけているときは重く、集まっているときは軽くするべきかもしれない
+        # review:   will vote の順番を見て、その人の投票で結果が変わらないならその投票の重みは軽くなる
         if voter == self.me:
             # 自分の投票行動は無視
             return
@@ -99,6 +129,15 @@ class ScoreMatrix:
             self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, +0.1)
             # 人狼が仲間の人狼に投票する確率は低い
             self.add_score(voter, Role.WEREWOLF, target, Role.WEREWOLF, -0.3)
+            
+            # weight = day * 0.5
+            # self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, weight)
+            # self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight*2)
+            # self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight*2)
+            # self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
+
+            # self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -weight*2)
+            
         # pass
 
     # 自身の能力の結果から推測する
@@ -116,6 +155,8 @@ class ScoreMatrix:
         else:
             # 万が一不確定(Species.UNC, Species.ANY)の場合
             Util.error('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
+        
+        self.review_on_judged(game_info, game_setting, target, species)
 
     # 自分の霊媒結果を反映→OK
     # 結果騙りは考慮しない
@@ -127,6 +168,8 @@ class ScoreMatrix:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
         else:
             Util.error('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
+        
+        self.review_on_judged(game_info, game_setting, target, species)
 
     # 自分の護衛結果を反映→OK
     # 人狼の自噛みはルール上なし
@@ -134,10 +177,13 @@ class ScoreMatrix:
         # 護衛が成功したエージェントは人狼ではない
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
 
+        self.review_on_judged(game_info, game_setting, target, Species.HUMAN)
+
     # 他の人の発言から推測する
     # 確定情報ではないので有限の値を加減算する
 
     # 他者のCOを反映 
+    # Basketでは、人外は3CO目のCOはしないので、3CO目は真占いである確率が極めて高い？
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role) -> None:
         if talker == self.me:
             # 自分のCOは無視
@@ -155,6 +201,10 @@ class ScoreMatrix:
                 if talker_id in self.seer_co_id:
                     # 既にCOしている場合→複数回COすることでscoreを稼ぐのを防ぐ
                     return
+                # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
+                for seer_id in self.seer_co_id:
+                    self.add_score(seer_id, Role.SEER, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.SEER, seer_id, Side.WEREWOLVES, 100)
                 # 初COの場合
                 self.seer_co_count += 1
                 self.seer_co_id.append(talker_id)
@@ -171,6 +221,7 @@ class ScoreMatrix:
                     # 二人目CO人狼と狂人の確率を少し下げる
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: 0, Role.POSSESSED: -1, Role.WEREWOLF: -1, Role.MEDIUM: -100, Role.BODYGUARD: -100})
                 elif self.seer_co_count == 3:
+                    seer_co_id_first = self.seer_co_id[0]
                     seer_co_id_second = self.seer_co_id[1]
                     # 二人目COの人狼と狂人の確率を元に戻す
                     self.add_scores(seer_co_id_second, {Role.POSSESSED: +1, Role.WEREWOLF: +1})
@@ -195,6 +246,10 @@ class ScoreMatrix:
                 if talker_id in self.medium_co_id:
                     # 既にCOしている場合→複数回COすることでscoreを稼ぐのを防ぐ
                     return
+                # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
+                for medium_id in self.medium_co_id:
+                    self.add_score(medium_id, Role.MEDIUM, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.MEDIUM, medium_id, Side.WEREWOLVES, 100)
                 # 初COの場合
                 self.medium_co_count += 1
                 self.medium_co_id.append(talker_id)
@@ -207,7 +262,10 @@ class ScoreMatrix:
                     self.add_scores(medium_co_id_first, {Role.POSSESSED: +10, Role.WEREWOLF: +10})
                     # 二人目COの村陣営の役職騙りは考慮しない
                     # 二人COの場合は、どの占いも同じくらい真っぽいと仮定する→scoreの変更はしない
-                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: 0, Role.BODYGUARD: -100})                    
+                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: 0, Role.BODYGUARD: -100})
+                    # review: 片方を信じるならもう片方は人狼陣営という前提条件を追加
+                    self.add_score(medium_co_id_first, Role.MEDIUM, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.MEDIUM, medium_co_id_first, Side.WEREWOLVES, 100)               
                 else:
                     # 三人目以降COの村陣営の役職騙りは考慮しない
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: 0, Role.BODYGUARD: -100})                    
@@ -215,6 +273,13 @@ class ScoreMatrix:
                     for i in range(2, self.medium_co_count):
                         id = self.medium_co_id[i]
                         self.add_scores(id, {Role.POSSESSED: +1, Role.WEREWOLF: +1})
+                    # review: 誰かを信じるならそれ以外は人狼陣営という前提条件を追加
+                    medium_co_id_first = self.medium_co_id[0]
+                    medium_co_id_second = self.medium_co_id[1]
+                    self.add_score(medium_co_id_first, Role.MEDIUM, talker, Side.WEREWOLVES, 100)
+                    self.add_score(medium_co_id_second, Role.MEDIUM, talker, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.MEDIUM, medium_co_id_first, Side.WEREWOLVES, 100)
+                    self.add_score(talker, Role.MEDIUM, medium_co_id_second, Side.WEREWOLVES, 100)
         # 他者の狩人CO
         elif role == Role.BODYGUARD:
             # 自分が真狩人の場合
@@ -231,7 +296,9 @@ class ScoreMatrix:
                 self.bodyguard_co_id.append(talker_id)
                 if self.bodyguard_co_count == 1:
                     # 一人目COの場合、ほぼ真→人狼と狂人の確率を下げる
-                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: -10, Role.WEREWOLF: -10, Role.MEDIUM: -100, Role.BODYGUARD: 0})
+                    # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: -10, Role.WEREWOLF: -10, Role.MEDIUM: -100, Role.BODYGUARD: 0})
+                    # review: 狩人はCOせずに死ぬことが多い
+                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: 0})
                 elif self.bodyguard_co_count == 2:
                     bodyguard_co_id_first = self.bodyguard_co_id[0]
                     # 一人目COの人狼と狂人の確率を元に戻す
@@ -241,7 +308,8 @@ class ScoreMatrix:
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: 0})
                 else:
                     # 三人目以降COの村陣営の役職騙りは考慮しない
-                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: 0, Role.BODYGUARD: -100})
+                    # review: bodyguard と medium が逆っぽいので直した
+                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: 0})
                     # 三人目以降はHPが少なくてCOする場合があるから、人狼と狂人の確率を少し上げる
                     for i in range(2, self.bodyguard_co_count):
                         id = self.bodyguard_co_id[i]
@@ -353,38 +421,60 @@ class ScoreMatrix:
                 self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
             elif my_role == Role.WEREWOLF:
                 if species == Species.WEREWOLF:
-                    if target == self.me:
+                    if target == self.me: # review: 他の人狼に当たった場合も考慮すべきかも
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})                        
-                    else:
+                    else: # review: 他の人狼でもない場合は外れてるから占い師である可能性は下がって狂人である可能性は上がりそう
                         pass
                 elif species == Species.HUMAN:
-                    if target == self.me:
+                    if target == self.me: # review: これも他の人狼に当たった場合も考慮すべきかも
                         self.add_scores(talker, {Role.SEER: -50, Role.POSSESSED: +50})
-                    else:
+                    else: # review: 他の人狼でもない場合は当たっているから占い師である可能性が上がりそう
                         pass
             else:
                 if species == Species.WEREWOLF:
                     if target == self.me:
+                        # review: COの段階で占い師以外の市民の確率が下がっているので良さそうだが、CO無しの場合も念のため考慮して人狼陣営の可能性を上げたほうがいいかも
                         self.add_scores(talker, {Role.SEER: -50})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
-                        self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
+                        # review: 長生きするとどんどん人狼らしさが減るのでとりあえずコメントアウト
+                        # self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
+                        # review: 逆に target が人間だったときに talker が人狼陣営である可能性を上げておくべきか
+                        # review: self.add_score(target, 市民陣営, talker, 人狼陣営, +5) のような感じ
+                        self.add_score(talker, Role.SEER, target, Species.HUMAN, -5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
                 elif species == Species.HUMAN:
                     if target == self.me:
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
-                        self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
+                        # review: 長生きするとどんどん人狼らしさが減るのでとりあえずコメントアウト
+                        # self.add_scores(talker, {Role.POSSESSED: -2, Role.WEREWOLF: -2})
+                        # review: こっちも逆を考えるべきか
+                        self.add_score(talker, Role.SEER, target, Species.HUMAN, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+                        # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5) # 人狼陣営でも本物の白出しくらいするか
 
 
     # 他者の霊媒結果を反映
     # 後でtalk_divinedと同じように条件分岐する
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
         # 本物の霊媒師が嘘を言うことは無いと仮定する
+        # review: 試しに逆を追加してみた
         if species == Species.WEREWOLF:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +100)
+            # review: +100 を +5 に変更 (Seer に合わせた)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
+
+            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
+            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
         elif species == Species.HUMAN:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -100)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
+
+            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
+            # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5) # 人狼陣営でも本物の白出しくらいするか
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
         else:
             pass # 有益な情報ではないので無視する
 
@@ -422,10 +512,43 @@ class ScoreMatrix:
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         if len(game_info.last_dead_agent_list) == 0:
             # 護衛が成功していたら護衛対象は人狼ではない
-            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -100)
+            # review: -100 から -5 に変更
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -5)
+            # review: 逆も追加
+            self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +5)
+            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
+            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
 
     # 投票した発言を反映
     # 後で実装する→そんなに重要でない
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
         pass
+
+    # talker が role であることを仮定すると target が species であるという情報を反映する
+    # その情報と矛盾する発言をしていた人は怪しい
+    def review_on_judged(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species, talker: Agent = AGENT_NONE, role: Role = Role.ANY) -> None:
+        
+        # 前提条件が無い場合は便宜上自分自身を前提条件とする (100%信頼できる)
+        if talker == AGENT_NONE:
+            talker = self.me
+            role = self.my_role
+
+        # # 矛盾する占い結果を出した人は怪しい
+        # for judge in self.player.divination_reports:
+        #     if judge.target == target and judge.result != species:
+        #         self.add_score(talker, role, judge.agent, [Role.WEREWOLF, Role.POSSESSED], 100)
+    
+        # # 矛盾する霊媒結果を出した人は怪しい
+        # for judge in self.player.identification_reports:
+        #     if judge.target == target and judge.result != species:
+        #         self.add_score(talker, role, judge.agent, [Role.WEREWOLF, Role.POSSESSED], 100)
+
+        # 白に投票した人は怪しい
+        # todo: 複数回呼び出されないように工夫する必要がある
+        # if species == Species.HUMAN:
+        #     for vote in game_info.vote_list:
+        #         if vote.target == target:
+        #             # 日が進むほど判断材料は多いはずなので、日にちに応じてスコアを変える (後になるほど人狼陣営の可能性が大きくなる)
+        #             self.add_score(talker, role, vote.agent, [Role.WEREWOLF, Role.POSSESSED], vote.day)
+        
