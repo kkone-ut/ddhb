@@ -81,7 +81,7 @@ if [ "$otherAgents" = "all" ]; then
             echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
         done
         if [ "$client" = "false" ]; then
-            echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
+            echo "ddhbPlayer,python,../start.py" >> AutoStarter.ini
         fi
     else
         echo "Error: number of players is not 5 or 15"
@@ -108,7 +108,7 @@ else
             elif [ "$otherAgents" = "daisyo" ]; then
                 echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
             elif [ "$otherAgents" = "ddhb" ]; then
-                echo "PythonPlayer${i},python,../start.py" >> AutoStarter.ini
+                echo "ddhbPlayer${i},python,../start.py" >> AutoStarter.ini
             else
                 echo Agent \"$otherAgents\" is not supported.
                 exit 1
