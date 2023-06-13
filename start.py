@@ -21,7 +21,7 @@ from argparse import ArgumentParser
 from aiwolf import AbstractPlayer, TcpipClient
 
 from ddhbPlayer import ddhbPlayer
-import Util
+from Util import Util
 
 import warnings
 

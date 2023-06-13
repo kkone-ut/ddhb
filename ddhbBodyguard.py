@@ -66,10 +66,10 @@ class ddhbBodyguard(ddhbVillager):
 
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
-            print("護衛成功: エージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
+            Util.debug_print("護衛成功:\tエージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
             self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
         elif self.game_info.guarded_agent != None:
-            print("護衛失敗: エージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
+            Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
 
     # 護衛先選び → 変更する
     def guard(self) -> Agent:
@@ -115,7 +115,7 @@ class ddhbBodyguard(ddhbVillager):
         
         # 護衛成功報告
         # 予定の日にち-1 以降の日にちなら、まずCOして、次のターンに報告
-        if self.game_info.day == self.co_date - 1:
+        if not self.has_co and self.game_info.day == self.co_date - 1:
             if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
                 self.guard_success = True
                 self.has_co = True
@@ -124,7 +124,8 @@ class ddhbBodyguard(ddhbVillager):
         # COしてて、護衛成功してて、報告してないなら
         if self.has_co and self.guard_success and not self.has_report:
             self.has_report = True
-            return Content(GuardedAgentContentBuilder(self.me, self.game_info.guarded_agent))
+            # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
+            return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
         
             
         return CONTENT_SKIP
