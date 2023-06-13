@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+
 import random
 from collections import deque
 from typing import Deque, List
@@ -48,6 +50,8 @@ class ddhbPossessed(ddhbVillager):
     werewolves: List[Agent] # 人狼結果のエージェント
     """Fake werewolves."""
 
+
+
     def __init__(self) -> None:
         """Initialize a new instance of ddhbPossessed."""
         super().__init__()
@@ -58,6 +62,7 @@ class ddhbPossessed(ddhbVillager):
         self.not_judged_agents = []
         self.num_wolves = 0
         self.werewolves = []
+        self.strategies = []
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -76,6 +81,10 @@ class ddhbPossessed(ddhbVillager):
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
+
+        # ハックを検証するためのフラグ
+        # self.strategies = [True, False]
+        # self.hackA = strategies[0]
 
     # 偽結果生成
     def get_fake_judge(self) -> Judge:
