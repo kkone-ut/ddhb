@@ -1,10 +1,9 @@
 port="10000"
 host="127.0.0.1"
 role="none" # 指定するときはすべて大文字
-debug="true"
-loop="false"
+times=1
 
-while getopts ":p:h:r:dl" opt; do
+while getopts ":p:h:r:t:" opt; do
   case $opt in
     p) port="$OPTARG"
     ;;
@@ -12,9 +11,7 @@ while getopts ":p:h:r:dl" opt; do
     ;;
     r) role="$OPTARG"
     ;;
-    d) debug="$OPTARG"
-    ;;
-    l) loop="true"
+    t) times="$OPTARG"
     ;;
     \?) echo "Invalid option -$OPTARG" >&2
     ;;
@@ -23,7 +20,7 @@ done
 
 role=`echo $role | tr "[:lower:]" "[:upper:]"`
 
-while true
+for i in $(seq 1 $times)
 do
   latest_commit=$(git log -1 --pretty=format:"%H")
   short_commit=${latest_commit:0:7}
@@ -33,8 +30,10 @@ do
   # tee で標準出力とファイル出力を同時に行う
   python3 -u start.py -p $port -h $host -r $role -d 2>&1 | tee $filename
   exit_status=$?
-  if [[ "$loop" == "false" ]] || (( exit_status != 0)) ; then
+  if (( exit_status != 0)); then
     break
   fi
-  sleep 5
+  if (( i != times )); then
+    sleep 5
+  fi
 done
