@@ -117,11 +117,44 @@ else
     done
 fi
 
-if "$loop"; then
-    while true
-    do
-        java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
+while true
+do
+
+    # 保存先ファイルを指定
+    latest_commit=$(git log -1 --pretty=format:"%h")
+    short_commit=${latest_commit:0:7}
+    date=$(date "+%Y%m%d_%H.%M.%S")
+    outputFile="../log_server/${short_commit}_${date}.log"
+    : > $outputFile
+
+    # 現在の行をログファイルに追加するかどうかのフラグ
+    flag=0
+
+    java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini | while read line; do
+        # echo $line >> $outputFile
+        if [[ $line == "=============================================" ]]; then
+            # 行が ============================================= ならフラグを反転
+            # サーバーのログは基本的にこの行で囲まれている
+            echo "$line" >> $outputFile
+            echo "$line"
+            ((flag ^= 1))
+        elif [[ $line == *"Winner"* ]]; then
+            # Winner: 〇〇 の行は囲まれていないためそのまま出力ファイルに追加
+            echo "$line" >> $outputFile
+            echo "$line"
+        elif [[ $line == $'BODYGUARD\tMEDIUM\tPOSSESSED\tSEER\tVILLAGER\tWEREWOLF\tTotal' ]]; then
+            # 勝率のデータも囲まれていないためそのまま出力ファイルに追加
+            # それ以降他のデータは基本無いためフラグを立ててそれ以降すべて出力ファイルに追加
+            echo "\t$line" >> $outputFile
+            echo "\t$line"
+            flag=1
+        elif ((flag == 1)); then
+            # フラグが1なら、その行を出力ファイルに追加
+            echo "$line" >> $outputFile
+            echo "$line"
+        fi
     done
-else
-    java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
-fi
+    if ! "$loop"; then
+        break
+    fi
+done
