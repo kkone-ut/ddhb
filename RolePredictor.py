@@ -2,7 +2,7 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
-from typing import List
+from typing import List, Dict
 
 from Util import Util
 from Assignment import Assignment
@@ -131,7 +131,7 @@ class RolePredictor:
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
-    def getProbAll(self) -> defaultdict[Agent, defaultdict[Role, float]]:
+    def getProbAll(self) -> Dict[Agent, Dict[Role, float]]:
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -151,7 +151,11 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = defaultdict[Agent, defaultdict[Role, float]](lambda: defaultdict[Role, float](float))
+        probs = dict()
+        for a in self.game_info.agent_list:
+            probs[a] = dict()
+            for r in self.game_info.existing_role_list:
+                probs[a][r] = 0
 
         for i, assignment in enumerate(self.assignments):
             for a in self.game_info.agent_list:
