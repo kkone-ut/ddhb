@@ -124,7 +124,7 @@ do
     latest_commit=$(git log -1 --pretty=format:"%h")
     short_commit=${latest_commit:0:7}
     date=$(date "+%Y%m%d_%H.%M.%S")
-    outputFile="../log_server/${short_commit}_${date}.log"
+    outputFile="../log_server/${date}_${short_commit}.log"
     : > $outputFile
 
     # 現在の行をログファイルに追加するかどうかのフラグ
