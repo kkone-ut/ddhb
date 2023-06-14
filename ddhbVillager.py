@@ -30,6 +30,7 @@ from Util import Util
 from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
 from Assignment import Assignment
+from TeamPredictor import TeamPredictor
 
 # 村役職
 class ddhbVillager(AbstractPlayer):
@@ -52,6 +53,7 @@ class ddhbVillager(AbstractPlayer):
     will_vote_reports: "defaultdict[Agent, Agent]" # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
+    talk_list_all: List[Talk] # 全talkリスト
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
@@ -64,6 +66,7 @@ class ddhbVillager(AbstractPlayer):
         self.identification_reports = []
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_head = 0
+        self.talk_list_all = []
 
         self.role_predictor = None
         
@@ -166,6 +169,8 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
         self.will_vote_reports.clear()
+        self.talk_list_head = 0
+        self.talk_list_all = []
 
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
@@ -214,7 +219,10 @@ class ddhbVillager(AbstractPlayer):
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
             tk: Talk = game_info.talk_list[i]  # The talk to be analyzed.
             talker: Agent = tk.agent
+            self.talk_list_all.append(tk)
             if talker == self.me:  # Skip my talk.
+                continue
+            if TeamPredictor.should_skip(self, tk):
                 continue
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
@@ -429,10 +437,6 @@ class ddhbVillager(AbstractPlayer):
         for a in self.game_info.agent_list:
             if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and (a not in self.comingout_map or predicted_assignment[a] != self.comingout_map[a]):
                 Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
-        Util.debug_print("")
-
-        Util.debug_print("finish")
-        Util.debug_print("---------")
         Util.debug_print("")
 
         pass

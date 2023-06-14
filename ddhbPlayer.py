@@ -26,6 +26,7 @@ from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
 
 from Util import Util
+from TeamPredictor import TeamPredictor
 
 import library.timeout_decorator as timeout_decorator
 
@@ -64,6 +65,11 @@ class ddhbPlayer(AbstractPlayer):
 
     def finish(self) -> None:
         self.player.finish()
+        TeamPredictor.finish(self.player)
+        
+        Util.debug_print("finish")
+        Util.debug_print("---------")
+        Util.debug_print("")
 
     def guard(self) -> Agent:
         return self.player.guard()
@@ -88,6 +94,8 @@ class ddhbPlayer(AbstractPlayer):
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
 
+        TeamPredictor.init(game_info, game_setting)
+
     @timeout_decorator.timeout(0.08)
     def _talk(self) -> Content:
         self.player.role_predictor.update(self.game_info, self.game_setting)
@@ -106,6 +114,7 @@ class ddhbPlayer(AbstractPlayer):
     @timeout_decorator.timeout(0.08)
     def _update(self, game_info: GameInfo) -> None:
         self.game_info = game_info
+        TeamPredictor.update(game_info)
         self.player.update(game_info)
 
     def update(self, game_info: GameInfo) -> None:
