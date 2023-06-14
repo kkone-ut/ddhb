@@ -42,6 +42,10 @@ class ScoreMatrix:
         ri = self.rtoi[role1] if type(role1) is Role else role1
         j = agent2.agent_idx-1 if type(agent2) is Agent else agent2
         rj = self.rtoi[role2] if type(role2) is Role else role2
+
+        if ri >= self.M or rj >= self.M: # 存在しない役職の場合はスコアを-infにする (5人村の場合)
+            return -float('inf')
+        
         return self.score_matrix[i, ri, j, rj]
     
     # スコアの設定
@@ -52,6 +56,10 @@ class ScoreMatrix:
         ri = self.rtoi[role1] if type(role1) is Role else role1
         j = agent2.agent_idx-1 if type(agent2) is Agent else agent2
         rj = self.rtoi[role2] if type(role2) is Role else role2
+        
+        if ri >= self.M or rj >= self.M: # 存在しない役職の場合はスコアを設定しない (5人村の場合)
+            return
+        
         if score == float('inf'): # スコアを+infにすると相対確率も無限に発散するので、代わりにそれ以外のスコアを0にする。
             self.score_matrix[i, :, j, :] = -float('inf')
             self.score_matrix[i, ri, j, rj] = 0

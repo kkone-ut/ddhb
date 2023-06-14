@@ -86,6 +86,9 @@ class RolePredictor:
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, num: int = -1) -> None:
         if num == -1:
             num = self.ADDITIONAL_ASSIGNMENT_NUM
+        
+        if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
+            return
 
         time_start = time.time()
 
