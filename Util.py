@@ -5,19 +5,38 @@ import sys
 from collections import deque
 
 from aiwolf import Role
+import time
+from typing import Dict
 
 class Util:
 
+    exit_on_error = True
+    local = False
+
     rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
     debug_mode = True
+    time_start = Dict[str, float]
+
+    def init():
+        Util.time_start = {}
 
     def debug_print(*args, **kwargs):
         if Util.debug_mode:
             print(*args, **kwargs)
 
     def error_print(*args, **kwargs):
-        # エラーログが要らない場合は次の行をコメントアウトする
         print(*args, **kwargs, file=sys.stderr)
+        if Util.local and Util.exit_on_error:
+            exit(1)
+
+    def start_timer(func_name):
+        Util.time_start[func_name] = time.time()
+    
+    def end_timer(func_name, time_threshold=0):
+        time_end = time.time()
+        time_exec = round((time_end - Util.time_start[func_name]) * 1000, 1)
+        if time_exec > time_threshold:
+            Util.error_print("exec_time:\t", func_name, time_exec)
 
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:

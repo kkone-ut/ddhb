@@ -62,7 +62,7 @@ class RolePredictor:
 
         self.game_info = game_info
 
-        time_start = time.time()
+        Util.start_timer("RolePredictor.update")
 
         # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
         for assignment in self.assignments[:]:
@@ -72,16 +72,10 @@ class RolePredictor:
         # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        time_end = time.time()
-        if time_end - time_start > 0.06:
-            Util.error_print("")
-            Util.error_print("timeout!\t", "Role.Predictor.update()")
-            Util.error_print("time:\t", time_end - time_start)
-            Util.error_print("len:\t", len(self.assignments))
-            Util.error_print("avg:\t", (time_end - time_start) / len(self.assignments))
-            Util.error_print("")
+        Util.end_timer("RolePredictor.update", 30)
 
-        self.getProbAll()
+        # todo: ここで確率の更新をしてキャッシュする
+        # self.getProbAll()
 
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, num: int = -1) -> None:
         if num == -1:
@@ -89,8 +83,8 @@ class RolePredictor:
         
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
             return
-
-        time_start = time.time()
+        
+        Util.start_timer("RolePredictor.addAssignments")
 
         # 新しい割り当てを追加する
         for _ in range(num):
@@ -100,14 +94,7 @@ class RolePredictor:
         # ここではスコアの更新は行わない
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        time_end = time.time()
-        if time_end - time_start > 0.06:
-            Util.error_print("")
-            Util.error_print("timeout!\t", "Role.Predictor.addAssignments()")
-            Util.error_print("time:\t", time_end - time_start)
-            Util.error_print("len:\t", num)
-            Util.error_print("avg:\t", (time_end - time_start) / num)
-            Util.error_print("")
+        Util.end_timer("RolePredictor.addAssignments", 60)
 
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:

@@ -36,10 +36,11 @@ if __name__ == "__main__":
     parser.add_argument("-h", type=str, action="store", dest="hostname", required=True)
     parser.add_argument("-r", type=str, action="store", dest="role", default="none") # 役指定
     parser.add_argument("-n", type=str, action="store", dest="name") # プレイヤー名
-    parser.add_argument("-q", action="store_true", dest="quiet") # デバッグモードオフ
     # 引数を解析する
     input_args = parser.parse_args()
+
+    Util.init()
     Util.debug_print("name: ", input_args.name)
-    if input_args.quiet:
-        Util.debug_mode = False
+    if input_args.name == None:
+        Util.local = True
     TcpipClient(agent, input_args.name, input_args.hostname, input_args.port, input_args.role).connect()

@@ -16,6 +16,7 @@
 # limitations under the License.
 
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Topic
+from const import CONTENT_SKIP
 
 from ddhbBodyguard import ddhbBodyguard
 from ddhbMedium import ddhbMedium
@@ -25,6 +26,8 @@ from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
 
 from Util import Util
+
+import library.timeout_decorator as timeout_decorator
 
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
@@ -85,16 +88,31 @@ class ddhbPlayer(AbstractPlayer):
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
 
-    def talk(self) -> Content:
+    @timeout_decorator.timeout(0.08)
+    def _talk(self) -> Content:
         self.player.role_predictor.update(self.game_info, self.game_setting)
         content = self.player.talk()
         if content.topic != Topic.Skip:
             Util.debug_print("My Topic:\t", content.text)
         return content
+        
+    def talk(self) -> Content:
+        try:
+            return self._talk()
+        except timeout_decorator.TimeoutError:
+            Util.error_print("TimeoutError:\t", "talk", 80, "ms")
+            return CONTENT_SKIP
 
-    def update(self, game_info: GameInfo) -> None:
+    @timeout_decorator.timeout(0.08)
+    def _update(self, game_info: GameInfo) -> None:
         self.game_info = game_info
         self.player.update(game_info)
+
+    def update(self, game_info: GameInfo) -> None:
+        try:
+            self._update(game_info)
+        except timeout_decorator.TimeoutError:
+            Util.error_print("TimeoutError:\t", "update", 80, "ms")
 
     def vote(self) -> Agent:
         return self.player.vote()
