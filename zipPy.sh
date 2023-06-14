@@ -5,4 +5,4 @@ latest_commit=$(git log -1 --pretty=format:"%H")
 short_commit=${latest_commit:0:7}
 
 # zip圧縮
-zip ddhb_${short_commit}.zip *.py
+zip ddhb_${short_commit}.zip *.py library/*.py
