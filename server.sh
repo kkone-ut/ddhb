@@ -152,6 +152,8 @@ do
             # フラグが1なら、その行を出力ファイルに追加
             echo "$line" >> $outputFile
             echo "$line"
+        else
+            echo "$line"
         fi
     done
     if ! "$loop"; then

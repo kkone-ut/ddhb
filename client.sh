@@ -28,7 +28,7 @@ do
   filename=log_client/${short_commit}_${date}.log
   # -u でバッファリング無効
   # tee で標準出力とファイル出力を同時に行う
-  python3 -u start.py -p $port -h $host -r $role -d 2>&1 | tee $filename
+  python3 -u start.py -p $port -h $host -r $role 2>&1 | tee $filename
   exit_status=$?
   if (( exit_status != 0)); then
     break
