@@ -26,7 +26,11 @@ class ScoreMatrix:
         self.medium_co_id = []
         self.bodyguard_co_count = 0
         self.bodyguard_co_id = []
-    
+
+        for a, r in game_info.role_map.items():
+            if r != Role.ANY and r != Role.UNC:
+                self.set_score(a, r, a, r, float('inf'))
+
     # スコアは相対確率の対数を表す
     # スコア = log(相対確率)
     # スコアの付け方
