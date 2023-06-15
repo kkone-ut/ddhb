@@ -16,7 +16,7 @@ class RolePredictor:
     # これを超えたら評価の低いものから削除する
     # 制限時間的に最大500個
     ASSIGNMENT_NUM = 100
-    ADDITIONAL_ASSIGNMENT_NUM = 100
+    ADDITIONAL_ASSIGNMENT_NUM = 200
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -72,7 +72,7 @@ class RolePredictor:
         # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        Util.end_timer("RolePredictor.update", 0)
+        Util.end_timer("RolePredictor.update", 50)
 
         # todo: ここで確率の更新をしてキャッシュする
         # self.getProbAll()
@@ -94,7 +94,7 @@ class RolePredictor:
         # ここではスコアの更新は行わない
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        Util.end_timer("RolePredictor.addAssignments", 0)
+        Util.end_timer("RolePredictor.addAssignments", 50)
 
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:

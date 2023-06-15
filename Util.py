@@ -11,7 +11,7 @@ from typing import Dict
 
 class Util:
 
-    exit_on_error = True
+    exit_on_error = False
     local = False
     need_traceback = True
 
@@ -39,7 +39,7 @@ class Util:
     def end_timer(func_name, time_threshold=0):
         time_end = time.time()
         time_exec = round((time_end - Util.time_start[func_name]) * 1000, 1)
-        if time_exec > time_threshold:
+        if time_exec >= time_threshold:
             if time_threshold == 0:
                 Util.debug_print("exec_time:\t", func_name, time_exec)
             else:

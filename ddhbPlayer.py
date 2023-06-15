@@ -29,6 +29,7 @@ from Util import Util
 from TeamPredictor import TeamPredictor
 
 import library.timeout_decorator as timeout_decorator
+import time
 
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
@@ -57,27 +58,42 @@ class ddhbPlayer(AbstractPlayer):
 
     # オーバーライドしていく
     def attack(self) -> Agent:
-        return self.player.attack()
+        Util.start_timer("ddhbPlayer.attack")
+        agent = self.player.attack()
+        Util.end_timer("ddhbPlayer.attack", 0)
+        return agent
 
     def day_start(self) -> None:
+        Util.start_timer("ddhbPlayer.day_start")
         self.player.day_start()
+        Util.end_timer("ddhbPlayer.day_start", 0)
 
     def divine(self) -> Agent:
-        return self.player.divine()
+        Util.start_timer("ddhbPlayer.divine")
+        agent = self.player.divine()
+        Util.end_timer("ddhbPlayer.divine", 0)
+        return agent
 
     def finish(self) -> None:
+        Util.start_timer("ddhbPlayer.finish")
         self.player.finish()
         TeamPredictor.finish(self.player)
+        Util.end_timer("ddhbPlayer.finish", 0)
         
         Util.debug_print("finish")
         Util.debug_print("---------")
         Util.debug_print("")
 
     def guard(self) -> Agent:
-        return self.player.guard()
+        Util.start_timer("ddhbPlayer.guard")
+        agent = self.player.guard()
+        self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
+        Util.end_timer("ddhbPlayer.guard", 0)
+        return agent
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+        Util.start_timer("ddhbPlayer.initialize")
         self.game_setting = game_setting
         self.game_info = game_info
 
@@ -95,13 +111,15 @@ class ddhbPlayer(AbstractPlayer):
         elif role == Role.WEREWOLF:
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
+        Util.end_timer("ddhbPlayer.initialize", 50)
 
-    @timeout_decorator.timeout(0.08)
+    @timeout_decorator.timeout(0.04)
     def _talk(self) -> Content:
         self.player.role_predictor.update(self.game_info, self.game_setting)
         content = self.player.talk()
         # if content.topic != Topic.Skip:
         Util.debug_print("My Topic:\t", content.text)
+        self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
         return content
         
     def talk(self) -> Content:
@@ -110,26 +128,37 @@ class ddhbPlayer(AbstractPlayer):
         try:
             content = self._talk()
         except timeout_decorator.TimeoutError:
-            Util.error_print("TimeoutError:\t", "talk", 80, "ms")
+            # Util.error_print("TimeoutError:\t", "talk", 40, "ms")
+            pass
         finally:
             Util.end_timer("ddhbPlayer.talk", 0)
             return content
 
-    @timeout_decorator.timeout(0.08)
+    @timeout_decorator.timeout(0.04)
     def _update(self, game_info: GameInfo) -> None:
         self.game_info = game_info
         TeamPredictor.update(game_info)
         self.player.update(game_info)
 
     def update(self, game_info: GameInfo) -> None:
+        Util.start_timer("ddhbPlayer.update")
         try:
             self._update(game_info)
         except timeout_decorator.TimeoutError:
             Util.error_print("TimeoutError:\t", "update", 80, "ms")
+        finally:
             Util.end_timer("ddhbPlayer.update", 0)
 
     def vote(self) -> Agent:
-        return self.player.vote()
+        Util.start_timer("ddhbPlayer.vote")
+        agent = self.player.vote()
+        self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
+        Util.end_timer("ddhbPlayer.vote", 0)
+        return agent
 
     def whisper(self) -> Content:
-        return self.player.whisper()
+        Util.start_timer("ddhbPlayer.whisper")
+        content = self.player.whisper()
+        self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
+        Util.end_timer("ddhbPlayer.whisper", 0)
+        return content

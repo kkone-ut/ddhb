@@ -227,6 +227,8 @@ class ddhbVillager(AbstractPlayer):
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
 
+            # Util.debug_print("Topic:\t", talker, content.topic)
+
             # content.target が不要な場合デフォルトの AGENT_ANY が入っている
             # 不正な場合はここで弾く
             if content.target == AGENT_NONE or (content.target != AGENT_ANY and content.target.agent_idx > self.N):
@@ -263,7 +265,6 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
-        self.role_predictor.addAssignments(self.game_info, self.game_setting)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
