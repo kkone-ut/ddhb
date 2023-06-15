@@ -6,12 +6,14 @@ from collections import deque
 
 from aiwolf import Role
 import time
+import traceback
 from typing import Dict
 
 class Util:
 
     exit_on_error = True
     local = False
+    need_traceback = True
 
     rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
     debug_mode = True
@@ -27,6 +29,8 @@ class Util:
     def error_print(*args, **kwargs):
         print(*args, **kwargs, file=sys.stderr)
         if Util.local and Util.exit_on_error:
+            if Util.need_traceback:
+                traceback.print_stack()
             exit(1)
 
     def start_timer(func_name):
@@ -36,7 +40,10 @@ class Util:
         time_end = time.time()
         time_exec = round((time_end - Util.time_start[func_name]) * 1000, 1)
         if time_exec > time_threshold:
-            Util.error_print("exec_time:\t", func_name, time_exec)
+            if time_threshold == 0:
+                Util.debug_print("exec_time:\t", func_name, time_exec)
+            else:
+                Util.error_print("exec_time:\t", func_name, time_exec)
 
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:
