@@ -41,7 +41,7 @@ class RolePredictor:
         self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
-        # assignments は現在保持している Assignment の heapq (assignments[0] はスコア最小の割り当て)
+        # assignments は現在保持している Assignment の SortedSet (C++ の std::set みたいなもの)
         # assignments_set はこれまでに作成した Assignment の集合 (リストから外れても保持しておく)
         self.assignments: SortedSet = SortedSet()
         self.assignments_set = set()
@@ -73,6 +73,7 @@ class RolePredictor:
 
         # assignments の評価値を更新
         for assignment in self.assignments:
+            # assignment を変更するので一度削除して、評価した後に再度追加する
             res = self.assignments.discard(assignment)
             assignment.evaluate(self.score_matrix)
             if assignment.score != -float('inf'):
