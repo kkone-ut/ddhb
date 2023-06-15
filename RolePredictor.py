@@ -58,48 +58,45 @@ class RolePredictor:
                 self.assignments.add(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
             try: 
-                self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 5)
+                self.addAssignments(game_info, game_setting, timeout=20)
+                Util.debug_print("len(assignments):", len(self.assignments))
             except timeout_decorator.TimeoutError:
                 Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
     
     # すべての割り当ての評価値を計算する
-    @timeout_decorator.timeout(0.04)
-    def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+    def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
 
         self.game_info = game_info
 
-        Util.start_timer("RolePredictor.update")
         Util.debug_print("len(self.assignments)1:", len(self.assignments))
 
         # assignments の評価値を更新
-        for assignment in self.assignments:
+        Util.start_timer("RolePredictor.update")
+        for assignment in list(reversed(self.assignments)): # 逆順にして評価値の高いものから更新する
             # assignment を変更するので一度削除して、評価した後に再度追加する
             res = self.assignments.discard(assignment)
             assignment.evaluate(self.score_matrix)
             if assignment.score != -float('inf'):
                 self.assignments.add(assignment)
+            if Util.timeout("RolePredictor.update", timeout):
+                # raise timeout_decorator.TimeoutError
+                break
 
         Util.debug_print("len(self.assignments)2:", len(self.assignments))
-        Util.end_timer("RolePredictor.update", 50)
 
         # todo: ここで確率の更新をしてキャッシュする
         # self.getProbAll()
 
-    @timeout_decorator.timeout(0.04)
-    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, num: int = -1) -> None:
-        if num == -1:
-            num = self.ADDITIONAL_ASSIGNMENT_NUM
-        
+    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
             return
         
-        Util.start_timer("RolePredictor.addAssignments")
-
         # 新しい割り当てを追加する
-        for _ in range(num):
+        Util.start_timer("RolePredictor.addAssignments")
+        for _ in range(self.ADDITIONAL_ASSIGNMENT_NUM):
             self.addAssignment(game_info, game_setting)
-
-        Util.end_timer("RolePredictor.addAssignments", 50)
+            if Util.timeout("RolePredictor.addAssignments", timeout):
+                break
 
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
@@ -111,7 +108,7 @@ class RolePredictor:
             # 既にある割り当てからランダムに1つ選んで少しだけシャッフルして追加する
             assignment_idx = np.random.randint(len(self.assignments))
             base = self.assignments[assignment_idx].assignment
-            times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
+            times = min(self.N, int(abs(np.random.normal(scale=0.2) * self.N)) + 1) # 基本的に1~3程度の小さな値 (正規分布を使用)
         
         # 指定回数シャッフルする
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))

@@ -48,6 +48,11 @@ class Util:
             else:
                 Util.error_print("exec_time:\t", func_name, time_exec)
     
+    def timeout(func_name, time_threshold):
+        time_now = time.time()
+        time_exec = round((time_now - Util.time_start[func_name]) * 1000, 1)
+        return time_exec >= time_threshold
+    
     def exec_with_timeout(func, timeout, *args, **kwargs):
 
         @timeout_decorator.timeout(timeout / 1000)
