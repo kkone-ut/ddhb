@@ -100,8 +100,8 @@ class ddhbPlayer(AbstractPlayer):
     def _talk(self) -> Content:
         self.player.role_predictor.update(self.game_info, self.game_setting)
         content = self.player.talk()
-        if content.topic != Topic.Skip:
-            Util.debug_print("My Topic:\t", content.text)
+        # if content.topic != Topic.Skip:
+        Util.debug_print("My Topic:\t", content.text)
         return content
         
     def talk(self) -> Content:
@@ -112,7 +112,7 @@ class ddhbPlayer(AbstractPlayer):
         except timeout_decorator.TimeoutError:
             Util.error_print("TimeoutError:\t", "talk", 80, "ms")
         finally:
-            Util.end_timer("ddhbPlayer.talk", 80)
+            Util.end_timer("ddhbPlayer.talk", 0)
             return content
 
     @timeout_decorator.timeout(0.08)
@@ -126,6 +126,7 @@ class ddhbPlayer(AbstractPlayer):
             self._update(game_info)
         except timeout_decorator.TimeoutError:
             Util.error_print("TimeoutError:\t", "update", 80, "ms")
+            Util.end_timer("ddhbPlayer.update", 0)
 
     def vote(self) -> Agent:
         return self.player.vote()

@@ -50,12 +50,12 @@ class RolePredictor:
 
         # assignment のすべての並び替えを列挙する
         # 5人村はすべて列挙する
-        # 15人村では重すぎるので、ランダムに ADDITIONAL_ASSIGNMENT_NUM 個だけ列挙し、少しずつ追加・削除を行う
+        # 15人村では重すぎるので、ランダムに数個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
             for p in Util.unique_permutations(assignment):
                 self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
-            self.addAssignments(game_info, game_setting)
+            self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 2)
     
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -72,7 +72,7 @@ class RolePredictor:
         # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        Util.end_timer("RolePredictor.update", 30)
+        Util.end_timer("RolePredictor.update", 0)
 
         # todo: ここで確率の更新をしてキャッシュする
         # self.getProbAll()
@@ -94,7 +94,7 @@ class RolePredictor:
         # ここではスコアの更新は行わない
         self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
-        Util.end_timer("RolePredictor.addAssignments", 60)
+        Util.end_timer("RolePredictor.addAssignments", 0)
 
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
