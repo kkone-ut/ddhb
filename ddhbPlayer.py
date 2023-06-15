@@ -142,7 +142,7 @@ class ddhbPlayer(AbstractPlayer):
         content = CONTENT_SKIP
         try:
             self.player.role_predictor.update(self.game_info, self.game_setting)
-            self.content = self.player.talk()
+            content = self.player.talk()
             if content.topic != Topic.Skip:
                 Util.debug_print("My Topic:\t", content.text)
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
