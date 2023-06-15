@@ -53,6 +53,8 @@ class ddhbPlayer(AbstractPlayer):
         self.game_setting: GameSetting = None
         self.game_info: GameInfo = None
 
+        TeamPredictor.init()
+
     # オーバーライドしていく
     def attack(self) -> Agent:
         return self.player.attack()
@@ -94,8 +96,6 @@ class ddhbPlayer(AbstractPlayer):
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
 
-        TeamPredictor.init(game_info, game_setting)
-
     @timeout_decorator.timeout(0.08)
     def _talk(self) -> Content:
         self.player.role_predictor.update(self.game_info, self.game_setting)
@@ -105,11 +105,15 @@ class ddhbPlayer(AbstractPlayer):
         return content
         
     def talk(self) -> Content:
+        Util.start_timer("ddhbPlayer.talk")
+        content = CONTENT_SKIP
         try:
-            return self._talk()
+            content = self._talk()
         except timeout_decorator.TimeoutError:
             Util.error_print("TimeoutError:\t", "talk", 80, "ms")
-            return CONTENT_SKIP
+        finally:
+            Util.end_timer("ddhbPlayer.talk", 80)
+            return content
 
     @timeout_decorator.timeout(0.08)
     def _update(self, game_info: GameInfo) -> None:

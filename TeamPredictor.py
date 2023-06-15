@@ -34,9 +34,7 @@ class TeamPredictor:
 
     team_map: "defaultdict[Agent, Team]"
 
-    def init(game_info: GameInfo, game_setting: GameSetting):
-        TeamPredictor.game_info = game_info
-        TeamPredictor.game_setting = game_setting
+    def init():
         TeamPredictor.team_map = defaultdict(lambda: Team.UNC)
 
     def update(game_info: GameInfo):
