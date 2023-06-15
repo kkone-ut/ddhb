@@ -69,7 +69,7 @@ class TeamPredictor:
                     TeamPredictor.team_map[talker] = Team.t222364m
 
             if actual_role_map[talker] in [Role.VILLAGER, Role.BODYGUARD, Role.MEDIUM] and content.topic == Topic.DIVINED:
-                if co_map[talker] != Role.UNC:
+                if co_map[talker] == Role.UNC:
                     # 何もCOしていないのに占い結果を報告している村人陣営は daphne と判定
                     TeamPredictor.team_map[talker] = Team.daphne
 
