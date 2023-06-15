@@ -8,6 +8,7 @@ from aiwolf import Role
 import time
 import traceback
 from typing import Dict
+import library.timeout_decorator as timeout_decorator
 
 class Util:
 
@@ -44,6 +45,18 @@ class Util:
                 Util.debug_print("exec_time:\t", func_name, time_exec)
             else:
                 Util.error_print("exec_time:\t", func_name, time_exec)
+    
+    def exec_with_timeout(func, timeout, *args, **kwargs):
+
+        @timeout_decorator.timeout(timeout / 1000)
+        def _exec_with_timeout():
+            return func(*args, **kwargs)
+        
+        try:
+            return _exec_with_timeout()
+        except timeout_decorator.TimeoutError:
+            Util.error_print("TimeoutError:\t", func.__name__, timeout, "ms")
+            return None
 
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:

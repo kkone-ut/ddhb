@@ -9,6 +9,7 @@ from Assignment import Assignment
 from ScoreMatrix import ScoreMatrix
 from aiwolf.constant import AGENT_NONE
 
+import library.timeout_decorator as timeout_decorator
 
 class RolePredictor:
 
@@ -16,7 +17,7 @@ class RolePredictor:
     # これを超えたら評価の低いものから削除する
     # 制限時間的に最大500個
     ASSIGNMENT_NUM = 100
-    ADDITIONAL_ASSIGNMENT_NUM = 200
+    ADDITIONAL_ASSIGNMENT_NUM = 100
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -55,9 +56,13 @@ class RolePredictor:
             for p in Util.unique_permutations(assignment):
                 self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
-            self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 2)
+            try: 
+                self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 5)
+            except timeout_decorator.TimeoutError:
+                Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
     
     # すべての割り当ての評価値を計算する
+    @timeout_decorator.timeout(0.04)
     def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
 
         self.game_info = game_info
@@ -77,6 +82,7 @@ class RolePredictor:
         # todo: ここで確率の更新をしてキャッシュする
         # self.getProbAll()
 
+    @timeout_decorator.timeout(0.04)
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, num: int = -1) -> None:
         if num == -1:
             num = self.ADDITIONAL_ASSIGNMENT_NUM
@@ -98,7 +104,7 @@ class RolePredictor:
 
     # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
-        if len(self.assignments) == 0 or np.random.rand() < 0.1:
+        if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
             # もし割り当てがないなら、初期割り当てをシャッフルして追加する
             base = self.get_initail_assignment()
             times = self.N
