@@ -10,7 +10,7 @@ from ScoreMatrix import ScoreMatrix
 from aiwolf.constant import AGENT_NONE
 
 import library.timeout_decorator as timeout_decorator
-import heapq
+from library.SortedSet import SortedSet
 
 class RolePredictor:
 
@@ -43,7 +43,7 @@ class RolePredictor:
         self.me = _player.me
         # assignments は現在保持している Assignment の heapq (assignments[0] はスコア最小の割り当て)
         # assignments_set はこれまでに作成した Assignment の集合 (リストから外れても保持しておく)
-        self.assignments = []
+        self.assignments: SortedSet = SortedSet()
         self.assignments_set = set()
         self.score_matrix = _score_matrix
         self.fixed_positions = [self.me.agent_idx-1]
@@ -55,7 +55,7 @@ class RolePredictor:
         # 15人村では重すぎるので、ランダムに数個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
             for p in Util.unique_permutations(assignment):
-                heapq.heappush(self.assignments, Assignment(game_info, game_setting, _player, np.copy(p)))
+                self.assignments.add(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
             try: 
                 self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 5)
@@ -69,15 +69,16 @@ class RolePredictor:
         self.game_info = game_info
 
         Util.start_timer("RolePredictor.update")
+        Util.debug_print("len(self.assignments)1:", len(self.assignments))
 
-        # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
-        for assignment in self.assignments[:]:
-            if assignment.evaluate(self.score_matrix) == -float('inf'):
-                self.assignments.remove(assignment)
-        
-        # 評価値が変わったので、heapq を再構築する
-        heapq.heapify(self.assignments)
+        # assignments の評価値を更新
+        for assignment in self.assignments:
+            res = self.assignments.discard(assignment)
+            assignment.evaluate(self.score_matrix)
+            if assignment.score != -float('inf'):
+                self.assignments.add(assignment)
 
+        Util.debug_print("len(self.assignments)2:", len(self.assignments))
         Util.end_timer("RolePredictor.update", 50)
 
         # todo: ここで確率の更新をしてキャッシュする
@@ -124,14 +125,15 @@ class RolePredictor:
 
         # 割り当て数が超過していたら、スコアの低いものから削除する
         while len(self.assignments) > self.ASSIGNMENT_NUM:
-            heapq.heappop(self.assignments)
+            self.assignments.pop(0)
         
         # 割り当て数が足りなかったら追加する
         # 丁度だった場合は、すでにある割り当てよりもスコアが高ければ追加する
         if len(self.assignments) < self.ASSIGNMENT_NUM:
-            heapq.heappush(self.assignments, assignment)
+            self.assignments.add(assignment)
         elif assignment.score > self.assignments[0].score:
-                heapq.heappushpop(self.assignments, assignment)
+            self.assignments.discard(self.assignments[0])
+            self.assignments.add(assignment)
 
         # 割り当て重複チェック用のセットに追加
         self.assignments_set.add(assignment)

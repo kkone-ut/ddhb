@@ -92,6 +92,7 @@ class ddhbPlayer(AbstractPlayer):
     def finish(self) -> None:
         Util.start_timer("ddhbPlayer.finish")
         try:
+            self.player.role_predictor.update(self.game_info, self.game_setting)
             self.player.finish()
             TeamPredictor.finish(self.player)
             Util.end_timer("ddhbPlayer.finish")

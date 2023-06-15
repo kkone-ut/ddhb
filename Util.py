@@ -24,6 +24,8 @@ class Util:
         Util.time_start = {}
 
     def debug_print(*args, **kwargs):
+        # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
+        #     return
         if Util.debug_mode:
             print(*args, **kwargs)
 

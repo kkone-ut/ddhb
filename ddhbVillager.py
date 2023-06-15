@@ -388,7 +388,7 @@ class ddhbVillager(AbstractPlayer):
         for a, r in self.game_info.role_map.items():
             assignment.append(r)
         actual_assignment = Assignment(self.game_info, self.game_setting, self, assignment)
-        predicted_assignment = max(self.role_predictor.assignments)
+        predicted_assignment = self.role_predictor.assignments[-1]
         Util.debug_print("\t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
         Util.debug_print("actual:\t", actual_assignment)
         Util.debug_print("predicted:\t", predicted_assignment)
@@ -412,6 +412,7 @@ class ddhbVillager(AbstractPlayer):
         # 実際の割り当てが予測の割り当てに含まれていたのか
         Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
         Util.debug_print("in role_predictor.assignments(set):\t", actual_assignment in self.role_predictor.assignments_set)
+        Util.debug_print("len(role_predictor.assignments(set):\t", len(self.role_predictor.assignments_set))
         Util.debug_print("")
 
         # もし含まれていないなら、含まれていたときのスコアを表示
