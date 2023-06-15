@@ -141,11 +141,15 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.talk")
         content = CONTENT_SKIP
         try:
+            Util.start_timer("ddhbPlayer.talk.update")
             self.player.role_predictor.update(self.game_info, self.game_setting)
+            Util.end_timer("ddhbPlayer.talk.update")
             content = self.player.talk()
             if content.topic != Topic.Skip:
                 Util.debug_print("My Topic:\t", content.text)
+            Util.start_timer("ddhbPlayer.talk.addAssignments")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting)
+            Util.end_timer("ddhbPlayer.talk.addAssignments")
             Util.end_timer("ddhbPlayer.talk")
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.talk")

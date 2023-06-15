@@ -10,6 +10,7 @@ from ScoreMatrix import ScoreMatrix
 from aiwolf.constant import AGENT_NONE
 
 import library.timeout_decorator as timeout_decorator
+import heapq
 
 class RolePredictor:
 
@@ -40,7 +41,7 @@ class RolePredictor:
         self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
-        # assignments は現在保持している Assignment のリスト
+        # assignments は現在保持している Assignment の heapq (assignments[0] はスコア最小の割り当て)
         # assignments_set はこれまでに作成した Assignment の集合 (リストから外れても保持しておく)
         self.assignments = []
         self.assignments_set = set()
@@ -54,7 +55,7 @@ class RolePredictor:
         # 15人村では重すぎるので、ランダムに数個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
             for p in Util.unique_permutations(assignment):
-                self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
+                heapq.heappush(self.assignments, Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
             try: 
                 self.addAssignments(game_info, game_setting, self.ADDITIONAL_ASSIGNMENT_NUM // 5)
@@ -74,8 +75,8 @@ class RolePredictor:
             if assignment.evaluate(self.score_matrix) == -float('inf'):
                 self.assignments.remove(assignment)
         
-        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
-        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
+        # 評価値が変わったので、heapq を再構築する
+        heapq.heapify(self.assignments)
 
         Util.end_timer("RolePredictor.update", 50)
 
@@ -95,33 +96,44 @@ class RolePredictor:
         # 新しい割り当てを追加する
         for _ in range(num):
             self.addAssignment(game_info, game_setting)
-        
-        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
-        # ここではスコアの更新は行わない
-        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
 
         Util.end_timer("RolePredictor.addAssignments", 50)
 
-    # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
-            # もし割り当てがないなら、初期割り当てをシャッフルして追加する
+            # 割り当てが少ない場合は初期割り当てをシャッフルして追加する (多様性確保のため)
+            # そうでなくても、10%の確率で初期割り当てをシャッフルして追加する (遺伝的アルゴリズムでいう突然変異)
             base = self.get_initail_assignment()
             times = self.N
         else:
-            # 割り当てがあるなら、ランダムに選んで少しだけシャッフルして追加する
+            # 既にある割り当てからランダムに1つ選んで少しだけシャッフルして追加する
             assignment_idx = np.random.randint(len(self.assignments))
             base = self.assignments[assignment_idx].assignment
             times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
-            if times > self.N:
-                Util.debug_print("times:\t", times)
         
+        # 指定回数シャッフルする
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
         assignment.shuffle(times, self.fixed_positions)
+
+        # すでにある割り当てと同じなら追加しない
         if assignment in self.assignments_set:
-             return
+            return
+        
+        # 評価値を計算
         assignment.evaluate(self.score_matrix)
-        self.assignments.append(assignment)
+
+        # 割り当て数が超過していたら、スコアの低いものから削除する
+        while len(self.assignments) > self.ASSIGNMENT_NUM:
+            heapq.heappop(self.assignments)
+        
+        # 割り当て数が足りなかったら追加する
+        # 丁度だった場合は、すでにある割り当てよりもスコアが高ければ追加する
+        if len(self.assignments) < self.ASSIGNMENT_NUM:
+            heapq.heappush(self.assignments, assignment)
+        elif assignment.score > self.assignments[0].score:
+                heapq.heappushpop(self.assignments, assignment)
+
+        # 割り当て重複チェック用のセットに追加
         self.assignments_set.add(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す

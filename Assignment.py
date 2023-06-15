@@ -24,6 +24,9 @@ class Assignment:
     
     def __hash__(self) -> int:
         return hash(tuple(self.assignment))
+    
+    def __lt__(self, other: object) -> bool:
+        return self.score < other.score 
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
     def __getitem__(self, agent) -> Role:

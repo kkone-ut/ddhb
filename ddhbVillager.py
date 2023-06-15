@@ -388,7 +388,7 @@ class ddhbVillager(AbstractPlayer):
         for a, r in self.game_info.role_map.items():
             assignment.append(r)
         actual_assignment = Assignment(self.game_info, self.game_setting, self, assignment)
-        predicted_assignment = self.role_predictor.assignments[0]
+        predicted_assignment = max(self.role_predictor.assignments)
         Util.debug_print("\t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
         Util.debug_print("actual:\t", actual_assignment)
         Util.debug_print("predicted:\t", predicted_assignment)
@@ -431,7 +431,7 @@ class ddhbVillager(AbstractPlayer):
 
         # 最下位の割り当てのスコアを表示
         Util.debug_print("")
-        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[-1].score, 4))
+        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[0].score, 4))
         Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
