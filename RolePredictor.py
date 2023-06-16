@@ -70,11 +70,12 @@ class RolePredictor:
 
         Util.debug_print("len(self.assignments)1:", len(self.assignments))
 
+        Util.start_timer("RolePredictor.update")
+
         if len(self.assignments) == 0:
             self.addAssignments(game_info, game_setting, timeout=timeout // 3)
 
         # assignments の評価値を更新
-        Util.start_timer("RolePredictor.update")
         for assignment in list(reversed(self.assignments)): # 逆順にして評価値の高いものから更新する
             # assignment を変更するので一度削除して、評価した後に再度追加する
             res = self.assignments.discard(assignment)
