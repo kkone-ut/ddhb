@@ -64,7 +64,8 @@ class TeamPredictor:
                 co_map[talker] = content.role
                 if co_map[talker] == Role.SEER and actual_role_map[talker] in [Role.VILLAGER, Role.BODYGUARD, Role.MEDIUM]:
                     # 占い師COしている村人陣営は t222364m と判定
-                    TeamPredictor.team_map[talker] = Team.t222364m
+                    if TeamPredictor.team_map[talker] == Team.UNC:
+                        TeamPredictor.team_map[talker] = Team.t222364m
 
             if actual_role_map[talker] in [Role.VILLAGER, Role.BODYGUARD, Role.MEDIUM] and content.topic == Topic.DIVINED:
                 if co_map[talker] == Role.UNC:
