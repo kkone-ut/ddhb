@@ -63,16 +63,17 @@ class ddhbPossessed(ddhbVillager):
         self.num_wolves = 0
         self.werewolves = []
         self.strategies = []
+        self.houkoku = False
+        self.black_count = 0 # 霊媒師が黒判定した数
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        self.N = game_setting.player_num
-
-        # 5人なら占い師、15人なら65%占い師、35%霊媒師を騙る
         if self.N == 5:
             self.fake_role = Role.SEER
-        elif self.N == 15:
+        else :
+            # 65%の確率で占い師、35%の確率で霊媒師
             self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
+        self.N = game_setting.player_num
 
         self.co_date = 1 # 最低でも1日目にCO → 変更する
         self.has_co = False
@@ -81,10 +82,11 @@ class ddhbPossessed(ddhbVillager):
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
-
         # ハックを検証するためのフラグ
         # self.strategies = [True, False]
         # self.hackA = strategies[0]
+        self.houkoku = False
+        self.black_count = 0
 
     # 偽結果生成
     def get_fake_judge(self) -> Judge:
@@ -114,17 +116,22 @@ class ddhbPossessed(ddhbVillager):
 
     def day_start(self) -> None:
         super().day_start()
-        # Process the fake judgement.
-        # 昼に騙り結果
-        judge: Judge = self.get_fake_judge()
-        if judge != JUDGE_EMPTY:
-            self.my_judgee_queue.append(judge)
-            # 占い対象を、占っていないエージェントリストから除く
-            if judge.target in self.not_judged_agents:
-                self.not_judged_agents.remove(judge.target)
-            # 人狼発見 → 人狼結果リストに追加
-            if judge.result == Species.WEREWOLF:
-                self.werewolves.append(judge.target)
+        # 狩人のとき、護衛成功したか確認
+        if self.fake_role == Role.BODYGUARD and self.game_info.guarded_agent and len(self.game_info.last_dead_agent_list) == 0:
+            # 報告する
+            self.houkoku = True
+
+        # # Process the fake judgement.
+        # # 昼に騙り結果
+        # judge: Judge = self.get_fake_judge()
+        # if judge != JUDGE_EMPTY:
+        #     self.my_judgee_queue.append(judge)
+        #     # 占い対象を、占っていないエージェントリストから除く
+        #     if judge.target in self.not_judged_agents:
+        #         self.not_judged_agents.remove(judge.target)
+        #     # 人狼発見 → 人狼結果リストに追加
+        #     if judge.result == Species.WEREWOLF:
+        #         self.werewolves.append(judge.target)
 
     def vote(self) -> Agent:
         max_score = -1
@@ -161,62 +168,157 @@ class ddhbPossessed(ddhbVillager):
         return agent_vote_for
     
     
+
     # CO、結果報告
     def talk(self) -> Content:
         # もし占い師を語るならば
         if self.fake_role == Role.SEER:
-            # 占い師が何人いるかを数える
-            num_seer = 0
-            for i in range(self.N):
-                if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
-                        and self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
-                    num_seer += 1
-            # 占い師が既に二人以上いるならば、狩人を騙る
-            if num_seer >= 2:
-                self.fake_role = Role.BODYGUARD
-
-        # Do comingout if it's on scheduled day or a werewolf is found.
-        # CO : 予定の日にち or 人狼発見
-        if self.fake_role != Role.VILLAGER and not self.has_co \
-                and (self.game_info.day == self.co_date or self.werewolves):
-            self.has_co = True
-            return Content(ComingoutContentBuilder(self.me, self.fake_role))
-        
-        # Report the judgement after doing comingout.
-        # 結果報告
-        if self.has_co and self.my_judgee_queue:
-            # popleftで大丈夫だろうか
-            judge: Judge = self.my_judgee_queue.popleft()
-            # 5人村の時
-            if self.N == 5:
-                # 対抗がいたら、対抗が黒だという
-                for i in range(self.N):
-                    if i != self.me and self.is_alive(self.game_info.agent_list[i]):
-                        if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
-                            return Content(DivinedResultContentBuilder(self.my_judgee_queue[0].target, Species.WEREWOLF))
+            if self.has_co == False:
+                # 占い師が何人いるかを数える
+                num_seer = 0
+                # Error
+                # for i in range(self.N):
+                #     if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
+                #             and self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
+                #         num_seer += 1
+                # 占い師が既に二人以上いるならば、狩人を騙る
+                if num_seer >= 2:
+                    self.fake_role = Role.BODYGUARD
+                    self.houkoku = True
+                else:
+                    self.has_co = True
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+            if self.houkoku == False:
+                self.houkoku = True
+                # 5人村のとき
+                if self.N == 5:
+                    # 対抗がいたら、対抗が黒だという
+                    for i in range(self.N):
+                        if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                            if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
+                                return Content(DivinedResultContentBuilder(self.game_info.agent_list[i], Species.WEREWOLF))
+                            # 対抗がいなかったら、最も人狼っぽい人を白だと言う
+                            else:
+                                max = -1
+                                if i in range(self.N):
+                                    if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                                        score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                                        if score > max:
+                                            max = score
+                                            agent_white : Agent = self.game_info.agent_list[i]
+                                return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                            
+                # 15人村のとき
+                else:
+                    # 二日目以外は、最も村人っぽい人を黒だという
+                    if self.game_info.day != 2:
+                        max = -1
+                        for i in range(self.N):
+                            if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                                score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+                                if score > max:
+                                    max = score
+                                    agent_black : Agent = self.game_info.agent_list[i]
+                        return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
                     
-                if self.fake_role == Role.SEER:
-                    return Content(DivinedResultContentBuilder(judge.target, judge.result))
-                elif self.fake_role == Role.MEDIUM:
-                    return Content(IdentContentBuilder(judge.target, judge.result))
+                    # 二日目は、最も人狼っぽい人を白だという
+                    else:
+                        max = -1
+                        for i in range(self.N):
+                            if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                                score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                                if score > max:
+                                    max = score
+                                    agent_white : Agent = self.game_info.agent_list[i]
+                        return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+        # もし霊媒師を語るならば
+        elif self.fake_role == Role.MEDIUM:
+            if self.has_co == False:
+                # 霊媒師が何人いるかを数える
+                num_medium = 0
+                # for i in range(self.N):
+                #     # Error
+                #     if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
+                #             and self.comingout_map[self.game_info.agent_list[i]] == Role.MEDIUM:
+                #         num_medium += 1
+                # 霊媒師が既に二人以上いるならば、狩人を騙る
+                if num_medium >= 2:
+                    self.fake_role = Role.BODYGUARD
+                    self.houkoku = True
+                else:
+                    self.has_co = True
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+            if self.houkoku == False:
+                self.houkoku = True
+                if self.game_info.executed_agent != None:
+                    target : Agent = self.game_info.executed_agent
+                    # もしtargetが占い師COしていたら、白判定する
+                    if self.comingout_map[target] == Role.SEER:
+                        return Content(IdentContentBuilder(target, Species.HUMAN))
+                    # 占い師COしていなかったら、黒判定する(二人まで)
+                    elif self.black_count < 2:
+                        self.black_count += 1
+                        return Content(IdentContentBuilder(target, Species.WEREWOLF))
+                    # それ以外は白判定する
+                    else:
+                        return Content(IdentContentBuilder(target, Species.HUMAN))
+
+        # もし狩人を騙るならば          
+        else:
+            # COしていなかったら
+            if self.has_co == False:
+                # 護衛成功したら、狩人CO
+                if self.houkoku == False:
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                
+                # 3人以上が自分に投票したら、狩人CO
+                vote_num = 0
+                #for i in range(self.N):
+                    # Error
+                    # if self.game_info.vote_list[i] == self.me:
+                    #     vote_num += 1
+                if vote_num >= 3:
+                    self.has_co = True
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+
+            # COしていたら    
+            else :
+                if self.houkoku == False and self.game_info.day >= 2:
+                    # 最も人狼っぽい人を護衛したと発言する
+                    max = -1
+                    for i in range(self.N):
+                        if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                            score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                            if score > max:
+                                max = score
+                                agent_guard : Agent = self.game_info.agent_list[i]
+
+                    self.houkoku = True
+                    # 発言をする（未実装）
+                    
+        # 共通の処理
+        # 生存者が3人以下だったら、人狼COする
+        # review: ほんとか？  
+             
+
             
-        # Vote for one of the alive fake werewolves.
-        # 投票候補：人狼結果リスト
-        candidates: List[Agent] = self.get_alive(self.werewolves)
-        # Vote for one of the alive agent that declared itself the same role of Possessed
-        # if there are no candidates.
-        # 候補なし → 対抗
-        if not candidates:
-            candidates = self.get_alive([a for a in self.comingout_map
-                                         if self.comingout_map[a] == self.fake_role])
-        # Vite for one of the alive agents if there are no candidates.
-        # 生存者
-        if not candidates:
-            candidates = self.get_alive_others(self.game_info.agent_list)
-        # Declare which to vote for if not declare yet or the candidate is changed.
-        # 候補からランダムセレクト
-        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-            self.vote_candidate = self.random_select(candidates)
-            if self.vote_candidate != AGENT_NONE:
-                return Content(VoteContentBuilder(self.vote_candidate))
+        # # Vote for one of the alive fake werewolves.
+        # # 投票候補：人狼結果リスト
+        # candidates: List[Agent] = self.get_alive(self.werewolves)
+        # # Vote for one of the alive agent that declared itself the same role of Possessed
+        # # if there are no candidates.
+        # # 候補なし → 対抗
+        # if not candidates:
+        #     candidates = self.get_alive([a for a in self.comingout_map
+        #                                  if self.comingout_map[a] == self.fake_role])
+        # # Vite for one of the alive agents if there are no candidates.
+        # # 生存者
+        # if not candidates:
+        #     candidates = self.get_alive_others(self.game_info.agent_list)
+        # # Declare which to vote for if not declare yet or the candidate is changed.
+        # # 候補からランダムセレクト
+        # if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
+        #     self.vote_candidate = self.random_select(candidates)
+        #     if self.vote_candidate != AGENT_NONE:
+        #         return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
