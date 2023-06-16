@@ -318,6 +318,19 @@ class ScoreMatrix:
             # 自分が村陣営の場合
             else:
                 pass
+        # review: 人狼CO を追加
+        elif role == Role.WEREWOLF:
+            if my_role == Role.POSSESSED:
+                # 自分が狂人なので、人狼COは信用できる
+                self.add_scores(talker, {Role.WEREWOLF: +100})
+            elif my_role == Role.WEREWOLF:
+                # 人狼でないことが確定していれば狂人と推測する
+                # 本当に人狼なら特にすることはない
+                if talker in game_info.role_map and game_info.role_map[talker] != Role.WEREWOLF:
+                    self.add_scores(talker, {Role.POSSESSED: +100})
+            else:
+                # 自分が村陣営の場合、人狼か狂人と推測する
+                self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
         # 他者の村人CO
         elif role == Role.VILLAGER:
             # 自分が人狼の場合→人狼の時は役職を噛みたいから、村人COも認知する
