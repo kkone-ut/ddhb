@@ -362,6 +362,10 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("win_rate:\t", self.win_count, "/", self.game_count, " = ", self.win_count / self.game_count)
         Util.debug_print("")
 
+        if (len(self.role_predictor.assignments) == 0):
+            Util.debug_print("No assignments")
+            return
+
         # 確率を表示
         p = self.role_predictor.getProbAll()
         Util.debug_print("", end="\t")

@@ -31,6 +31,7 @@ from TeamPredictor import TeamPredictor
 
 import library.timeout_decorator as timeout_decorator
 import time
+import traceback
 
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
@@ -104,6 +105,8 @@ class ddhbPlayer(AbstractPlayer):
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.finish")
             Util.error_print("TimeoutError:\t", "finish")
+        except Exception as e:
+            Util.error_print(traceback.format_exc())
         Util.debug_print("finish")
         Util.debug_print("---------")
         Util.debug_print("")
