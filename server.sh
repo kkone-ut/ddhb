@@ -41,6 +41,7 @@ if "$help"; then
     echo "  -n number: number of players"
     echo "  -v: view mode"
     echo "  -g game: number of games"
+    echo "  -a agent: team's name or 'all'" 
     echo "  -c: client mode"
     echo "  -l: loop mode"
     echo "  -h help: show help"
