@@ -12,6 +12,7 @@ class Assignment:
         self.me = _player.me
         self.score = 0
         self.assignment = _assignment
+        self.hash = hash(self)
     
     def __str__(self) -> str:
         m = ""
@@ -20,10 +21,19 @@ class Assignment:
         return m
     
     def __eq__(self, o: object) -> bool:
-        return np.array_equal(self.assignment, o.assignment)
+        return self.score == o.score and self.hash == o.hash
     
     def __hash__(self) -> int:
         return hash(tuple(self.assignment))
+    
+    def __lt__(self, other: object) -> bool:
+        if self.score == other.score:
+            return self.hash < other.hash
+        else:
+            return self.score < other.score
+    
+    def __le__(self, other: object) -> bool:
+        return self < other or self == other
 
     # 外部クラスから assignment.assignment[i] ではなく assignment[i] でアクセスできるようにする
     def __getitem__(self, agent) -> Role:
@@ -39,7 +49,7 @@ class Assignment:
         
     # 役職の割り当ての評価値を計算する
     def evaluate(self, score_matrix: ScoreMatrix, debug = False) -> float:
-        self.score = 0
+        score = 0
 
         # 既に負けているような割り当ての評価値は-inf
         if not debug:
@@ -57,17 +67,29 @@ class Assignment:
             if werewolf_num >= alive_agent_num / 2:
                 return -float("inf")
 
+        # for i in range(self.N):
+        #     if score_matrix.get_score(i, self.assignment[i], i, self.assignment[i]) == -float("inf"):
+        #         return -float("inf")
+
         for i in range(self.N):
             for j in range(self.N):
-                self.score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                # if i == j:
+                #     continue
+                # self.score += np.random.rand()
+                score += score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])
+                # if self.score == -float("inf"):
+                #     return self.score
                 if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 4.5:
                     Util.debug_print("score[", i+1, "\t", self.assignment[i], "\t", j+1, "\t", self.assignment[j], "\t] = ",round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]), 2))
-        
+
+        self.score = score
+
         return self.score
     
     # エージェント i とエージェント j の役職を入れ替える
     def swap(self, i: int, j: int) -> None:
         self.assignment[i], self.assignment[j] = self.assignment[j], self.assignment[i]
+        self.hash = hash(self)
 
     # リストをシャッフルする
     # fixed_positions で指定した位置はシャッフルしない
@@ -83,3 +105,5 @@ class Assignment:
             i = a[i]
             j = a[j]
             self.assignment[i], self.assignment[j] = self.assignment[j], self.assignment[i]
+        
+        self.hash = hash(self)

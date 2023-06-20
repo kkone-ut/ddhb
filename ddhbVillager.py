@@ -30,6 +30,7 @@ from Util import Util
 from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
 from Assignment import Assignment
+from TeamPredictor import TeamPredictor
 
 # 村役職
 class ddhbVillager(AbstractPlayer):
@@ -49,9 +50,10 @@ class ddhbVillager(AbstractPlayer):
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    will_vote_reports: defaultdict[Agent, Agent] # 投票宣言
+    will_vote_reports: "defaultdict[Agent, Agent]" # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
+    talk_list_all: List[Talk] # 全talkリスト
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
@@ -64,6 +66,7 @@ class ddhbVillager(AbstractPlayer):
         self.identification_reports = []
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_head = 0
+        self.talk_list_all = []
 
         self.role_predictor = None
         
@@ -143,7 +146,7 @@ class ddhbVillager(AbstractPlayer):
         return random.choice(agent_list) if agent_list else AGENT_NONE
     
     # 最も処刑されそうなエージェントを返す
-    def chooseMostlikelyExecuted(self, n : float) -> Agent:
+    def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count : defaultdict[Agent, float] = defaultdict(float)
 
@@ -165,6 +168,9 @@ class ddhbVillager(AbstractPlayer):
         self.comingout_map.clear()
         self.divination_reports.clear()
         self.identification_reports.clear()
+        self.will_vote_reports.clear()
+        self.talk_list_head = 0
+        self.talk_list_all = []
 
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
@@ -184,6 +190,7 @@ class ddhbVillager(AbstractPlayer):
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
+        self.will_vote_reports.clear()
 
         Util.debug_print("")
         Util.debug_print("DayStart:\t", self.game_info.day)
@@ -212,10 +219,15 @@ class ddhbVillager(AbstractPlayer):
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
             tk: Talk = game_info.talk_list[i]  # The talk to be analyzed.
             talker: Agent = tk.agent
+            self.talk_list_all.append(tk)
             if talker == self.me:  # Skip my talk.
+                continue
+            if TeamPredictor.should_skip(self, tk):
                 continue
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
+
+            # Util.debug_print("Topic:\t", talker, content.topic)
 
             # content.target が不要な場合デフォルトの AGENT_ANY が入っている
             # 不正な場合はここで弾く
@@ -253,7 +265,6 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
 
-        self.role_predictor.addAssignments(self.game_info, self.game_setting)
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # 会話
@@ -305,6 +316,7 @@ class ddhbVillager(AbstractPlayer):
         #         return Content(VoteContentBuilder(self.vote_candidate))
 
         if self.vote_candidate == AGENT_NONE:
+            # self.vote_candidate = self.chooseMostlikelyExecuted()
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
@@ -350,6 +362,10 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("win_rate:\t", self.win_count, "/", self.game_count, " = ", self.win_count / self.game_count)
         Util.debug_print("")
 
+        if (len(self.role_predictor.assignments) == 0):
+            Util.debug_print("No assignments")
+            return
+
         # 確率を表示
         p = self.role_predictor.getProbAll()
         Util.debug_print("", end="\t")
@@ -376,7 +392,7 @@ class ddhbVillager(AbstractPlayer):
         for a, r in self.game_info.role_map.items():
             assignment.append(r)
         actual_assignment = Assignment(self.game_info, self.game_setting, self, assignment)
-        predicted_assignment = self.role_predictor.assignments[0]
+        predicted_assignment = self.role_predictor.assignments[-1]
         Util.debug_print("\t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
         Util.debug_print("actual:\t", actual_assignment)
         Util.debug_print("predicted:\t", predicted_assignment)
@@ -400,6 +416,7 @@ class ddhbVillager(AbstractPlayer):
         # 実際の割り当てが予測の割り当てに含まれていたのか
         Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
         Util.debug_print("in role_predictor.assignments(set):\t", actual_assignment in self.role_predictor.assignments_set)
+        Util.debug_print("len(role_predictor.assignments(set):\t", len(self.role_predictor.assignments_set))
         Util.debug_print("")
 
         # もし含まれていないなら、含まれていたときのスコアを表示
@@ -419,17 +436,13 @@ class ddhbVillager(AbstractPlayer):
 
         # 最下位の割り当てのスコアを表示
         Util.debug_print("")
-        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[-1].score, 4))
+        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[0].score, 4))
         Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
         for a in self.game_info.agent_list:
             if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and (a not in self.comingout_map or predicted_assignment[a] != self.comingout_map[a]):
                 Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
-        Util.debug_print("")
-
-        Util.debug_print("finish")
-        Util.debug_print("---------")
         Util.debug_print("")
 
         pass

@@ -41,6 +41,7 @@ if "$help"; then
     echo "  -n number: number of players"
     echo "  -v: view mode"
     echo "  -g game: number of games"
+    echo "  -a agent: team's name or 'all'" 
     echo "  -c: client mode"
     echo "  -l: loop mode"
     echo "  -h help: show help"
@@ -81,7 +82,7 @@ if [ "$otherAgents" = "all" ]; then
             echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
         done
         if [ "$client" = "false" ]; then
-            echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
+            echo "ddhbPlayer,python,../start.py" >> AutoStarter.ini
         fi
     else
         echo "Error: number of players is not 5 or 15"
@@ -108,7 +109,7 @@ else
             elif [ "$otherAgents" = "daisyo" ]; then
                 echo "DaisyoPlayer${i},java,org.aiwolf.daisyo.RoleAssignPlayer" >> AutoStarter.ini
             elif [ "$otherAgents" = "ddhb" ]; then
-                echo "PythonPlayer${i},python,../start.py" >> AutoStarter.ini
+                echo "ddhbPlayer${i},python,../start.py" >> AutoStarter.ini
             else
                 echo Agent \"$otherAgents\" is not supported.
                 exit 1
@@ -117,11 +118,46 @@ else
     done
 fi
 
-if "$loop"; then
-    while true
-    do
-        java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
+while true
+do
+
+    # 保存先ファイルを指定
+    latest_commit=$(git log -1 --pretty=format:"%h")
+    short_commit=${latest_commit:0:7}
+    date=$(date "+%Y%m%d_%H.%M.%S")
+    outputFile="../log_server/${date}_${short_commit}.log"
+    : > $outputFile
+
+    # 現在の行をログファイルに追加するかどうかのフラグ
+    flag=0
+
+    java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini | while read line; do
+        # echo $line >> $outputFile
+        if [[ $line == "=============================================" ]]; then
+            # 行が ============================================= ならフラグを反転
+            # サーバーのログは基本的にこの行で囲まれている
+            echo "$line" >> $outputFile
+            echo "$line"
+            ((flag ^= 1))
+        elif [[ $line == *"Winner"* ]]; then
+            # Winner: 〇〇 の行は囲まれていないためそのまま出力ファイルに追加
+            echo "$line" >> $outputFile
+            echo "$line"
+        elif [[ $line == $'BODYGUARD\tMEDIUM\tPOSSESSED\tSEER\tVILLAGER\tWEREWOLF\tTotal' ]]; then
+            # 勝率のデータも囲まれていないためそのまま出力ファイルに追加
+            # それ以降他のデータは基本無いためフラグを立ててそれ以降すべて出力ファイルに追加
+            echo "\t$line" >> $outputFile
+            echo "\t$line"
+            flag=1
+        elif ((flag == 1)); then
+            # フラグが1なら、その行を出力ファイルに追加
+            echo "$line" >> $outputFile
+            echo "$line"
+        else
+            echo "$line"
+        fi
     done
-else
-    java -cp 'lib/aiwolf/*:clients_java/' org.aiwolf.ui.bin.AutoStarter AutoStarter.ini
-fi
+    if ! "$loop"; then
+        break
+    fi
+done
