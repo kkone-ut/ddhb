@@ -2,13 +2,15 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
-from typing import List
+from typing import List, Dict
 
 from Util import Util
 from Assignment import Assignment
 from ScoreMatrix import ScoreMatrix
 from aiwolf.constant import AGENT_NONE
 
+import library.timeout_decorator as timeout_decorator
+from library.SortedSet import SortedSet
 
 class RolePredictor:
 
@@ -39,9 +41,9 @@ class RolePredictor:
         self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
-        # assignments は現在保持している Assignment のリスト
+        # assignments は現在保持している Assignment の SortedSet (C++ の std::set みたいなもの)
         # assignments_set はこれまでに作成した Assignment の集合 (リストから外れても保持しておく)
-        self.assignments = []
+        self.assignments: SortedSet = SortedSet()
         self.assignments_set = set()
         self.score_matrix = _score_matrix
         self.fixed_positions = [self.me.agent_idx-1]
@@ -50,88 +52,98 @@ class RolePredictor:
 
         # assignment のすべての並び替えを列挙する
         # 5人村はすべて列挙する
-        # 15人村では重すぎるので、ランダムに ADDITIONAL_ASSIGNMENT_NUM 個だけ列挙し、少しずつ追加・削除を行う
+        # 15人村では重すぎるので、ランダムに数個だけ列挙し、少しずつ追加・削除を行う
         if self.N == 5:
             for p in Util.unique_permutations(assignment):
-                self.assignments.append(Assignment(game_info, game_setting, _player, np.copy(p)))
+                self.assignments.add(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
-            self.addAssignments(game_info, game_setting)
+            try: 
+                self.addAssignments(game_info, game_setting, timeout=20)
+                Util.debug_print("len(assignments):", len(self.assignments))
+            except timeout_decorator.TimeoutError:
+                Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
     
     # すべての割り当ての評価値を計算する
-    def update(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+    def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
 
         self.game_info = game_info
 
-        time_start = time.time()
+        Util.debug_print("len(self.assignments)1:", len(self.assignments))
 
-        # assignments の評価値を更新しつつ、評価値が -inf のものを削除する
-        for assignment in self.assignments[:]:
-            if assignment.evaluate(self.score_matrix) == -float('inf'):
-                self.assignments.remove(assignment)
+        Util.start_timer("RolePredictor.update")
+
+        if len(self.assignments) == 0:
+            self.addAssignments(game_info, game_setting, timeout=timeout // 3)
+
+        # assignments の評価値を更新
+        for assignment in list(reversed(self.assignments)): # 逆順にして評価値の高いものから更新する
+            # assignment を変更するので一度削除して、評価した後に再度追加する
+            res = self.assignments.discard(assignment)
+            assignment.evaluate(self.score_matrix)
+            if assignment.score != -float('inf'):
+                self.assignments.add(assignment)
+            if Util.timeout("RolePredictor.update", timeout):
+                # raise timeout_decorator.TimeoutError
+                break
+
+        Util.debug_print("len(self.assignments)2:", len(self.assignments))
+
+        # todo: ここで確率の更新をしてキャッシュする
+        # self.getProbAll()
+
+    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
+        if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
+            return
         
-        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
-        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
-
-        time_end = time.time()
-        if time_end - time_start > 0.06:
-            Util.error_print("")
-            Util.error_print("timeout!\t", "Role.Predictor.update()")
-            Util.error_print("time:\t", time_end - time_start)
-            Util.error_print("len:\t", len(self.assignments))
-            Util.error_print("avg:\t", (time_end - time_start) / len(self.assignments))
-            Util.error_print("")
-
-        self.getProbAll()
-
-    def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, num: int = -1) -> None:
-        if num == -1:
-            num = self.ADDITIONAL_ASSIGNMENT_NUM
-
-        time_start = time.time()
-
         # 新しい割り当てを追加する
-        for _ in range(num):
+        Util.start_timer("RolePredictor.addAssignments")
+        for _ in range(self.ADDITIONAL_ASSIGNMENT_NUM):
             self.addAssignment(game_info, game_setting)
-        
-        # 評価値の高い順にソートして、上位 ASSIGNMENT_NUM 個だけ残す
-        # ここではスコアの更新は行わない
-        self.assignments = sorted(self.assignments, key=lambda x: x.score, reverse=True)[:self.ASSIGNMENT_NUM]
+            if Util.timeout("RolePredictor.addAssignments", timeout):
+                break
 
-        time_end = time.time()
-        if time_end - time_start > 0.06:
-            Util.error_print("")
-            Util.error_print("timeout!\t", "Role.Predictor.addAssignments()")
-            Util.error_print("time:\t", time_end - time_start)
-            Util.error_print("len:\t", num)
-            Util.error_print("avg:\t", (time_end - time_start) / num)
-            Util.error_print("")
-
-    # 今ある割り当てを少しだけ変更して追加する
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
-        if len(self.assignments) == 0 or np.random.rand() < 0.1:
-            # もし割り当てがないなら、初期割り当てをシャッフルして追加する
+        if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
+            # 割り当てが少ない場合は初期割り当てをシャッフルして追加する (多様性確保のため)
+            # そうでなくても、10%の確率で初期割り当てをシャッフルして追加する (遺伝的アルゴリズムでいう突然変異)
             base = self.get_initail_assignment()
             times = self.N
         else:
-            # 割り当てがあるなら、ランダムに選んで少しだけシャッフルして追加する
+            # 既にある割り当てからランダムに1つ選んで少しだけシャッフルして追加する
             assignment_idx = np.random.randint(len(self.assignments))
             base = self.assignments[assignment_idx].assignment
-            times = int(abs(np.random.normal(scale=0.2) * self.N)) + 1 # 基本的に1~3程度の小さな値 (正規分布を使用)
-            if times > self.N:
-                Util.debug_print("times:\t", times)
+            times = min(self.N, int(abs(np.random.normal(scale=0.2) * self.N)) + 1) # 基本的に1~3程度の小さな値 (正規分布を使用)
         
+        # 指定回数シャッフルする
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
         assignment.shuffle(times, self.fixed_positions)
+
+        # すでにある割り当てと同じなら追加しない
         if assignment in self.assignments_set:
-             return
+            return
+        
+        # 評価値を計算
         assignment.evaluate(self.score_matrix)
-        self.assignments.append(assignment)
+
+        # 割り当て数が超過していたら、スコアの低いものから削除する
+        while len(self.assignments) > self.ASSIGNMENT_NUM:
+            self.assignments.pop(0)
+        
+        # 割り当て数が足りなかったら追加する
+        # 丁度だった場合は、すでにある割り当てよりもスコアが高ければ追加する
+        if len(self.assignments) < self.ASSIGNMENT_NUM:
+            self.assignments.add(assignment)
+        elif assignment.score > self.assignments[0].score:
+            self.assignments.discard(self.assignments[0])
+            self.assignments.add(assignment)
+
+        # 割り当て重複チェック用のセットに追加
         self.assignments_set.add(assignment)
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
-    def getProbAll(self) -> defaultdict[Agent, defaultdict[Role, float]]:
+    def getProbAll(self) -> "defaultdict[Agent, defaultdict[Role, float]]":
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -151,7 +163,7 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = defaultdict[Agent, defaultdict[Role, float]](lambda: defaultdict[Role, float](float))
+        probs = defaultdict(lambda: defaultdict(float))
 
         for i, assignment in enumerate(self.assignments):
             for a in self.game_info.agent_list:
