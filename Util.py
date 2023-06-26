@@ -5,19 +5,65 @@ import sys
 from collections import deque
 
 from aiwolf import Role
+import time
+import traceback
+from typing import Dict
+import library.timeout_decorator as timeout_decorator
 
 class Util:
 
+    exit_on_error = False
+    local = False
+    need_traceback = True
+
     rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
-    debug_mode = False
+    debug_mode = True
+    time_start = Dict[str, float]
+
+    def init():
+        Util.time_start = {}
 
     def debug_print(*args, **kwargs):
+        # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
+        #     return
         if Util.debug_mode:
             print(*args, **kwargs)
 
     def error_print(*args, **kwargs):
-        # エラーログが要らない場合は次の行をコメントアウトする
         print(*args, **kwargs, file=sys.stderr)
+        if Util.local and Util.exit_on_error:
+            if Util.need_traceback:
+                traceback.print_stack()
+            exit(1)
+
+    def start_timer(func_name):
+        Util.time_start[func_name] = time.time()
+    
+    def end_timer(func_name, time_threshold=0):
+        time_end = time.time()
+        time_exec = round((time_end - Util.time_start[func_name]) * 1000, 1)
+        if time_exec >= time_threshold:
+            if time_threshold == 0:
+                Util.debug_print("exec_time:\t", func_name, time_exec)
+            else:
+                Util.error_print("exec_time:\t", func_name, time_exec)
+    
+    def timeout(func_name, time_threshold):
+        time_now = time.time()
+        time_exec = round((time_now - Util.time_start[func_name]) * 1000, 1)
+        return time_exec >= time_threshold
+    
+    def exec_with_timeout(func, timeout, *args, **kwargs):
+
+        @timeout_decorator.timeout(timeout / 1000)
+        def _exec_with_timeout():
+            return func(*args, **kwargs)
+        
+        try:
+            return _exec_with_timeout()
+        except timeout_decorator.TimeoutError:
+            Util.error_print("TimeoutError:\t", func.__name__, timeout, "ms")
+            return None
 
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:
