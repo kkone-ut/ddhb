@@ -257,7 +257,7 @@ class ddhbPossessed(ddhbVillager):
                 if self.game_info.executed_agent != None:
                     target : Agent = self.game_info.executed_agent
                     # もしtargetが占い師COしていたら、白判定する
-                    if self.comingout_map[target] == Role.SEER:
+                    if target in self.comingout_map and self.comingout_map[target] == Role.SEER:
                         return Content(IdentContentBuilder(target, Species.HUMAN))
                     # 占い師COしていなかったら、黒判定する(二人まで)
                     elif self.black_count < 2:
@@ -278,8 +278,11 @@ class ddhbPossessed(ddhbVillager):
                 
                 # 3人以上が自分に投票したら、狩人CO
                 vote_num = 0
-                for i in range(self.game_info.vote_list):
-                    if self.game_info.vote_list[i] == self.me:
+                # for i in range(len(self.game_info.vote_list)):
+                #     if self.game_info.vote_list[i] == self.me:
+                #         vote_num += 1
+                for vote in self.game_info.vote_list:
+                    if vote.target == self.me:
                         vote_num += 1
                 
                 if vote_num >= 3:
