@@ -82,9 +82,11 @@ class ddhbPossessed(ddhbVillager):
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
+
         # ハックを検証するためのフラグ
-        # self.strategies = [True, False]
-        # self.hackA = strategies[0]
+        self.strategies = [True, False]
+        self.hackA = self.strategies[0] # 一日で何回も占い結果を言う
+        self.hackB = self.strategies[1] # 人狼に嚙まれないように、狩人COしない
         self.has_report = False
         self.black_count = 0
 
@@ -178,20 +180,25 @@ class ddhbPossessed(ddhbVillager):
     def talk(self) -> Content:
         # もし占い師を語るならば
         if self.fake_role == Role.SEER:
+            if self.hackA == True: # 一日で何回も占い結果を言うハック
+                # トークのたびにまだ報告していないことにする
+                self.has_report = False
+
             if self.has_co == False:
                 # 占い師が何人いるかを数える
-                num_seer = 0
                 others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
                 num_seer = len(others_seer_co)
 
-                # 占い師が既に二人以上いるならば、狩人を騙る
-                if num_seer >= 2:
-                    self.fake_role = Role.BODYGUARD
-                    # 狩人は毎回報告する内容があるとは限らないから、has_reportはTrueにする
-                    self.has_report = True
-                else:
-                    self.has_co = True
-                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                if(self.hackB == False): # 人狼に嚙まれないように、狩人COしないハック
+                    # 占い師が既に二人以上いるならば、狩人を騙る
+                    if num_seer >= 2:
+                        self.fake_role = Role.BODYGUARD
+                        # 狩人は毎回報告する内容があるとは限らないから、has_reportはTrueにする
+                        self.has_report = True
+                    else:
+                        self.has_co = True
+                        return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                    
             if self.has_report == False:
                 self.has_report = True
                 # 5人村のとき
@@ -215,6 +222,7 @@ class ddhbPossessed(ddhbVillager):
                 # 15人村のとき
                 else:
                     # 二日目以外は、最も村人っぽい人を黒だという
+
                     if self.game_info.day != 2:
                         max = -1
                         for i in range(self.N):
@@ -240,18 +248,19 @@ class ddhbPossessed(ddhbVillager):
         elif self.fake_role == Role.MEDIUM:
             if self.has_co == False:
                 # 霊媒師が何人いるかを数える
-                num_medium = 0
                 # 注意：comingout_mapには、自分は含まれていない
                 others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
                 num_medium = len(others_medium_co)
 
-                # 霊媒師が既に二人以上いるならば、狩人を騙る
-                if num_medium >= 2:
-                    self.fake_role = Role.BODYGUARD
-                    self.has_report = True
-                else:
-                    self.has_co = True
-                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                if self.hackB == False: # 人狼に嚙まれないように、狩人COしないハック
+                    # 霊媒師が既に二人以上いるならば、狩人を騙る
+                    if num_medium >= 2:
+                        self.fake_role = Role.BODYGUARD
+                        self.has_report = True
+                    else:
+                        self.has_co = True
+                        return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                    
             if self.has_report == False:
                 self.has_report = True
                 if self.game_info.executed_agent != None:
