@@ -41,6 +41,9 @@ class ddhbSeer(ddhbVillager):
     """Agents that have not been divined."""
     werewolves: List[Agent] # 人狼結果のエージェント
     """Found werewolves."""
+    
+    strategies: List[bool] # 戦略フラグのリスト
+    
 
 
     def __init__(self) -> None:
@@ -51,6 +54,9 @@ class ddhbSeer(ddhbVillager):
         self.my_judge_queue = deque()
         self.not_divined_agents = []
         self.werewolves = []
+        
+        self.strategies = []
+
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -59,14 +65,19 @@ class ddhbSeer(ddhbVillager):
         self.my_judge_queue.clear()
         self.not_divined_agents = self.get_others(self.game_info.agent_list)
         self.werewolves.clear()
+        
+        self.strategies = [True, False, False, False, False]
+        self.strategyA = self.strategies[0] # 戦略A: 初日CO
 
 
+    # 昼スタート→OK
     def day_start(self) -> None:
         super().day_start()
         # Process a divination result.
         # 昼に占い結果
         judge: Optional[Judge] = self.game_info.divine_result
         if judge is not None:
+            # 自分の占い結果キューに追加
             self.my_judge_queue.append(judge)
             # 占い対象を、占っていないエージェントリストから除く
             if judge.target in self.not_divined_agents:
@@ -74,18 +85,28 @@ class ddhbSeer(ddhbVillager):
             # 人狼発見 → 人狼結果リストに追加
             if judge.result == Species.WEREWOLF:
                 self.werewolves.append(judge.target)
+            # スコアの更新
             self.score_matrix.my_divined(self.game_info, self.game_setting, judge.target, judge.result)
+
 
     # CO、結果報告
     def talk(self) -> Content:
         # Do comingout if it's on scheduled day or a werewolf is found.
-        # CO : 予定の日にち or 人狼発見 → 追加：対抗がCOしたら
+        
+        # 戦略A: 初日CO
+        if self.strategyA:
+            self.strategyA = False
+            if not self.has_co:
+                self.has_co = True
+                return Content(ComingoutContentBuilder(self.me, Role.SEER))
+        
+        # CO : 予定の日にち or 人狼発見 → 追加：対抗がCOしたら(CCO)
         if not self.has_co and (self.game_info.day == self.co_date or self.werewolves):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.SEER))
-        # 追加：他の占い師がCOしたら
+        # 追加：他の占い師がCOしたら(CCO)
         # 注意：comingout_mapには、自分は含まれていない
-        others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
+        others_seer_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         if not self.has_co and others_seer_co:
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.SEER))
@@ -118,26 +139,39 @@ class ddhbSeer(ddhbVillager):
                 return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
 
-    # 占い対象
+    # 占い対象→OK
     def divine(self) -> Agent:
         # Divine a agent randomly chosen from undivined agents.
         # ランダムセレクト → 変更する：怪しさの値追加
         target: Agent = self.random_select(self.not_divined_agents)
         
-        # 最も人狼っぽいエージェントを占う
-        p = self.role_predictor.getProbAll()
-        mx_score = 0
         # 生存者の中で占っていないエージェント
         divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
-        
-        for agent in divine_candidates:
-            score = p[agent][Role.SEER]
-            if score > mx_score:
-                mx_score = score
-                target = agent
+        # 最も人狼っぽいエージェントを占う
+        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+        # p = self.role_predictor.getProbAll()
+        # mx_score = 0
+        # # 生存者の中で占っていないエージェント
+        # divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
+        # for agent in divine_candidates:
+        #     score = p[agent][Role.SEER]
+        #     if score > mx_score:
+        #         mx_score = score
+        #         target = agent
         
         return target if target != AGENT_NONE else self.me
     
-    # 後でvoteも作る
-    # def vote(self) -> Agent:
-    #     pass
+    
+    # 投票対象→OK
+    def vote(self) -> Agent:
+        # 投票候補：人狼結果リスト
+        vote_candidates: List[Agent] = self.get_alive(self.werewolves)
+        target: Agent = self.random_select(vote_candidates)
+        
+        # 偽占いに投票しても投票が集まらないため、最も人狼っぽいエージェントに投票
+        if not vote_candidates:
+            # 生存者
+            vote_candidates = self.get_alive_others(self.game_info.agent_list)
+            target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        
+        return target if target != AGENT_NONE else self.me
