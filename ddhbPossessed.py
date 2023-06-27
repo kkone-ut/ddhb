@@ -63,7 +63,7 @@ class ddhbPossessed(ddhbVillager):
         self.num_wolves = 0
         self.werewolves = []
         self.strategies = []
-        self.houkoku = False
+        self.has_report = False # 占い等の結果を報告したかのフラグ
         self.black_count = 0 # 霊媒師が黒判定した数
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -85,41 +85,46 @@ class ddhbPossessed(ddhbVillager):
         # ハックを検証するためのフラグ
         # self.strategies = [True, False]
         # self.hackA = strategies[0]
-        self.houkoku = False
+        self.has_report = False
         self.black_count = 0
 
-    # 偽結果生成
-    def get_fake_judge(self) -> Judge:
-        """Generate a fake judgement."""
-        target: Agent = AGENT_NONE
-        # 対象の決定
-        # 占い騙り → ランダムセレクト
-        if self.fake_role == Role.SEER:  # Fake seer chooses a target randomly.
-            if self.game_info.day != 0:
-                target = self.random_select(self.get_alive(self.not_judged_agents))
-        # 霊媒騙り → 死者
-        elif self.fake_role == Role.MEDIUM:
-            target = self.game_info.executed_agent \
-                if self.game_info.executed_agent is not None \
-                else AGENT_NONE
-        if target == AGENT_NONE:
-            return JUDGE_EMPTY
-        # Determine a fake result.
-        # If the number of werewolves found is less than the total number of werewolves,
-        # judge as a werewolf with a probability of 0.5.
-        # 騙り結果 → 変更する
-        # 発見人狼数が人狼総数より少ない and 確率1/2 で黒結果
-        result: Species = Species.WEREWOLF \
-            if len(self.werewolves) < self.num_wolves and random.random() < 0.5 \
-            else Species.HUMAN
-        return Judge(self.me, self.game_info.day, target, result)
+    # # 偽結果生成
+    # def get_fake_judge(self) -> Judge:
+    #     """Generate a fake judgement."""
+    #     target: Agent = AGENT_NONE
+    #     # 対象の決定
+    #     # 占い騙り → ランダムセレクト
+    #     if self.fake_role == Role.SEER:  # Fake seer chooses a target randomly.
+    #         if self.game_info.day != 0:
+    #             target = self.random_select(self.get_alive(self.not_judged_agents))
+    #     # 霊媒騙り → 死者
+    #     elif self.fake_role == Role.MEDIUM:
+    #         target = self.game_info.executed_agent \
+    #             if self.game_info.executed_agent is not None \
+    #             else AGENT_NONE
+    #     if target == AGENT_NONE:
+    #         return JUDGE_EMPTY
+    #     # Determine a fake result.
+    #     # If the number of werewolves found is less than the total number of werewolves,
+    #     # judge as a werewolf with a probability of 0.5.
+    #     # 騙り結果 → 変更する
+    #     # 発見人狼数が人狼総数より少ない and 確率1/2 で黒結果
+    #     result: Species = Species.WEREWOLF \
+    #         if len(self.werewolves) < self.num_wolves and random.random() < 0.5 \
+    #         else Species.HUMAN
+    #     return Judge(self.me, self.game_info.day, target, result)
 
     def day_start(self) -> None:
         super().day_start()
+        # 狩人以外のとき、報告済みフラグをfalseにする
+        # つまりこれから報告する内容がある
+        if (self.fake_role != Role.BODYGUARD):
+            self.has_report = False
+
         # 狩人のとき、護衛成功したか確認
-        if self.fake_role == Role.BODYGUARD and self.game_info.guarded_agent and len(self.game_info.last_dead_agent_list) == 0:
-            # 報告する
-            self.houkoku = True
+        if self.fake_role == Role.BODYGUARD and self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+            # これから報告する
+            self.has_report = False
 
         # # Process the fake judgement.
         # # 昼に騙り結果
@@ -176,20 +181,19 @@ class ddhbPossessed(ddhbVillager):
             if self.has_co == False:
                 # 占い師が何人いるかを数える
                 num_seer = 0
-                # Error
-                # for i in range(self.N):
-                #     if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
-                #             and self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
-                #         num_seer += 1
+                others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
+                num_seer = len(others_seer_co)
+
                 # 占い師が既に二人以上いるならば、狩人を騙る
                 if num_seer >= 2:
                     self.fake_role = Role.BODYGUARD
-                    self.houkoku = True
+                    # 狩人は毎回報告する内容があるとは限らないから、has_reportはTrueにする
+                    self.has_report = True
                 else:
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
-            if self.houkoku == False:
-                self.houkoku = True
+            if self.has_report == False:
+                self.has_report = True
                 # 5人村のとき
                 if self.N == 5:
                     # 対抗がいたら、対抗が黒だという
@@ -231,25 +235,25 @@ class ddhbPossessed(ddhbVillager):
                                     max = score
                                     agent_white : Agent = self.game_info.agent_list[i]
                         return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                    
         # もし霊媒師を語るならば
         elif self.fake_role == Role.MEDIUM:
             if self.has_co == False:
                 # 霊媒師が何人いるかを数える
                 num_medium = 0
-                # for i in range(self.N):
-                #     # Error
-                #     if i != self.me and self.is_alive(self.game_info.agent_list[i]) \
-                #             and self.comingout_map[self.game_info.agent_list[i]] == Role.MEDIUM:
-                #         num_medium += 1
+                # 注意：comingout_mapには、自分は含まれていない
+                others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+                num_medium = len(others_medium_co)
+
                 # 霊媒師が既に二人以上いるならば、狩人を騙る
                 if num_medium >= 2:
                     self.fake_role = Role.BODYGUARD
-                    self.houkoku = True
+                    self.has_report = True
                 else:
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
-            if self.houkoku == False:
-                self.houkoku = True
+            if self.has_report == False:
+                self.has_report = True
                 if self.game_info.executed_agent != None:
                     target : Agent = self.game_info.executed_agent
                     # もしtargetが占い師COしていたら、白判定する
@@ -268,22 +272,24 @@ class ddhbPossessed(ddhbVillager):
             # COしていなかったら
             if self.has_co == False:
                 # 護衛成功したら、狩人CO
-                if self.houkoku == False:
+                if self.has_report == False:
+                    self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
                 
                 # 3人以上が自分に投票したら、狩人CO
                 vote_num = 0
-                #for i in range(self.N):
-                    # Error
-                    # if self.game_info.vote_list[i] == self.me:
-                    #     vote_num += 1
+                for i in range(self.game_info.vote_list):
+                    if self.game_info.vote_list[i] == self.me:
+                        vote_num += 1
+                
                 if vote_num >= 3:
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
 
             # COしていたら    
             else :
-                if self.houkoku == False and self.game_info.day >= 2:
+                # まだ報告してなくて、2日目以降ならば
+                if self.has_report == False and self.game_info.day >= 2:
                     # 最も人狼っぽい人を護衛したと発言する
                     max = -1
                     for i in range(self.N):
@@ -293,13 +299,13 @@ class ddhbPossessed(ddhbVillager):
                                 max = score
                                 agent_guard : Agent = self.game_info.agent_list[i]
 
-                    self.houkoku = True
+                    self.has_report = True
                     # 発言をする（未実装）
                     
         # 共通の処理
         # 生存者が3人以下だったら、人狼COする
-        # review: ほんとか？  
-             
+        if len(self.get_alive(self.game_info.agent_list)) <= 3:
+            return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
 
             
         # # Vote for one of the alive fake werewolves.
