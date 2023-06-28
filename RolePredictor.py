@@ -21,6 +21,7 @@ class RolePredictor:
     ADDITIONAL_ASSIGNMENT_NUM = 100
 
     assignments_set: Set[Assignment]
+    prob_all: DefaultDict[Agent, DefaultDict[Role, float]]
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -90,8 +91,8 @@ class RolePredictor:
 
         Util.debug_print("len(self.assignments)2:", len(self.assignments))
 
-        # todo: ここで確率の更新をしてキャッシュする
-        # self.getProbAll()
+        # ここで確率の更新をしてキャッシュする
+        self.getProbAll()
 
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
@@ -170,16 +171,17 @@ class RolePredictor:
         for i, assignment in enumerate(self.assignments):
             for a in self.game_info.agent_list:
                 probs[a][assignment[a]] += assignment_prob[i]
+
+        self.prob_all = probs
         
         return probs
     
     # i 番目のプレイヤーが役職 role である確率を返す
-    # 複数回呼び出す場合は getProbAll() を呼んだほうが効率的
+    # 毎回 getProbAll を呼ぶのは無駄なので、キャッシュしたものを使う
     def getProb(self, agent, role: Role) -> float:
         if type(agent) == int:
             agent = self.game_info.agent_list[agent]
-        p = self.getProbAll()
-        return p[agent][role]
+        return self.prob_all[agent][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
     def chooseMostLikely(self, role: Role, agent_list: List[Agent] = None) -> Agent:
