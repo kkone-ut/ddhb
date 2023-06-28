@@ -17,7 +17,7 @@
 
 import random
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
@@ -44,16 +44,18 @@ class ddhbVillager(AbstractPlayer):
     """Information about current game."""
     game_setting: GameSetting # ゲーム設定
     """Settings of current game."""
-    comingout_map: Dict[Agent, Role] # CO辞書
+    comingout_map: DefaultDict[Agent, Role] # CO辞書
     """Mapping between an agent and the role it claims that it is."""
     divination_reports: List[Judge] # 占い結果
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    will_vote_reports: "defaultdict[Agent, Agent]" # 投票宣言
+    will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
     talk_list_all: List[Talk] # 全talkリスト
+
+    role_predictor: RolePredictor
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
@@ -61,7 +63,7 @@ class ddhbVillager(AbstractPlayer):
         self.me = AGENT_NONE
         self.vote_candidate = AGENT_NONE
         self.game_info = None  # type: ignore
-        self.comingout_map = {}
+        self.comingout_map = defaultdict(lambda: Role.UNC)
         self.divination_reports = []
         self.identification_reports = []
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
@@ -148,7 +150,7 @@ class ddhbVillager(AbstractPlayer):
     # 最も処刑されそうなエージェントを返す
     def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
-        count : defaultdict[Agent, float] = defaultdict(float)
+        count : DefaultDict[Agent, float] = defaultdict(float)
 
         for talker, target in self.will_vote_reports.items():
             count[target] += 1
@@ -441,7 +443,7 @@ class ddhbVillager(AbstractPlayer):
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
         for a in self.game_info.agent_list:
-            if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and (a not in self.comingout_map or predicted_assignment[a] != self.comingout_map[a]):
+            if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and predicted_assignment[a] != self.comingout_map[a]:
                 Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
         Util.debug_print("")
 

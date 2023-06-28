@@ -34,18 +34,22 @@ class TeamPredictor:
 
     team_map: "defaultdict[Agent, Team]"
 
+    @staticmethod
     def init():
         TeamPredictor.team_map = defaultdict(lambda: Team.UNC)
 
+    @staticmethod
     def update(game_info: GameInfo):
         TeamPredictor.game_info = game_info
         pass
 
+    @staticmethod
     def should_skip(player, talk: Talk) -> bool:
         if TeamPredictor.team_map[talk.agent] == Team.daphne:
             return True
         return False
 
+    @staticmethod
     def finish(player):
         game_info: GameInfo = player.game_info
         game_setting: GameSetting = player.game_setting

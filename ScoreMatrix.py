@@ -5,10 +5,14 @@ from aiwolf.constant import AGENT_NONE
 import numpy as np
 from Util import Util
 import ddhbVillager
-from typing import Dict
+from typing import Dict, List
 from Side import Side
 
 class ScoreMatrix:
+
+    seer_co_id: List[int]
+    medium_co_id: List[int]
+    bodyguard_co_id: List[int]
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
         self.N = game_setting.player_num
@@ -160,7 +164,7 @@ class ScoreMatrix:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
         else:
             # 万が一不確定(Species.UNC, Species.ANY)の場合
-            Util.error('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
+            Util.error_print('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
     # 自分の霊媒結果を反映→OK
     # 結果騙りは考慮しない
@@ -171,7 +175,7 @@ class ScoreMatrix:
         elif species == Species.HUMAN:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
         else:
-            Util.error('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
+            Util.error_print('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
     # 自分の護衛結果を反映→OK
     # 人狼の自噛みはルール上なし
