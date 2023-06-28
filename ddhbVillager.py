@@ -17,7 +17,7 @@
 
 import random
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
@@ -44,16 +44,18 @@ class ddhbVillager(AbstractPlayer):
     """Information about current game."""
     game_setting: GameSetting # ゲーム設定
     """Settings of current game."""
-    comingout_map: "defaultdict[Agent, Role]" # CO辞書
+    comingout_map: DefaultDict[Agent, Role] # CO辞書
     """Mapping between an agent and the role it claims that it is."""
     divination_reports: List[Judge] # 占い結果
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    will_vote_reports: "defaultdict[Agent, Agent]" # 投票宣言
+    will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
     talk_list_all: List[Talk] # 全talkリスト
+
+    role_predictor: RolePredictor
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
@@ -148,7 +150,7 @@ class ddhbVillager(AbstractPlayer):
     # 最も処刑されそうなエージェントを返す
     def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
-        count : defaultdict[Agent, float] = defaultdict(float)
+        count : DefaultDict[Agent, float] = defaultdict(float)
 
         for talker, target in self.will_vote_reports.items():
             count[target] += 1

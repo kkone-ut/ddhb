@@ -2,7 +2,7 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Set, DefaultDict
 
 from Util import Util
 from Assignment import Assignment
@@ -19,6 +19,8 @@ class RolePredictor:
     # 制限時間的に最大500個
     ASSIGNMENT_NUM = 100
     ADDITIONAL_ASSIGNMENT_NUM = 100
+
+    assignments_set: Set[Assignment]
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -143,7 +145,7 @@ class RolePredictor:
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
-    def getProbAll(self) -> "defaultdict[Agent, defaultdict[Role, float]]":
+    def getProbAll(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -163,7 +165,7 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = defaultdict(lambda: defaultdict(float))
+        probs: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
 
         for i, assignment in enumerate(self.assignments):
             for a in self.game_info.agent_list:

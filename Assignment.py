@@ -1,5 +1,5 @@
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
-import ScoreMatrix
+from ScoreMatrix import ScoreMatrix
 import numpy as np
 from Util import Util
 
@@ -10,7 +10,7 @@ class Assignment:
         self.M = len(game_info.existing_role_list)
         self.player = _player
         self.me = _player.me
-        self.score = 0
+        self.score = 0.0
         self.assignment = _assignment
         self.hash = hash(self)
     
@@ -49,7 +49,7 @@ class Assignment:
         
     # 役職の割り当ての評価値を計算する
     def evaluate(self, score_matrix: ScoreMatrix, debug = False) -> float:
-        score = 0
+        score = 0.0
 
         # 既に負けているような割り当ての評価値は-inf
         if not debug:
