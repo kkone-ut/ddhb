@@ -44,7 +44,7 @@ class ddhbVillager(AbstractPlayer):
     """Information about current game."""
     game_setting: GameSetting # ゲーム設定
     """Settings of current game."""
-    comingout_map: Dict[Agent, Role] # CO辞書
+    comingout_map: "defaultdict[Agent, Role]" # CO辞書
     """Mapping between an agent and the role it claims that it is."""
     divination_reports: List[Judge] # 占い結果
     """Time series of divination reports."""
@@ -61,7 +61,7 @@ class ddhbVillager(AbstractPlayer):
         self.me = AGENT_NONE
         self.vote_candidate = AGENT_NONE
         self.game_info = None  # type: ignore
-        self.comingout_map = {}
+        self.comingout_map = defaultdict(lambda: Role.UNC)
         self.divination_reports = []
         self.identification_reports = []
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
@@ -441,7 +441,7 @@ class ddhbVillager(AbstractPlayer):
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
         for a in self.game_info.agent_list:
-            if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and (a not in self.comingout_map or predicted_assignment[a] != self.comingout_map[a]):
+            if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and predicted_assignment[a] != self.comingout_map[a]:
                 Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
         Util.debug_print("")
 
