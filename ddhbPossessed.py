@@ -197,13 +197,22 @@ class ddhbPossessed(ddhbVillager):
                 # 5人村のとき
                 if self.N == 5:
                     # 対抗がいたら、対抗が黒だという
+                    # review: i を使う必要がなければ for agent in self.game_info.agent_list: とする方が良い
+                    # review: getProb(i, Role.WEREWOLF) は getProb(agent, Role.WEREWOLF) でもOK
+                    # review: self.me の型は agent なので i と比較しない (agent != self.me はOK)
+                    # review: i != self.me は色々なところで使われているので他も直しておいてほしい
                     for i in range(self.N):
                         if i != self.me and self.is_alive(self.game_info.agent_list[i]):
                             if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
                                 return Content(DivinedResultContentBuilder(self.game_info.agent_list[i], Species.WEREWOLF))
                             # 対抗がいなかったら、最も人狼っぽい人を白だと言う
+                            # review: ここで else を使うと、Agent[01] が占いCOしていなければという条件になってしまいそう
+                            # review: else を消して中身をインデント3つ下げれば良さそう (つまりこの for で return されずに続きが実行されるなら対抗がいない)
                             else:
                                 max = -1
+                                # review: for i in range(self.N) の間違い？
+                                # review: i が被ってないかは確認した方が良い (この場合 i を上書きしているので)
+                                # review: ここも for agent in self.game_info.agent_list: とかで良さそう
                                 if i in range(self.N):
                                     if i != self.me and self.is_alive(self.game_info.agent_list[i]):
                                         score = self.role_predictor.getProb(i, Role.WEREWOLF)
@@ -214,6 +223,7 @@ class ddhbPossessed(ddhbVillager):
                             
                 # 15人村のとき
                 else:
+                    # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
                     # 二日目以外は、最も村人っぽい人を黒だという
                     if self.game_info.day != 2:
                         max = -1
