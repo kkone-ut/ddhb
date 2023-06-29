@@ -20,15 +20,18 @@ class Util:
     debug_mode = True
     time_start = Dict[str, float]
 
+    @staticmethod
     def init():
         Util.time_start = {}
 
+    @staticmethod
     def debug_print(*args, **kwargs):
         # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
         #     return
         if Util.debug_mode:
             print(*args, **kwargs)
 
+    @staticmethod
     def error_print(*args, **kwargs):
         print(*args, **kwargs, file=sys.stderr)
         if Util.local and Util.exit_on_error:
@@ -36,9 +39,11 @@ class Util:
                 traceback.print_stack()
             exit(1)
 
+    @staticmethod
     def start_timer(func_name):
         Util.time_start[func_name] = time.time()
     
+    @staticmethod
     def end_timer(func_name, time_threshold=0):
         time_end = time.time()
         time_exec = round((time_end - Util.time_start[func_name]) * 1000, 1)
@@ -48,11 +53,13 @@ class Util:
             else:
                 Util.error_print("exec_time:\t", func_name, time_exec)
     
+    @staticmethod
     def timeout(func_name, time_threshold):
         time_now = time.time()
         time_exec = round((time_now - Util.time_start[func_name]) * 1000, 1)
         return time_exec >= time_threshold
     
+    @staticmethod
     def exec_with_timeout(func, timeout, *args, **kwargs):
 
         @timeout_decorator.timeout(timeout / 1000)
@@ -65,6 +72,7 @@ class Util:
             Util.error_print("TimeoutError:\t", func.__name__, timeout, "ms")
             return None
 
+    @staticmethod
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:
             fixed_positions = {}
@@ -96,6 +104,7 @@ class Util:
                         new_remaining_counts[idx] -= 1
                         stack.append((current_perm + [elem], new_remaining_counts, current_length + 1))
 
+    @staticmethod
     def get_unique_permutations_queue(ls, fixed_positions=set()):
         # キューを使って unique_permutations を実装する
         # ただし、fixed_positions で指定した位置を固定する
@@ -109,6 +118,7 @@ class Util:
         while len(stack) > 0:
             a = stack.pop()
 
+    @staticmethod
     def get_unique_permutations(ls, fixed_positions=set()):
 
         def _dfs(ls, permutation, is_used, i):
@@ -136,6 +146,7 @@ class Util:
 
     # 基本的には set(itertools.permutations) と同じ
     # ただし、fixed_positions で指定した位置に固定値を入れることができる
+    @staticmethod
     def unique_permutations(lst, fixed_positions=None):
         if fixed_positions is None:
             fixed_positions = {}

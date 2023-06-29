@@ -2,7 +2,7 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Set, DefaultDict
 
 from Util import Util
 from Assignment import Assignment
@@ -19,6 +19,9 @@ class RolePredictor:
     # 制限時間的に最大500個
     ASSIGNMENT_NUM = 100
     ADDITIONAL_ASSIGNMENT_NUM = 100
+
+    assignments_set: Set[Assignment]
+    prob_all: DefaultDict[Agent, DefaultDict[Role, float]]
 
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
@@ -88,8 +91,8 @@ class RolePredictor:
 
         Util.debug_print("len(self.assignments)2:", len(self.assignments))
 
-        # todo: ここで確率の更新をしてキャッシュする
-        # self.getProbAll()
+        # ここで確率の更新をしてキャッシュする
+        self.getProbAll()
 
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
@@ -143,7 +146,7 @@ class RolePredictor:
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
-    def getProbAll(self) -> "defaultdict[Agent, defaultdict[Role, float]]":
+    def getProbAll(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
 
         # 各割り当ての相対確率を計算する
         relative_prob = np.zeros(len(self.assignments))
@@ -163,21 +166,22 @@ class RolePredictor:
 
         # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs = defaultdict(lambda: defaultdict(float))
+        probs: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
 
         for i, assignment in enumerate(self.assignments):
             for a in self.game_info.agent_list:
                 probs[a][assignment[a]] += assignment_prob[i]
+
+        self.prob_all = probs
         
         return probs
     
     # i 番目のプレイヤーが役職 role である確率を返す
-    # 複数回呼び出す場合は getProbAll() を呼んだほうが効率的
+    # 毎回 getProbAll を呼ぶのは無駄なので、キャッシュしたものを使う
     def getProb(self, agent, role: Role) -> float:
         if type(agent) == int:
             agent = self.game_info.agent_list[agent]
-        p = self.getProbAll()
-        return p[agent][role]
+        return self.prob_all[agent][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
     def chooseMostLikely(self, role: Role, agent_list: List[Agent] = None) -> Agent:

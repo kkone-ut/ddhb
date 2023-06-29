@@ -38,6 +38,9 @@ class ddhbMedium(ddhbVillager):
     """Whether or not comingout has done."""
     my_judge_queue: Deque[Judge] # 自身の霊媒結果キュー
     """Queue of medium results."""
+    
+    werewolves: List[Agent] # 人狼結果のエージェント
+
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbMedium."""
@@ -46,6 +49,9 @@ class ddhbMedium(ddhbVillager):
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue = deque()
+        
+        self.werewolves = []
+
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -53,7 +59,11 @@ class ddhbMedium(ddhbVillager):
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue.clear()
+        
+        self.werewolves.clear()
 
+
+    # 昼スタート→OK
     def day_start(self) -> None:
         super().day_start()
         # Queue the medium result.
@@ -63,15 +73,24 @@ class ddhbMedium(ddhbVillager):
             self.my_judge_queue.append(judge) # 結果追加
             if judge.result == Species.WEREWOLF: # 黒結果
                 self.found_wolf = True
+                self.werewolves.append(judge.target) # 人狼リストに追加
+            # スコアの更新
             self.score_matrix.my_identified(self.game_info, self.game_setting, judge.target, judge.result)
 
-    # CO、結果報告
+
+    # CO、結果報告→OK
     def talk(self) -> Content:
         # Do comingout if it's on scheduled day or a werewolf is found.
         # CO : 予定の日にち or 人狼発見 → 追加：対抗がCOしたら
         if not self.has_co and (self.game_info.day == self.co_date or self.found_wolf):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
+        # 追加：他の霊媒がCOしたら(CCO)
+        others_medium_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+        if not self.has_co and others_medium_co:
+            self.has_co = True
+            return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
+        
         # Report the medium result after doing comingout.
         # 結果報告
         if self.has_co and self.my_judge_queue:
@@ -107,3 +126,19 @@ class ddhbMedium(ddhbVillager):
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
+    
+    
+    # 投票対象→OK
+    # 占い師と同じ方針
+    def vote(self) -> Agent:
+        # 投票候補：人狼結果リスト
+        vote_candidates: List[Agent] = self.get_alive(self.werewolves)
+        target: Agent = self.random_select(vote_candidates)
+        
+        # 偽占いに投票しても投票が集まらないため、最も人狼っぽいエージェントに投票
+        if not vote_candidates:
+            # 生存者
+            vote_candidates = self.get_alive_others(self.game_info.agent_list)
+            target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        
+        return target if target != AGENT_NONE else self.me
