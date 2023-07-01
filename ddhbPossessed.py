@@ -146,31 +146,31 @@ class ddhbPossessed(ddhbVillager):
 
         #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
         if(len(self.get_alive(self.game_info.agent_list)) <= 3) :
-            for i in range(self.N):
-                if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
-                    score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+            for agent in self.game_info.agent_list:
+                if agent != self.me and self.is_alive(agent) :
+                    score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
                     if score > max_score :
                         max_score = score
-                        agent_vote_for = self.game_info.agent_list[i]
+                        agent_vote_for = agent
         else :
             # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
             if(self.N == 5) :
-                for i in range(self.N):
-                    if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
+                for agent in self.game_info.agent_list:
+                    if agent != self.me and self.is_alive(agent) :
                         # 元のコードでは、自分の役職を占い師としたときの確率から、狂人としたときの確率を引いている
-                        score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+                        score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
                         if score > max_score :
                             max_score = score
-                            agent_vote_for = self.game_info.agent_list[i]
+                            agent_vote_for = agent
                         break
             # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
             else :
-                for i in range(self.N):
-                    if i != self.me and self.is_alive(self.game_info.agent_list[i]) :
-                        score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                for agent in self.game_info.agent_list:
+                    if agent != self.me and self.is_alive(agent) :
+                        score = self.role_predictor.getProb(agent, Role.WEREWOLF)
                         if score > max_score :
                             max_score = score
-                            agent_vote_for = self.game_info.agent_list[i]
+                            agent_vote_for = agent
 
         return agent_vote_for
     
@@ -208,10 +208,10 @@ class ddhbPossessed(ddhbVillager):
                     # review: getProb(i, Role.WEREWOLF) は getProb(agent, Role.WEREWOLF) でもOK
                     # review: self.me の型は agent なので i と比較しない (agent != self.me はOK)
                     # review: i != self.me は色々なところで使われているので他も直しておいてほしい
-                    for i in range(self.N):
-                        if i != self.me and self.is_alive(self.game_info.agent_list[i]):
+                    for agent in self.game_info.agent_list:
+                        if agent != self.me and self.is_alive(agent):
                             if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
-                                return Content(DivinedResultContentBuilder(self.game_info.agent_list[i], Species.WEREWOLF))
+                                return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
                             # 対抗がいなかったら、最も人狼っぽい人を白だと言う
                             # review: ここで else を使うと、Agent[01] が占いCOしていなければという条件になってしまいそう
                             # review: else を消して中身をインデント3つ下げれば良さそう (つまりこの for で return されずに続きが実行されるなら対抗がいない)
@@ -220,12 +220,12 @@ class ddhbPossessed(ddhbVillager):
                                 # review: for i in range(self.N) の間違い？
                                 # review: i が被ってないかは確認した方が良い (この場合 i を上書きしているので)
                                 # review: ここも for agent in self.game_info.agent_list: とかで良さそう
-                                if i in range(self.N):
-                                    if i != self.me and self.is_alive(self.game_info.agent_list[i]):
-                                        score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                                for agent in self.game_info.agent_list:
+                                    if agent != self.me and self.is_alive(agent):
+                                        score = self.role_predictor.getProb(agent, Role.WEREWOLF)
                                         if score > max:
                                             max = score
-                                            agent_white : Agent = self.game_info.agent_list[i]
+                                            agent_white : Agent = agent
                                 return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
                             
                 # 15人村のとき
@@ -235,23 +235,23 @@ class ddhbPossessed(ddhbVillager):
 
                     if self.game_info.day != 2:
                         max = -1
-                        for i in range(self.N):
-                            if i != self.me and self.is_alive(self.game_info.agent_list[i]):
-                                score = 1 - self.role_predictor.getProb(i, Role.WEREWOLF)
+                        for agent in self.game_info.agent_list:
+                            if agent != self.me and self.is_alive(agent):
+                                score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
                                 if score > max:
                                     max = score
-                                    agent_black : Agent = self.game_info.agent_list[i]
+                                    agent_black : Agent = agent
                         return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
                     
                     # 二日目は、最も人狼っぽい人を白だという
                     else:
                         max = -1
-                        for i in range(self.N):
-                            if i != self.me and self.is_alive(self.game_info.agent_list[i]):
-                                score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                        for agent in self.game_info.agent_list:
+                            if agent != self.me and self.is_alive(agent):
+                                score = self.role_predictor.getProb(agent, Role.WEREWOLF)
                                 if score > max:
                                     max = score
-                                    agent_white : Agent = self.game_info.agent_list[i]
+                                    agent_white : Agent = agent
                         return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
                     
         # もし霊媒師を語るならば
@@ -297,9 +297,6 @@ class ddhbPossessed(ddhbVillager):
                 
                 # 3人以上が自分に投票したら、狩人CO
                 vote_num = 0
-                # for i in range(len(self.game_info.vote_list)):
-                #     if self.game_info.vote_list[i] == self.me:
-                #         vote_num += 1
                 for vote in self.game_info.vote_list:
                     if vote.target == self.me:
                         vote_num += 1
@@ -314,12 +311,12 @@ class ddhbPossessed(ddhbVillager):
                 if self.has_report == False and self.game_info.day >= 2:
                     # 最も人狼っぽい人を護衛したと発言する
                     max = -1
-                    for i in range(self.N):
-                        if i != self.me and self.is_alive(self.game_info.agent_list[i]):
-                            score = self.role_predictor.getProb(i, Role.WEREWOLF)
+                    for agent in self.game_info.agent_list:
+                        if agent != self.me and self.is_alive(agent):
+                            score = self.role_predictor.getProb(agent, Role.WEREWOLF)
                             if score > max:
                                 max = score
-                                agent_guard : Agent = self.game_info.agent_list[i]
+                                agent_guard : Agent = agent
 
                     self.has_report = True
                     # 発言をする（未実装）
