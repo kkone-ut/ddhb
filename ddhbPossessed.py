@@ -68,11 +68,22 @@ class ddhbPossessed(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
+
+        # ハックを検証するためのフラグ
+        self.strategies = [False, False, False, True]
+        self.hackA = self.strategies[0] # 一日で何回も占い結果を言う
+        self.hackB = self.strategies[1] # 人狼に嚙まれないように、狩人COしない
+        self.hackC = self.strategies[2] # 基本的に占い師COする
+        self.hackD = self.strategies[3] # 占い師でずっと黒判定を出し続ける
+
         if self.N == 5:
             self.fake_role = Role.SEER
         else :
-            # 65%の確率で占い師、35%の確率で霊媒師
-            self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
+            if self.hackC == True: # 基本的に占い師COするハック
+                self.fake_role = Role.SEER
+            else:
+                # 65%の確率で占い師、35%の確率で霊媒師
+                self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
         self.N = game_setting.player_num
 
         self.co_date = 1 # 最低でも1日目にCO → 変更する
@@ -83,38 +94,8 @@ class ddhbPossessed(ddhbVillager):
         self.werewolves.clear()
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
 
-        # ハックを検証するためのフラグ
-        self.strategies = [True, False]
-        self.hackA = self.strategies[0] # 一日で何回も占い結果を言う
-        self.hackB = self.strategies[1] # 人狼に嚙まれないように、狩人COしない
         self.has_report = False
         self.black_count = 0
-
-    # # 偽結果生成
-    # def get_fake_judge(self) -> Judge:
-    #     """Generate a fake judgement."""
-    #     target: Agent = AGENT_NONE
-    #     # 対象の決定
-    #     # 占い騙り → ランダムセレクト
-    #     if self.fake_role == Role.SEER:  # Fake seer chooses a target randomly.
-    #         if self.game_info.day != 0:
-    #             target = self.random_select(self.get_alive(self.not_judged_agents))
-    #     # 霊媒騙り → 死者
-    #     elif self.fake_role == Role.MEDIUM:
-    #         target = self.game_info.executed_agent \
-    #             if self.game_info.executed_agent is not None \
-    #             else AGENT_NONE
-    #     if target == AGENT_NONE:
-    #         return JUDGE_EMPTY
-    #     # Determine a fake result.
-    #     # If the number of werewolves found is less than the total number of werewolves,
-    #     # judge as a werewolf with a probability of 0.5.
-    #     # 騙り結果 → 変更する
-    #     # 発見人狼数が人狼総数より少ない and 確率1/2 で黒結果
-    #     result: Species = Species.WEREWOLF \
-    #         if len(self.werewolves) < self.num_wolves and random.random() < 0.5 \
-    #         else Species.HUMAN
-    #     return Judge(self.me, self.game_info.day, target, result)
 
     def day_start(self) -> None:
         super().day_start()
@@ -230,29 +211,40 @@ class ddhbPossessed(ddhbVillager):
                             
                 # 15人村のとき
                 else:
-                    # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
-                    # 二日目以外は、最も村人っぽい人を黒だという
-
-                    if self.game_info.day != 2:
-                        max = -1
-                        for agent in self.game_info.agent_list:
-                            if agent != self.me and self.is_alive(agent):
-                                score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
-                                if score > max:
-                                    max = score
-                                    agent_black : Agent = agent
-                        return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
-                    
-                    # 二日目は、最も人狼っぽい人を白だという
-                    else:
+                    if self.hackD == True: # 占い師でずっと黒判定を出し続けるハック
+                        # 一番人狼っぽい人を黒だという
                         max = -1
                         for agent in self.game_info.agent_list:
                             if agent != self.me and self.is_alive(agent):
                                 score = self.role_predictor.getProb(agent, Role.WEREWOLF)
                                 if score > max:
                                     max = score
-                                    agent_white : Agent = agent
-                        return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                                    agent_black : Agent = agent
+                        return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
+                    
+                    # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
+                    # 二日目以外は、最も村人っぽい人を黒だという
+                    else:
+                        if self.game_info.day != 2:
+                            max = -1
+                            for agent in self.game_info.agent_list:
+                                if agent != self.me and self.is_alive(agent):
+                                    score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
+                                    if score > max:
+                                        max = score
+                                        agent_black : Agent = agent
+                            return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
+                        
+                        # 二日目は、最も人狼っぽい人を白だという
+                        else:
+                            max = -1
+                            for agent in self.game_info.agent_list:
+                                if agent != self.me and self.is_alive(agent):
+                                    score = self.role_predictor.getProb(agent, Role.WEREWOLF)
+                                    if score > max:
+                                        max = score
+                                        agent_white : Agent = agent
+                            return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
                     
         # もし霊媒師を語るならば
         elif self.fake_role == Role.MEDIUM:
