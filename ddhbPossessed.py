@@ -41,7 +41,7 @@ class ddhbPossessed(ddhbVillager):
     """Scheduled comingout date."""
     has_co: bool # COしたか
     """Whether or not comingout has done."""
-    my_judgee_queue: Deque[Judge] # 自身の（占い or 霊媒）結果キュー
+    my_judged_queue: Deque[Judge] # 自身の（占い or 霊媒）結果キュー
     """Queue of fake judgements."""
     not_judged_agents: List[Agent] # 占っていないエージェント
     """Agents that have not been judged."""
@@ -58,7 +58,7 @@ class ddhbPossessed(ddhbVillager):
         self.fake_role = Role.SEER
         self.co_date = 0
         self.has_co = False
-        self.my_judgee_queue = deque()
+        self.my_judged_queue = deque()
         self.not_judged_agents = []
         self.num_wolves = 0
         self.werewolves = []
@@ -92,7 +92,7 @@ class ddhbPossessed(ddhbVillager):
 
         self.co_date = 1 # 最低でも1日目にCO → 変更する
         self.has_co = False
-        self.my_judgee_queue.clear()
+        self.my_judged_queue.clear()
         self.not_judged_agents = self.get_others(self.game_info.agent_list)
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
