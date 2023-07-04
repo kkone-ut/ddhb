@@ -132,7 +132,7 @@ class ddhbBodyguard(ddhbVillager):
         # todo：勝率で補正する
         if self.strategyA:
             guard_candidates: List[Agent] = candidates
-            p = self.role_predictor.getProbAll()
+            p = self.role_predictor.prob_all
             mx_score = 0
             for agent in guard_candidates:
                 score = p[agent][Role.VILLAGER] + p[agent][Role.SEER] * 3 + p[agent][Role.MEDIUM]
