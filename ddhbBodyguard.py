@@ -124,6 +124,10 @@ class ddhbBodyguard(ddhbVillager):
             # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
             return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
         
+        # review: 狩人としてする発言がなければあとは村人の戦略に従う
+        # review: ただし、Villager の talk() は他のクラスから呼び出されることを考慮する
+        # review: 他の村人陣営も同じ
+        # review: return super().talk()
         return CONTENT_SKIP
 
 
