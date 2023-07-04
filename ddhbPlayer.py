@@ -148,6 +148,7 @@ class ddhbPlayer(AbstractPlayer):
     def talk(self) -> Content:
         Util.start_timer("ddhbPlayer.talk")
         content = CONTENT_SKIP
+        self.player.talk_turn += 1
         try:
             Util.start_timer("ddhbPlayer.talk.update")
             self.player.role_predictor.update(self.game_info, self.game_setting, 30)

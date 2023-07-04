@@ -68,6 +68,7 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports = []
         self.identification_reports = []
         self.talk_list_head = 0
+        self.talk_turn = 0
         
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_all = []
@@ -183,6 +184,7 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
         self.talk_list_head = 0
+        self.talk_turn = 0
         
         self.will_vote_reports.clear()
         self.talk_list_all = []

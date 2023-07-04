@@ -188,6 +188,8 @@ class ddhbWerewolf(ddhbPossessed):
     # CO、結果報告
     def talk(self) -> Content:
         # ---------- PP ----------
+        # review: ここで狂人が生きているか確認しないと間違ってPPするので estimate を追加
+        self.estimate_possessed()
         if self.PP_flag:
             self.PP_flag = False
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))   
@@ -274,10 +276,9 @@ class ddhbWerewolf(ddhbPossessed):
         # review: そうしないと他の人に同調して投票するエージェントが自分に投票してしまう(特に5人村で3人になったとき)
         # review: 狂人も同様
         # review: こんな感じでvoteを呼び出すのが楽そう？(下3行)
-        if self.vote_candidate == AGENT_NONE:
+        if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
             self.vote_candidate = self.vote()
             return Content(VoteContentBuilder(self.vote_candidate))
-        
         return CONTENT_SKIP
 
 
@@ -314,7 +315,9 @@ class ddhbWerewolf(ddhbPossessed):
                         if result == Species.HUMAN:
                             vote_candidate = self.random_select(vote_candidates)
                         elif result == Species.WEREWOLF:
-                            vote_candidate = target
+                            # review: target が生きているかの確認を追加
+                            if self.is_alive(target):
+                                vote_candidate = target
                         break
             else:
                 vote_candidate = self.random_select(vote_candidates)
