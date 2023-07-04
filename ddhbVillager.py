@@ -285,8 +285,8 @@ class ddhbVillager(AbstractPlayer):
     def talk(self) -> Content:
         # ---------- CO ----------
         # フルオープンの処理
-        if not self.doFO:
-            return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
+        # if not self.doFO:
+        #     return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
         # todo: 3人以下の時、狂人COを認知→狂人がいるか判定→いる場合、人狼CO
         
         # 元のコードでの投票先の決定

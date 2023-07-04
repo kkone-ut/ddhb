@@ -134,7 +134,8 @@ class ddhbBodyguard(ddhbVillager):
         # review: ただし、Villager の talk() は他のクラスから呼び出されることを考慮する
         # review: 他の村人陣営も同じ
         # review: return super().talk()
-        return CONTENT_SKIP
+        # return CONTENT_SKIP
+        return super().talk()
 
 
     # 護衛先選び→OK
