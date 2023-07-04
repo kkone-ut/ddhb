@@ -332,7 +332,7 @@ class ddhbWerewolf(ddhbPossessed):
             self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, attack_vote_candidates)
         # 候補なし → 襲撃スコア
         if self.attack_vote_candidate == AGENT_NONE:
-            p = self.role_predictor.getProbAll()
+            p = self.role_predictor.prob_all
             mx_score = 0
             for agent in candidates:
                 score = p[agent][Role.VILLAGER] + p[agent][Role.SEER]*4 + p[agent][Role.MEDIUM]*3 + p[agent][Role.BODYGUARD]*2
