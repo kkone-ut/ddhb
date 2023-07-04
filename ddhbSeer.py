@@ -99,6 +99,7 @@ class ddhbSeer(ddhbVillager):
         # ---------- CO ----------
         # Do comingout if it's on scheduled day or a werewolf is found.
         # 戦略A: 初日CO
+        # review: initialize で行う
         if self.strategyA:
             self.strategyA = False
             self.co_date = 1
