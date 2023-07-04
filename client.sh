@@ -1,6 +1,6 @@
 port="10000"
 host="127.0.0.1"
-role="WEREWOLF" # 指定するときはすべて大文字
+role="none" # 指定するときはすべて大文字
 times=1
 
 while getopts ":p:h:r:t:" opt; do
