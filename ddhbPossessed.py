@@ -70,11 +70,15 @@ class ddhbPossessed(ddhbVillager):
         super().initialize(game_info, game_setting)
 
         # ハックを検証するためのフラグ
-        self.strategies = [False, False, False, True]
+        self.strategies = [False, False, True, False, False, True, False, False]
         self.hackA = self.strategies[0] # 一日で何回も占い結果を言う
-        self.hackB = self.strategies[1] # 人狼に嚙まれないように、狩人COしない
-        self.hackC = self.strategies[2] # 基本的に占い師COする
-        self.hackD = self.strategies[3] # 占い師でずっと黒判定を出し続ける
+        self.hackB = self.strategies[1] # 狩人COしない(3人目でも出る)
+        self.hackC = self.strategies[2] # 基本的に占い師COする(これ単体だと占いしない)
+        self.hackD = self.strategies[3] # 人狼っぽい人に、占い師でずっと黒判定を出し続ける
+        self.hackE = self.strategies[4] # 人狼っぽくない人に、占い師でずっと黒判定を出し続ける
+        self.hackF = self.strategies[5] # 人狼っぽい人に、占い師でずっと白判定を出し続ける
+        self.hackG = self.strategies[6] # 対抗の占い師がいたら、対抗が黒だという
+        self.hackH = self.strategies[7] # COせず、完全に潜伏（比較用）
 
         if self.N == 5:
             self.fake_role = Role.SEER
@@ -176,9 +180,9 @@ class ddhbPossessed(ddhbVillager):
                         self.fake_role = Role.BODYGUARD
                         # 狩人は毎回報告する内容があるとは限らないから、has_reportはTrueにする
                         self.has_report = True
-                    else:
-                        self.has_co = True
-                        return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                    elif self.hackH == False: # 潜伏するハックがFalse
+                            self.has_co = True
+                            return Content(ComingoutContentBuilder(self.me, self.fake_role))
                     
             if self.has_report == False:
                 self.has_report = True
@@ -191,7 +195,7 @@ class ddhbPossessed(ddhbVillager):
                     # review: i != self.me は色々なところで使われているので他も直しておいてほしい
                     for agent in self.game_info.agent_list:
                         if agent != self.me and self.is_alive(agent):
-                            if self.comingout_map[self.game_info.agent_list[i]] == Role.SEER:
+                            if self.comingout_map[agent] == Role.SEER:
                                 return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
                             # 対抗がいなかったら、最も人狼っぽい人を白だと言う
                             # review: ここで else を使うと、Agent[01] が占いCOしていなければという条件になってしまいそう
@@ -211,7 +215,13 @@ class ddhbPossessed(ddhbVillager):
                             
                 # 15人村のとき
                 else:
-                    if self.hackD == True: # 占い師でずっと黒判定を出し続けるハック
+                    if self.hackG == True: # 対抗の占い師がいたら、優先的に対抗が黒だというハック
+                        # 対抗がいたら、対抗が黒だという
+                        for agent in self.comingout_map:
+                            if self.comingout_map[agent] == Role.SEER:
+                                return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
+               
+                    if self.hackD == True: # 人狼っぽい人に、占い師でずっと黒判定を出し続けるハック
                         # 一番人狼っぽい人を黒だという
                         max = -1
                         for agent in self.game_info.agent_list:
@@ -222,30 +232,59 @@ class ddhbPossessed(ddhbVillager):
                                     agent_black : Agent = agent
                         return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
                     
-                    # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
-                    # 二日目以外は、最も村人っぽい人を黒だという
-                    else:
-                        if self.game_info.day != 2:
-                            max = -1
-                            for agent in self.game_info.agent_list:
-                                if agent != self.me and self.is_alive(agent):
-                                    score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
-                                    if score > max:
-                                        max = score
-                                        agent_black : Agent = agent
-                            return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
-                        
-                        # 二日目は、最も人狼っぽい人を白だという
-                        else:
-                            max = -1
-                            for agent in self.game_info.agent_list:
-                                if agent != self.me and self.is_alive(agent):
-                                    score = self.role_predictor.getProb(agent, Role.WEREWOLF)
-                                    if score > max:
-                                        max = score
-                                        agent_white : Agent = agent
-                            return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                    if self.hackE == True: # 人狼っぽくない人に、占い師でずっと黒判定を出し続けるハック
+                        # 一番人狼っぽくない人を黒だという
+                        max = -1
+                        for agent in self.game_info.agent_list:
+                            if agent != self.me and self.is_alive(agent):
+                                score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
+                                if score > max:
+                                    max = score
+                                    agent_black : Agent = agent
+                        if self.hackA == True:
+                            for i in range(100):
+                                return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
+                        return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
                     
+                    if self.hackF == True: # 人狼っぽい人に、占い師でずっと白判定を出し続けるハック
+                        # 一番人狼っぽい人を白だという
+                        max = -1
+                        for agent in self.game_info.agent_list:
+                            if agent != self.me and self.is_alive(agent):
+                                score = self.role_predictor.getProb(agent, Role.WEREWOLF)
+                                if score > max:
+                                    max = score
+                                    agent_white : Agent = agent
+                        return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                    
+
+
+
+
+                        # # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
+                        # # 二日目以外は、最も村人っぽい人を黒だという
+                        # else:
+                        #     if self.game_info.day != 2:
+                        #         max = -1
+                        #         for agent in self.game_info.agent_list:
+                        #             if agent != self.me and self.is_alive(agent):
+                        #                 score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
+                        #                 if score > max:
+                        #                     max = score
+                        #                     agent_black : Agent = agent
+                        #         return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
+                            
+                        #     # 二日目は、最も人狼っぽい人を白だという
+                        #     else:
+                        #         max = -1
+                        #         for agent in self.game_info.agent_list:
+                        #             if agent != self.me and self.is_alive(agent):
+                        #                 score = self.role_predictor.getProb(agent, Role.WEREWOLF)
+                        #                 if score > max:
+                        #                     max = score
+                        #                     agent_white : Agent = agent
+                        #         return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
+                        
         # もし霊媒師を語るならば
         elif self.fake_role == Role.MEDIUM:
             if self.has_co == False:
@@ -259,9 +298,9 @@ class ddhbPossessed(ddhbVillager):
                     if num_medium >= 2:
                         self.fake_role = Role.BODYGUARD
                         self.has_report = True
-                    else:
-                        self.has_co = True
-                        return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                    elif self.hackH == False: # 潜伏するハックがFalse
+                            self.has_co = True
+                            return Content(ComingoutContentBuilder(self.me, self.fake_role))
                     
             if self.has_report == False:
                 self.has_report = True
@@ -283,7 +322,7 @@ class ddhbPossessed(ddhbVillager):
             # COしていなかったら
             if self.has_co == False:
                 # 護衛成功したら、狩人CO
-                if self.has_report == False:
+                if self.has_report == False and self.hackH == False: # 潜伏するハックがFalse
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
                 
@@ -293,7 +332,7 @@ class ddhbPossessed(ddhbVillager):
                     if vote.target == self.me:
                         vote_num += 1
                 
-                if vote_num >= 3:
+                if vote_num >= 3 and self.hackH == False: # 潜伏するハックがFalse
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
 
@@ -315,7 +354,7 @@ class ddhbPossessed(ddhbVillager):
                     
         # 共通の処理
         # 生存者が3人以下だったら、人狼COする
-        if len(self.get_alive(self.game_info.agent_list)) <= 3:
+        if len(self.get_alive(self.game_info.agent_list)) <= 3 and self.hackH == False: # 潜伏するハックがFalse
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
 
             
