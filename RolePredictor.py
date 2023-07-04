@@ -17,39 +17,40 @@ class RolePredictor:
 
     # 保持しておく役職の割り当ての数
     # これを超えたら評価の低いものから削除する
-    # 制限時間的に最大500個
     ASSIGNMENT_NUM = 100
     ADDITIONAL_ASSIGNMENT_NUM = 100
 
     assignments_set: Set[Assignment]
     prob_all: DefaultDict[Agent, DefaultDict[Role, float]]
 
+
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
         # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
+        # todo: np.array をやめる (List にする？)
         assignment = np.array([Role.UNC] * self.N, dtype=Role)
+
+        # すでにわかっている役職を埋める (自分自身+人狼なら仲間の人狼)
         for agent, role in self.game_info.role_map.items():
             assignment[agent.agent_idx-1] = role
+        
+        # 残りの役職を収納するキュー
         rest_roles = queue.Queue()
         for role, num in self.game_setting.role_num_map.items():
             # self.assignment に num 個だけ role を追加する
-            # すでにわかっている役職は除く
-            if self.game_info.my_role == role:
-                if self.game_info.my_role == Role.VILLAGER:
-                    num -= 1
-                else:
-                    num = 0
+            # すでに埋めた役職の分は除く (人狼なら3、それ以外なら1)
+            if role == self.game_info.my_role:
+                num -= len(self.game_info.role_map)
             for i in range(num):
                 rest_roles.put(role)
+            
+        # 残りの役職を埋める
         for i in range(self.N):
             if assignment[i] == Role.UNC:
                 assignment[i] = rest_roles.get()
 
-        # プレイヤーの位置を固定する
-        # idx = np.where(assignment == self.game_info.my_role)[0][0]
-        # assignment[self.me.agent_idx-1], assignment[idx] = assignment[idx], assignment[self.me.agent_idx-1]
-
         return assignment
+
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
         self.game_setting = game_setting
@@ -63,7 +64,9 @@ class RolePredictor:
         self.assignments: SortedSet = SortedSet()
         self.assignments_set = set()
         self.score_matrix = _score_matrix
+        # すでに役職がわかっているエージェント(自分と人狼仲間)は固定する
         self.fixed_positions = [agent.agent_idx - 1 for agent in self.game_info.role_map.keys()]
+        self.prob_all: DefaultDict[Agent, DefaultDict[Role, float]] = None
 
         assignment = self.get_initail_assignment()
 
@@ -79,7 +82,7 @@ class RolePredictor:
                 Util.debug_print("len(assignments):", len(self.assignments))
             except timeout_decorator.TimeoutError:
                 Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
-        self.getProbAll() # キャッシュする
+
     
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
@@ -109,6 +112,7 @@ class RolePredictor:
         # ここで確率の更新をしてキャッシュする
         self.getProbAll()
 
+
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
             return
@@ -119,6 +123,7 @@ class RolePredictor:
             self.addAssignment(game_info, game_setting)
             if Util.timeout("RolePredictor.addAssignments", timeout):
                 break
+
 
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
@@ -143,6 +148,10 @@ class RolePredictor:
         # 評価値を計算
         assignment.evaluate(self.score_matrix)
 
+        # 確率 0 の割り当ては追加しない
+        if assignment.score == -float('inf'):
+            return
+
         # 割り当て数が超過していたら、スコアの低いものから削除する
         while len(self.assignments) > self.ASSIGNMENT_NUM:
             self.assignments.pop(0)
@@ -158,57 +167,81 @@ class RolePredictor:
         # 割り当て重複チェック用のセットに追加
         self.assignments_set.add(assignment)
 
+
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
     def getProbAll(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
 
-        # 各割り当ての相対確率を計算する
-        relative_prob = np.zeros(len(self.assignments))
-        sum_relative_prob = 0
-        for i, assignment in enumerate(self.assignments):
-            # スコアは対数尤度なので、exp して相対確率に変換する
-            try:
-                relative_prob[i] = np.exp(assignment.score / 10) # スコアが大きいとオーバーフローするので10で割る
-            except RuntimeWarning:
-                Util.error_print("OverflowError", assignment.score)
-            sum_relative_prob += relative_prob[i]
-
-        Util.debug_print("sum_relative_prob:", sum_relative_prob)
-        Util.debug_print("len:", len(self.assignments))
-        Util.debug_print("best score: ", self.assignments[-1].score)
-        Util.debug_print("worst score: ", self.assignments[0].score)
-        
-        # 各割り当ての相対確率を確率に変換する
-        assignment_prob = np.zeros(len(self.assignments))
-        for i in range(len(assignment_prob)):
-            assignment_prob[i] = relative_prob[i] / sum_relative_prob
-
-        # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
+        probs = defaultdict(lambda: defaultdict(float))
 
-        for i, assignment in enumerate(self.assignments):
-            for a in self.game_info.agent_list:
-                probs[a][assignment[a]] += assignment_prob[i]
+        if len(self.assignments) > 0:
+
+            # 各割り当ての相対確率を計算する
+            relative_prob = np.zeros(len(self.assignments))
+            sum_relative_prob = 0
+
+            # スコアは対数尤度なので、exp して相対確率に変換する
+            for i, assignment in enumerate(self.assignments):
+                try:
+                    relative_prob[i] = np.exp(assignment.score / 10) # スコアが大きいとオーバーフローするので10で割る
+                except RuntimeWarning:
+                    Util.error_print("OverflowError", assignment.score)
+                sum_relative_prob += relative_prob[i]
+            
+            # 各割り当ての相対確率を確率に変換する
+            assignment_prob = np.zeros(len(self.assignments))
+            for i in range(len(assignment_prob)):
+                assignment_prob[i] = relative_prob[i] / sum_relative_prob
+
+            # 各プレイヤーの役職の確率を計算する
+            for i, assignment in enumerate(self.assignments):
+                for a in self.game_info.agent_list:
+                    probs[a][assignment[a]] += assignment_prob[i]
+            
+        else: # 割り当てがない場合は、個々のスコアから確率を計算する
+
+            for agent in self.game_info.agent_list:
+                # 相対確率を計算する
+                relative_probs = defaultdict(lambda: defaultdict(float))
+                sum_relative_prob = 0.0
+                for role in self.game_info.existing_role_list:
+                    score = self.score_matrix.get_score(agent, role, agent, role)
+                    relative_probs[agent][role] = np.exp(score / 10)
+                    sum_relative_prob += relative_probs[agent][role]
+                # 確率に変換する
+                for role in self.game_info.existing_role_list:
+                    # すべての役職の確率が 0 だった場合は、すべての役職の確率を等分する
+                    if sum_relative_prob == 0.0:
+                        probs[agent][role] = 1.0 / len(self.game_info.existing_role_list)
+                    else:
+                        probs[agent][role] = relative_probs[agent][role] / sum_relative_prob
 
         self.prob_all = probs
         
         return probs
-    
+
+
+    # キャッシュがあればそれを返し、なければ getProbAll を呼んで返す
+    def getProbCache(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
+        return self.prob_all if self.prob_all is not None else self.getProbAll()
+
+
     # i 番目のプレイヤーが役職 role である確率を返す
     # 毎回 getProbAll を呼ぶのは無駄なので、キャッシュしたものを使う
     def getProb(self, agent, role: Role) -> float:
         if type(agent) == int:
             agent = self.game_info.agent_list[agent]
-        return self.prob_all[agent][role]
-    
+        p = self.getProbCache()
+        return p[agent][role]
+
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
     def chooseMostLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
         if len(agent_list) == 0:
             return AGENT_NONE
         
-        p = self.prob_all
+        p = self.getProbCache()
         ret_agent = agent_list[0]
         for a in agent_list:
             if p[a][role] > p[ret_agent][role]:
@@ -216,8 +249,9 @@ class RolePredictor:
                 
         return ret_agent
 
+
     def getMostLikelyRole(self, agent: Agent) -> Role:
-        p = self.prob_all
+        p = self.getProbCache()
         ret_role = Role.VILLAGER
         for r in Role:
             if p[agent][r] > p[agent][ret_role]:
