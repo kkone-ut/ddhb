@@ -41,7 +41,7 @@ class ddhbPossessed(ddhbVillager):
     """Scheduled comingout date."""
     has_co: bool # COしたか
     """Whether or not comingout has done."""
-    my_judged_queue: Deque[Judge] # 自身の（占い or 霊媒）結果キュー
+    my_judge_queue: Deque[Judge] # 自身の（占い or 霊媒）結果キュー
     """Queue of fake judgements."""
     not_judged_agents: List[Agent] # 占っていないエージェント
     """Agents that have not been judged."""
@@ -60,7 +60,7 @@ class ddhbPossessed(ddhbVillager):
         self.fake_role = Role.SEER
         self.co_date = 0
         self.has_co = False
-        self.my_judged_queue = deque()
+        self.my_judge_queue = deque()
         self.not_judged_agents = []
         self.num_wolves = 0
         self.werewolves = []
@@ -95,7 +95,7 @@ class ddhbPossessed(ddhbVillager):
 
         self.co_date = 1 # 最低でも1日目にCO → 変更する
         self.has_co = False
-        self.my_judged_queue.clear()
+        self.my_judge_queue.clear()
         self.not_judged_agents = self.get_others(self.game_info.agent_list)
         self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
         self.werewolves.clear()
@@ -126,7 +126,7 @@ class ddhbPossessed(ddhbVillager):
         # # 昼に騙り結果
         # judge: Judge = self.get_fake_judge()
         # if judge != JUDGE_EMPTY:
-        #     self.my_judgee_queue.append(judge)
+        #     self.my_judge_queue.append(judge)
         #     # 占い対象を、占っていないエージェントリストから除く
         #     if judge.target in self.not_judged_agents:
         #         self.not_judged_agents.remove(judge.target)
@@ -158,7 +158,6 @@ class ddhbPossessed(ddhbVillager):
                     if score > mx:
                         mx = score
                         agent_vote_for = agent
-                    break
             # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
             else :
                 agent_vote_for: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
@@ -198,20 +197,10 @@ class ddhbPossessed(ddhbVillager):
                 # 5人村のとき
                 if self.N == 5:
                     # 対抗がいたら、対抗が黒だという
-                    # review: i を使う必要がなければ for agent in self.game_info.agent_list: とする方が良い
-                    # review: getProb(i, Role.WEREWOLF) は getProb(agent, Role.WEREWOLF) でもOK
-                    # review: self.me の型は agent なので i と比較しない (agent != self.me はOK)
-                    # review: i != self.me は色々なところで使われているので他も直しておいてほしい
                     for agent in alive_other_list:
                         if self.comingout_map[agent] == Role.SEER:
                             return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
-                            # 対抗がいなかったら、最も人狼っぽい人を白だと言う
-                            # review: ここで else を使うと、Agent[01] が占いCOしていなければという条件になってしまいそう
-                            # review: else を消して中身をインデント3つ下げれば良さそう (つまりこの for で return されずに続きが実行されるなら対抗がいない)
-                    # review: for i in range(self.N) の間違い？
-                    # review: i が被ってないかは確認した方が良い (この場合 i を上書きしているので)
-                    # review: ここも for agent in self.game_info.agent_list: とかで良さそう
-                    # 最も人狼っぽい人を白だという
+                    # 対抗がいなかったら、最も人狼っぽい人を白だと言う
                     divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
                     return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
                             
@@ -232,42 +221,18 @@ class ddhbPossessed(ddhbVillager):
                         # 一番人狼っぽくない人を黒だという
                         mx = -1
                         p = self.role_predictor.prob_all
+                        divine_candidate: Agent = AGENT_NONE
                         for agent in alive_other_list:
                             score = 1 - p[agent][Role.WEREWOLF]
                             if score > mx:
                                 mx = score
-                                divine_candidate : Agent = agent
+                                divine_candidate = agent
                         return Content(DivinedResultContentBuilder(divine_candidate, Species.WEREWOLF))
                     
                     if self.hackF == True: # 人狼っぽい人に、占い師でずっと白判定を出し続けるハック
                         # 一番人狼っぽい人を白だという
                         divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
                         return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
-                    
-
-                        # # review: 5人村と同様のミスがあるので、全体的にチェックしてほしい
-                        # # 二日目以外は、最も村人っぽい人を黒だという
-                        # else:
-                        #     if self.game_info.day != 2:
-                        #         mx = -1
-                        #         for agent in self.game_info.agent_list:
-                        #             if agent != self.me and self.is_alive(agent):
-                        #                 score = 1 - self.role_predictor.getProb(agent, Role.WEREWOLF)
-                        #                 if score > mx:
-                        #                     mx = score
-                        #                     agent_black : Agent = agent
-                        #         return Content(DivinedResultContentBuilder(agent_black, Species.WEREWOLF))
-                            
-                        #     # 二日目は、最も人狼っぽい人を白だという
-                        #     else:
-                        #         mx = -1
-                        #         for agent in self.game_info.agent_list:
-                        #             if agent != self.me and self.is_alive(agent):
-                        #                 score = self.role_predictor.getProb(agent, Role.WEREWOLF)
-                        #                 if score > mx:
-                        #                     mx = score
-                        #                     agent_white : Agent = agent
-                        #         return Content(DivinedResultContentBuilder(agent_white, Species.HUMAN))
                         
         # もし霊媒師を語るならば
         elif self.fake_role == Role.MEDIUM:
@@ -331,25 +296,4 @@ class ddhbPossessed(ddhbVillager):
                     self.has_report = True
                     # 発言をする（未実装）
 
-
-            
-        # # Vote for one of the alive fake werewolves.
-        # # 投票候補：人狼結果リスト
-        # alive_others: List[Agent] = self.get_alive(self.werewolves)
-        # # Vote for one of the alive agent that declared itself the same role of Possessed
-        # # if there are no alive_others.
-        # # 候補なし → 対抗
-        # if not alive_others:
-        #     alive_others = self.get_alive([a for a in self.comingout_map
-        #                                  if self.comingout_map[a] == self.fake_role])
-        # # Vite for one of the alive agents if there are no alive_others.
-        # # 生存者
-        # if not alive_others:
-        #     alive_others = self.get_alive_others(self.game_info.agent_list)
-        # # Declare which to vote for if not declare yet or the candidate is changed.
-        # # 候補からランダムセレクト
-        # if self.vote_candidate == AGENT_NONE or self.vote_candidate not in alive_others:
-        #     self.vote_candidate = self.random_select(alive_others)
-        #     if self.vote_candidate != AGENT_NONE:
-        #         return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
