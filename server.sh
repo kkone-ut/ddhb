@@ -7,7 +7,7 @@ log=./log/
 setting=./SampleSetting.cfg
 client=false
 loop=false
-otherAgents="all"
+otherAgents="basket"
 
 help=false
 
