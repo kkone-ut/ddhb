@@ -32,6 +32,7 @@ from RolePredictor import RolePredictor
 from Assignment import Assignment
 from TeamPredictor import TeamPredictor
 
+
 # 村役職
 class ddhbVillager(AbstractPlayer):
     """ddhb villager agent."""
@@ -50,116 +51,127 @@ class ddhbVillager(AbstractPlayer):
     """Time series of divination reports."""
     identification_reports: List[Judge] # 霊媒結果
     """Time series of identification reports."""
-    will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
+    
+    will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_all: List[Talk] # 全talkリスト
+    role_predictor: RolePredictor # role_predictor
 
-    role_predictor: RolePredictor
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
-
         self.me = AGENT_NONE
         self.vote_candidate = AGENT_NONE
         self.game_info = None  # type: ignore
         self.comingout_map = defaultdict(lambda: Role.UNC)
         self.divination_reports = []
         self.identification_reports = []
-        self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_head = 0
-        self.talk_list_all = []
-
-        self.role_predictor = None
         
+        self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
+        self.talk_list_all = []
+        self.role_predictor = None
         self.N = -1
         self.M = -1
-        
         self.agent_idx_0based = -1
-
         # フルオープンしたかどうか
         self.doFO = False
-
         # 統計
         self.game_count = 0
         self.win_count = 0
         self.sum_score = 0
 
+
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
         """Return whether the agent is alive.
-
         Args:
             agent: The agent.
-
         Returns:
             True if the agent is alive, otherwise false.
         """
         return self.game_info.status_map[agent] == Status.ALIVE
 
+
     # 自分以外のエージェントリスト
     def get_others(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of agents excluding myself from the given list of agents.
-
         Args:
             agent_list: The list of agent.
-
         Returns:
             A list of agents excluding myself from agent_list.
         """
         return [a for a in agent_list if a != self.me]
 
+
     # 生存するエージェントリスト
     def get_alive(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of alive agents contained in the given list of agents.
-
         Args:
             agent_list: The list of agents.
-
         Returns:
             A list of alive agents contained in agent_list.
         """
         return [a for a in agent_list if self.is_alive(a)]
 
+
     # 自分以外の生存するエージェントリスト
     def get_alive_others(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of alive agents that is contained in the given list of agents
         and is not equal to myself.
-
         Args:
             agent_list: The list of agents.
-
         Returns:
             A list of alie agents that is contained in agent_list
             and is not equal to mysef.
         """
         return self.get_alive(self.get_others(agent_list))
 
+
     # ランダムセレクト
     def random_select(self, agent_list: List[Agent]) -> Agent:
         """Return one agent randomly chosen from the given list of agents.
-
         Args:
             agent_list: The list of agents.
-
         Returns:
             A agent randomly chosen from agent_list.
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
-    
+
+
     # 最も処刑されそうなエージェントを返す
+    # todo: 情報が足りない時は、AGENT_NONEを返す
     def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
-        count : DefaultDict[Agent, float] = defaultdict(float)
-
+        count: DefaultDict[Agent, float] = defaultdict(float)
         for talker, target in self.will_vote_reports.items():
             count[target] += 1
-        
         if self.vote_candidate != AGENT_NONE:
             count[self.vote_candidate] += 1
         
-        return max(count.items(), key=lambda x: x[1])[0]
-        
+        return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
+
+
+    # HPが低いかどうか
+    # todo: EstimateBlack,Whiteにも対応させる
+    def is_Low_HP(self) -> bool:
+        is_low_hp: bool = False
+        # will_vote：投票が半数以上で、自分が最も処刑されそうな場合
+        alive_cnt = len(self.game_info.alive_agent_list)
+        will_vote_cnt = len(self.will_vote_reports)
+        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.5 and self.chooseMostlikelyExecuted() == self.me:
+                is_low_hp = True
+        # latest_vote：前日投票の25%以上がが自分に入っている場合
+        latest_vote_cnt = 0
+        latest_vote_list = self.game_info.latest_vote_list
+        for vote in latest_vote_list:
+            if vote.target == self.me:
+                latest_vote_cnt += 1
+        if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.25:
+            is_low_hp = True
+        return is_low_hp
+
 
     # 初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -170,23 +182,21 @@ class ddhbVillager(AbstractPlayer):
         self.comingout_map.clear()
         self.divination_reports.clear()
         self.identification_reports.clear()
-        self.will_vote_reports.clear()
         self.talk_list_head = 0
+        
+        self.will_vote_reports.clear()
         self.talk_list_all = []
-
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
-
         self.N = game_setting.player_num
         self.M = len(game_info.existing_role_list)
-
         self.agent_idx_0based = self.me.agent_idx - 1
-
+        
         Util.debug_print("my role:\t", game_info.my_role)
         Util.debug_print("my idx:\t", self.me.agent_idx-1)
-
         # 統計
         self.game_count += 1
+
 
     # 昼スタート
     def day_start(self) -> None:
@@ -199,7 +209,7 @@ class ddhbVillager(AbstractPlayer):
 
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
-        killed = self.game_info.last_dead_agent_list
+        killed: List[Agent] = self.game_info.last_dead_agent_list
         if len(killed) > 0:
             self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
             Util.debug_print("Killed:\t", self.game_info.last_dead_agent_list[0])
@@ -213,6 +223,7 @@ class ddhbVillager(AbstractPlayer):
 
         for v in self.game_info.vote_list:
             self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
+
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -272,11 +283,11 @@ class ddhbVillager(AbstractPlayer):
     # 会話
     # まだ実装途中です
     def talk(self) -> Content:
-
+        # ---------- CO ----------
         # フルオープンの処理
-        if(self.doFO == False) :
-            self.doFO = True
-            return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
+        # if not self.doFO:
+        #     return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
+        # todo: 3人以下の時、狂人COを認知→狂人がいるか判定→いる場合、人狼CO
         
         # 元のコードでの投票先の決定
         # c = 0
@@ -287,46 +298,30 @@ class ddhbVillager(AbstractPlayer):
         #     c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
         #     if (c == -1) :
         #         c = self.role_predictor.chooseMostLikely(Role.Werewolf)
-
-
-
-        # Choose an agent to be voted for while talking.
-        #
-        # The list of fake seers that reported me as a werewolf.
-        # 偽占い
+        
+        # ---------- 投票宣言 ----------
+        # 投票候補：偽占い
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports
                                    if j.target == self.me and j.result == Species.WEREWOLF]
-        # Vote for one of the alive agents that were judged as werewolves by non-fake seers.
-        # 偽占い以外の黒結果
-        reported_wolves: List[Agent] = [j.target for j in self.divination_reports
-                                        if j.agent not in fake_seers and j.result == Species.WEREWOLF]
-        # 投票候補：黒結果
-        candidates: List[Agent] = self.get_alive_others(reported_wolves)
-        # Vote for one of the alive fake seers if there are no candidates.
-        # 候補なし → 偽占い
+        candidates: List[Agent] = self.get_alive(fake_seers)
+        # 候補なし → 偽占い以外の黒結果
         if not candidates:
-            candidates = self.get_alive(fake_seers)
-        # Vote for one of the alive agents if there are no candidates.
+            reported_wolves: List[Agent] = [j.target for j in self.divination_reports
+                                        if j.agent not in fake_seers and j.result == Species.WEREWOLF]
+            candidates = self.get_alive_others(reported_wolves)
         # 候補なし → 生存者
         if not candidates:
             candidates = self.get_alive_others(self.game_info.agent_list)
-        # Declare which to vote for if not declare yet or the candidate is changed.
-        # 候補からランダムセレクト
-        # if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-        #     self.vote_candidate = self.random_select(candidates)
-        #     if self.vote_candidate != AGENT_NONE:
-        #         return Content(VoteContentBuilder(self.vote_candidate))
-
-        if self.vote_candidate == AGENT_NONE:
+        # 投票宣言対象：候補からランダムセレクト
+        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
             # self.vote_candidate = self.chooseMostlikelyExecuted()
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, candidates)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))
-
         return CONTENT_SKIP
-  
-    def vote(self) -> Agent:
 
+
+    def vote(self) -> Agent:
         # agent_vote_for: Agent = AGENT_NONE
         # if self.N == 5:
         #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
@@ -338,7 +333,8 @@ class ddhbVillager(AbstractPlayer):
 
         # return agent_vote_for
 
-        return self.vote_candidate
+        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.chooseMostlikelyExecuted()
+
 
     def attack(self) -> Agent:
         raise NotImplementedError()

@@ -25,22 +25,20 @@ from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
 
+
 # 狩人
 class ddhbBodyguard(ddhbVillager):
     """ddhb bodyguard agent."""
 
-    
     to_be_guarded: Agent # 護衛先
     """Target of guard."""
     
-    # 追加
     co_date: int # COする日にち
     has_co: bool # COしたか
     guard_success: bool # 護衛成功したか
     has_report: bool # 報告したかどうか
-    
     strategies: List[bool] # 戦略フラグのリスト
-    
+
 
     def __init__(self) -> None:
         """Initialize a new instance of ddhbBodyguard."""
@@ -51,7 +49,6 @@ class ddhbBodyguard(ddhbVillager):
         self.has_co = False
         self.guard_success = False
         self.has_report = False
-        
         self.strategies = []
 
 
@@ -63,101 +60,129 @@ class ddhbBodyguard(ddhbVillager):
         self.has_co = False
         self.guard_success = False
         self.has_report = False
+        self.strategies = [True, False, False, False, False]
+        self.strategyA = self.strategies[0] # 戦略A: 護衛スコア
+        self.strategyB = self.strategies[1] # 戦略B: 占い重視
+        self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
+        self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
+        self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
         
-        self.strategies = [True, False, False]
-        self.strategyA = self.strategies[0] # 戦略A: 護衛スコアから選ぶ
-        self.strategyB = self.strategies[1] # 戦略B: 候補者から選ぶ
-        self.strategyC = self.strategies[2] # 戦略C: 占いCOで占い師っぽい方
+        if self.strategyD:
+            self.co_date = 3
 
 
     # 昼スタート→OK
     def day_start(self) -> None:
         super().day_start()
-
+        
+        self.guard_success = False
+        self.has_report = False
+        
         Util.debug_print("guarded: ", self.game_info.guarded_agent)
-
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+            self.guard_success = True
             Util.debug_print("護衛成功:\tエージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
             self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
         elif self.game_info.guarded_agent != None:
             Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
+
+
+    # CO、報告→OK
+    def talk(self) -> Content:
+        # ---------- CO ----------
+        # 戦略D: 3日目CO
+        # review: この部分は initialize でやる
+        # if self.strategyD:
+        #     self.strategyD = False
+        #     self.co_date = 3
+        # 戦略E: (CO予定日-1)目からの護衛成功でCO
+        if self.strategyE:
+            # review: False に変更しない
+            # self.strategyE = False
+            if not self.has_co and (self.game_info.day >= self.co_date - 1 and self.guard_success):
+                self.has_co = True
+                return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        # 絶対にCOする→1,2
+        # 1: 予定の日にち
+        if not self.has_co and (self.game_info.day == self.co_date):
+            self.has_co = True
+            return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        # 2: 前日投票の25%以上が自分に入っていたら
+        # review: chooseMostlikelyExecuted も併用する
+        # review: Villager で関数化
+        # vote_num = 0
+        # latest_vote_list = self.game_info.latest_vote_list
+        # for vote in latest_vote_list:
+        #     if vote.target == self.me:
+        #         vote_num += 1
+        # if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
+        #     self.has_co = True
+        #     return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        if self.is_Low_HP():
+            return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
         
-        self.has_report = False
-        self.guard_success = False
+        
+        # ---------- 護衛報告 ----------
+        # COしてて、報告してないなら
+        if self.has_co and not self.has_report:
+            self.has_report = True
+            # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
+            return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
+        
+        # review: 狩人としてする発言がなければあとは村人の戦略に従う
+        # review: ただし、Villager の talk() は他のクラスから呼び出されることを考慮する
+        # review: 他の村人陣営も同じ
+        # review: return super().talk()
+        # return CONTENT_SKIP
+        return super().talk()
 
 
     # 護衛先選び→OK
     def guard(self) -> Agent:
-        
-        # 戦略A：護衛スコアを参考に、護衛先を選ぶ
+        # 護衛先候補：生存者
+        candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        # 戦略A：護衛スコア重視
         # 護衛スコア＝村人スコア＋占い師スコア*3＋霊媒師スコア
-        # Todo：勝率で補正する
+        # todo：勝率で補正する
         if self.strategyA:
-            p = self.role_predictor.getProbAll()
+            guard_candidates: List[Agent] = candidates
+            p = self.role_predictor.prob_all
             mx_score = 0
-            guard_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
             for agent in guard_candidates:
                 score = p[agent][Role.VILLAGER] + p[agent][Role.SEER] * 3 + p[agent][Role.MEDIUM]
                 if score > mx_score:
                     mx_score = score
                     self.to_be_guarded = agent
-        # 戦略B：候補者から選ぶ
-        if self.strategyB:        
+        # 戦略B：占い重視（複数なら占い師っぽい方）
+        if self.strategyB:
+            # 護衛先候補：占いCOかつ生存者
+            guard_candidates: List[Agent] = [a for a in self.comingout_map if self.is_alive(a)
+                            and self.comingout_map[a] == Role.SEER]
+            if not guard_candidates:
+                guard_candidates = candidates
+            # 護衛先：占い師っぽいエージェント
+            self.to_be_guarded = self.role_predictor.chooseMostLikely(Role.SEER, guard_candidates)
+        # 戦略C：候補者から選ぶ
+        if self.strategyC:        
             # Guard one of the alive non-fake seers.
-            # 候補：白結果あり
-            candidates: List[Agent] = self.get_alive([j.agent for j in self.divination_reports
+            # 護衛先候補：白結果あり
+            # review: guard_candidates: List[Agent] = self.get_alive_others([judge.target for judge in self.divination_reports
+            #                                         if judge.result == Species.HUMAN])
+            guard_candidates: List[Agent] = self.get_alive([j.agent for j in self.divination_reports
                                                     if j.result != Species.WEREWOLF or j.target != self.me])
             # Guard one of the alive mediums if there are no candidates.
-            # 候補なし → 生存する霊媒COの人
-            if not candidates:
-                candidates = [a for a in self.comingout_map if self.is_alive(a)
+            # 候補なし → 霊媒COかつ生存者
+            if not guard_candidates:
+                guard_candidates = [a for a in self.comingout_map if self.is_alive(a)
                             and self.comingout_map[a] == Role.MEDIUM]
             # Guard one of the alive sagents if there are no candidates.
             # 候補なし → 生存者
-            if not candidates:
-                candidates = self.get_alive_others(self.game_info.agent_list)
-            
+            if not guard_candidates:
+                guard_candidates = candidates            
             # Update a guard candidate if the candidate is changed.
-            # 護衛先 → 候補からランダムセレクト
+            # 護衛先：候補からランダムセレクト
             if self.to_be_guarded == AGENT_NONE or self.to_be_guarded not in guard_candidates:
                 self.to_be_guarded = self.random_select(guard_candidates)
-        # 戦略C：占いCOで占い師っぽい方
-        if self.strategyC:
-            # 候補：占いCO
-            candidates: List[Agent] = [a for a in self.comingout_map if self.is_alive(a)
-                            and self.comingout_map[a] == Role.SEER]
-            # 占いCOの人がいない場合
-            if not candidates:
-                candidates = self.get_alive_others(self.game_info.agent_list)
-            # 占い師っぽい人を選ぶ
-            self.to_be_guarded = self.role_predictor.chooseMostLikely(Role.SEER, candidates)
-
+        
         return self.to_be_guarded if self.to_be_guarded != AGENT_NONE else self.me
-    
-    
-    # CO、結果報告→OK
-    # talk追加はありかも→白圧迫
-    def talk(self) -> Content:
-        # CO : 予定の日にちになったら
-        # 後で追加：疑われ出したらCOする
-        if not self.has_co and (self.game_info.day == self.co_date):
-            self.has_co = True
-            return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
-        
-        # 護衛成功報告
-        # 予定の日にち-1 以降の日にちなら、まずCOして、次のターンに報告
-        if not self.has_co and self.game_info.day == self.co_date - 1:
-            # 護衛成功
-            if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
-                self.guard_success = True
-                self.has_co = True
-                return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
-        
-        # COしてて、護衛成功してて、報告してないなら
-        if self.has_co and self.guard_success and not self.has_report:
-            self.has_report = True
-            # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
-            return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
-        
-        return CONTENT_SKIP
