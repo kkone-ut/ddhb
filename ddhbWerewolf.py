@@ -201,7 +201,7 @@ class ddhbWerewolf(ddhbPossessed):
         if len(allies_co) == 0:
             # review: Role.WEREWOLF で合ってる？
             # review: 5人村だと確定でこれになる
-            # review: 15人村だとWEREWOLFになってもVILLAGERになっても騙りなしになる
+            # review: 15人村だとWEREWOLFとVILLAGERのどっちかになるが、どっちでも騙りなしになる
             self.fake_role = Role.WEREWOLF
         if len(allies_co) >= 1:
             self.fake_role = Role.VILLAGER
@@ -270,6 +270,14 @@ class ddhbWerewolf(ddhbPossessed):
                 guard_agent = self.random_select(self.get_alive(self.allies))
                 return Content(GuardedAgentContentBuilder(guard_agent))
 
+        # review: villager と同じく talk で投票対象を決めて will vote 宣言すべきかも
+        # review: そうしないと他の人に同調して投票するエージェントが自分に投票してしまう(特に5人村で3人になったとき)
+        # review: 狂人も同様
+        # review: こんな感じでvoteを呼び出すのが楽そう？(下3行)
+        if self.vote_candidate == AGENT_NONE:
+            self.vote_candidate = self.vote()
+            return Content(VoteContentBuilder(self.vote_candidate))
+        
         return CONTENT_SKIP
 
 
