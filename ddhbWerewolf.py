@@ -186,12 +186,22 @@ class ddhbWerewolf(ddhbPossessed):
 
     # CO、結果報告
     def talk(self) -> Content:
+        # ---------- PP ----------
+        # review: これを優先する
+        if self.PP_flag:
+            self.PP_flag = False
+            return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))   
+        
         # 人狼仲間のCO状況を確認する
         # 仲間が1人以上COしていたら、村人を騙る
         # review: 0のときの処理を追加する
+        # todo: 狂人を含めたCO数で判定する
         allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
+        if len(allies_co) == 0:
+            self.fake_role = Role.WEREWOLF
         if len(allies_co) >= 1:
             self.fake_role = Role.VILLAGER
+        
         
         # ---------- 占い騙り ----------
         if self.fake_role == Role.SEER:
@@ -240,23 +250,25 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.fake_role == Role.BODYGUARD:
             # ----- CO -----
             # 前日投票の25%以上が自分に入っていたら
-            vote_num = 0
-            latest_vote_list = self.game_info.latest_vote_list
-            for vote in latest_vote_list:
-                if vote.target == self.me:
-                    vote_num += 1
-            if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
-                self.has_co = True
+            # vote_num = 0
+            # latest_vote_list = self.game_info.latest_vote_list
+            # for vote in latest_vote_list:
+            #     if vote.target == self.me:
+            #         vote_num += 1
+            # if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
+            #     self.has_co = True
+            #     return Content(ComingoutContentBuilder(self.me, self.fake_role))
+            if self.is_Low_HP():
                 return Content(ComingoutContentBuilder(self.me, self.fake_role))
             # ----- 結果報告 -----
             if self.has_co and self.has_report:
                 self.has_report = True
                 guard_agent = self.random_select(self.get_alive(self.allies))
                 return Content(GuardedAgentContentBuilder(guard_agent))
-        # ---------- PP ----------
-        # review: これを優先する
-        if self.PP_flag:
-            return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
+        # # ---------- PP ----------
+        # # review: これを優先する
+        # if self.PP_flag:
+        #     return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
         
         return CONTENT_SKIP
 

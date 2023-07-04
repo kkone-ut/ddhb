@@ -69,7 +69,10 @@ class ddhbSeer(ddhbVillager):
         
         self.strategies = [True, False, False, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（初日CO）
-        self.strategyB = self.strategies[1] # 戦略B: 
+        self.strategyB = self.strategies[1] # 戦略B:
+        
+        if self.strategyA:
+            self.co_date = 1
         
         # ---------- 5人村 ----------
         if self.N == 5:
@@ -100,9 +103,9 @@ class ddhbSeer(ddhbVillager):
         # Do comingout if it's on scheduled day or a werewolf is found.
         # 戦略A: 初日CO
         # review: initialize で行う
-        if self.strategyA:
-            self.strategyA = False
-            self.co_date = 1
+        # if self.strategyA:
+        #     self.strategyA = False
+        #     self.co_date = 1
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
         if not self.has_co and self.game_info.day == self.co_date:
