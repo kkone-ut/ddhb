@@ -143,7 +143,7 @@ class ddhbPlayer(AbstractPlayer):
         elif role == Role.WEREWOLF:
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
-        Util.end_timer("ddhbPlayer.initialize", 40)
+        Util.end_timer("ddhbPlayer.initialize", 60)
         
     def talk(self) -> Content:
         Util.start_timer("ddhbPlayer.talk")

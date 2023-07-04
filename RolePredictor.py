@@ -29,7 +29,7 @@ class RolePredictor:
         # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
         # todo: np.array をやめる (List にする？)
         assignment = np.array([Role.UNC] * self.N, dtype=Role)
-        
+
         # すでにわかっている役職を埋める (自分自身+人狼なら仲間の人狼)
         for agent, role in self.game_info.role_map.items():
             assignment[agent.agent_idx-1] = role
@@ -173,34 +173,50 @@ class RolePredictor:
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
     def getProbAll(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
 
-        # 各割り当ての相対確率を計算する
-        relative_prob = np.zeros(len(self.assignments))
-        sum_relative_prob = 0
-        for i, assignment in enumerate(self.assignments):
-            # スコアは対数尤度なので、exp して相対確率に変換する
-            try:
-                relative_prob[i] = np.exp(assignment.score / 10) # スコアが大きいとオーバーフローするので10で割る
-            except RuntimeWarning:
-                Util.error_print("OverflowError", assignment.score)
-            sum_relative_prob += relative_prob[i]
-
-        Util.debug_print("sum_relative_prob:", sum_relative_prob)
-        Util.debug_print("len:", len(self.assignments))
-        Util.debug_print("best score: ", self.assignments[-1].score)
-        Util.debug_print("worst score: ", self.assignments[0].score)
-        
-        # 各割り当ての相対確率を確率に変換する
-        assignment_prob = np.zeros(len(self.assignments))
-        for i in range(len(assignment_prob)):
-            assignment_prob[i] = relative_prob[i] / sum_relative_prob
-
-        # 各プレイヤーの役職の確率を計算する
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
-        probs: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
+        probs = defaultdict(lambda: defaultdict(float))
 
-        for i, assignment in enumerate(self.assignments):
-            for a in self.game_info.agent_list:
-                probs[a][assignment[a]] += assignment_prob[i]
+        if len(self.assignments) > 0:
+
+            # 各割り当ての相対確率を計算する
+            relative_prob = np.zeros(len(self.assignments))
+            sum_relative_prob = 0
+
+            # スコアは対数尤度なので、exp して相対確率に変換する
+            for i, assignment in enumerate(self.assignments):
+                try:
+                    relative_prob[i] = np.exp(assignment.score / 10) # スコアが大きいとオーバーフローするので10で割る
+                except RuntimeWarning:
+                    Util.error_print("OverflowError", assignment.score)
+                sum_relative_prob += relative_prob[i]
+            
+            # 各割り当ての相対確率を確率に変換する
+            assignment_prob = np.zeros(len(self.assignments))
+            for i in range(len(assignment_prob)):
+                assignment_prob[i] = relative_prob[i] / sum_relative_prob
+
+            # 各プレイヤーの役職の確率を計算する
+            for i, assignment in enumerate(self.assignments):
+                for a in self.game_info.agent_list:
+                    probs[a][assignment[a]] += assignment_prob[i]
+            
+        else: # 割り当てがない場合は、個々のスコアから確率を計算する
+
+            for agent in self.game_info.agent_list:
+                # 相対確率を計算する
+                relative_probs = defaultdict(lambda: defaultdict(float))
+                sum_relative_prob = 0.0
+                for role in self.game_info.existing_role_list:
+                    score = self.score_matrix.get_score(agent, role, agent, role)
+                    relative_probs[agent][role] = np.exp(score / 10)
+                    sum_relative_prob += relative_probs[agent][role]
+                # 確率に変換する
+                for role in self.game_info.existing_role_list:
+                    # すべての役職の確率が 0 だった場合は、すべての役職の確率を等分する
+                    if sum_relative_prob == 0.0:
+                        probs[agent][role] = 1.0 / len(self.game_info.existing_role_list)
+                    else:
+                        probs[agent][role] = relative_probs[agent][role] / sum_relative_prob
 
         self.prob_all = probs
         
