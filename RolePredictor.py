@@ -2,6 +2,7 @@ from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
 import numpy as np
 import time
 from collections import defaultdict
+import queue
 from typing import List, Dict, Set, DefaultDict
 
 from Util import Util
@@ -26,14 +27,27 @@ class RolePredictor:
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
         # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
-        assignment = np.array([], dtype=Role)
+        assignment = np.array([Role.UNC] * self.N, dtype=Role)
+        for agent, role in self.game_info.role_map.items():
+            assignment[agent.agent_idx-1] = role
+        rest_roles = queue.Queue()
         for role, num in self.game_setting.role_num_map.items():
             # self.assignment に num 個だけ role を追加する
-            assignment = np.append(assignment, np.full(num, role))
+            # すでにわかっている役職は除く
+            if self.game_info.my_role == role:
+                if self.game_info.my_role == Role.VILLAGER:
+                    num -= 1
+                else:
+                    num = 0
+            for i in range(num):
+                rest_roles.put(role)
+        for i in range(self.N):
+            if assignment[i] == Role.UNC:
+                assignment[i] = rest_roles.get()
 
         # プレイヤーの位置を固定する
-        idx = np.where(assignment == self.game_info.my_role)[0][0]
-        assignment[self.me.agent_idx-1], assignment[idx] = assignment[idx], assignment[self.me.agent_idx-1]
+        # idx = np.where(assignment == self.game_info.my_role)[0][0]
+        # assignment[self.me.agent_idx-1], assignment[idx] = assignment[idx], assignment[self.me.agent_idx-1]
 
         return assignment
 
@@ -49,7 +63,7 @@ class RolePredictor:
         self.assignments: SortedSet = SortedSet()
         self.assignments_set = set()
         self.score_matrix = _score_matrix
-        self.fixed_positions = [self.me.agent_idx-1]
+        self.fixed_positions = [agent.agent_idx - 1 for agent in self.game_info.role_map.keys()]
 
         assignment = self.get_initail_assignment()
 
@@ -159,6 +173,11 @@ class RolePredictor:
             except RuntimeWarning:
                 Util.error_print("OverflowError", assignment.score)
             sum_relative_prob += relative_prob[i]
+
+        Util.debug_print("sum_relative_prob:", sum_relative_prob)
+        Util.debug_print("len:", len(self.assignments))
+        Util.debug_print("best score: ", self.assignments[-1].score)
+        Util.debug_print("worst score: ", self.assignments[0].score)
         
         # 各割り当ての相対確率を確率に変換する
         assignment_prob = np.zeros(len(self.assignments))

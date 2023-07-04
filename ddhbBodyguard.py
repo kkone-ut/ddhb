@@ -66,6 +66,9 @@ class ddhbBodyguard(ddhbVillager):
         self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
         self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
         self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
+        
+        if self.strategyD:
+            self.co_date = 3
 
 
     # 昼スタート→OK
@@ -90,13 +93,13 @@ class ddhbBodyguard(ddhbVillager):
         # ---------- CO ----------
         # 戦略D: 3日目CO
         # review: この部分は initialize でやる
-        if self.strategyD:
-            self.strategyD = False
-            self.co_date = 3
+        # if self.strategyD:
+        #     self.strategyD = False
+        #     self.co_date = 3
         # 戦略E: (CO予定日-1)目からの護衛成功でCO
         if self.strategyE:
             # review: False に変更しない
-            self.strategyE = False
+            # self.strategyE = False
             if not self.has_co and (self.game_info.day >= self.co_date - 1 and self.guard_success):
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
@@ -108,14 +111,17 @@ class ddhbBodyguard(ddhbVillager):
         # 2: 前日投票の25%以上が自分に入っていたら
         # review: chooseMostlikelyExecuted も併用する
         # review: Villager で関数化
-        vote_num = 0
-        latest_vote_list = self.game_info.latest_vote_list
-        for vote in latest_vote_list:
-            if vote.target == self.me:
-                vote_num += 1
-        if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
-            self.has_co = True
+        # vote_num = 0
+        # latest_vote_list = self.game_info.latest_vote_list
+        # for vote in latest_vote_list:
+        #     if vote.target == self.me:
+        #         vote_num += 1
+        # if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
+        #     self.has_co = True
+        #     return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        if self.is_Low_HP():
             return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        
         
         # ---------- 護衛報告 ----------
         # COしてて、報告してないなら
@@ -128,7 +134,8 @@ class ddhbBodyguard(ddhbVillager):
         # review: ただし、Villager の talk() は他のクラスから呼び出されることを考慮する
         # review: 他の村人陣営も同じ
         # review: return super().talk()
-        return CONTENT_SKIP
+        # return CONTENT_SKIP
+        return super().talk()
 
 
     # 護衛先選び→OK
