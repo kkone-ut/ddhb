@@ -89,6 +89,7 @@ class ddhbMedium(ddhbVillager):
         # ---------- CO ----------
         # Do comingout if it's on scheduled day or a werewolf is found.
         # 戦略A: 2日目CO
+        # review: initialize で行う
         if self.strategyA:
             self.strategyA = False
             self.co_date = 2
@@ -138,6 +139,10 @@ class ddhbMedium(ddhbVillager):
         # Declare which to vote for if not declare yet or the candidate is changed.
         # 投票宣言対象：候補からランダムセレクト
         if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
+            # review: ここは vote と違って chooseMostLikely を使わない？
+            # review: ここで vote_candidate を決めたら vote ではそれを返せばいいだけになりそう
+            # review: その方が will vote と実際の投票が一致して良い
+            # review: 占いの方も同じ
             self.vote_candidate = self.random_select(candidates)
             if self.vote_candidate != AGENT_NONE:
                 return Content(VoteContentBuilder(self.vote_candidate))

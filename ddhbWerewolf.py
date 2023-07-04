@@ -68,8 +68,9 @@ class ddhbWerewolf(ddhbPossessed):
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
         # ---------- 5人村15人村共通 ----------
-        self.humans = [a for a in self.game_info.agent_list if a not in self.allies]
+        # review: ここ humans と allies の順番が逆っぽいので直しておいた
         self.allies = list(self.game_info.role_map.keys())
+        self.humans = [a for a in self.game_info.agent_list if a not in self.allies]
         self.taikou.clear()
         self.agent_possessed = AGENT_NONE
         self.alive_possessed = False
@@ -187,7 +188,8 @@ class ddhbWerewolf(ddhbPossessed):
     # CO、結果報告
     def talk(self) -> Content:
         # ---------- PP ----------
-        # review: これを優先する
+        # review: ここで狂人が生きているか確認しないと間違ってPPするので estimate を追加
+        self.estimate_possessed()
         if self.PP_flag:
             self.PP_flag = False
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))   
@@ -196,8 +198,12 @@ class ddhbWerewolf(ddhbPossessed):
         # 仲間が1人以上COしていたら、村人を騙る
         # review: 0のときの処理を追加する
         # todo: 狂人を含めたCO数で判定する
+        # review: max(0, 占いCO数-1) + max(0, 霊能CO数-1) + max(0, 狩人CO数-1) とか使えそう？
         allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
         if len(allies_co) == 0:
+            # review: Role.WEREWOLF で合ってる？
+            # review: 5人村だと確定でこれになる
+            # review: 15人村だとWEREWOLFとVILLAGERのどっちかになるが、どっちでも騙りなしになる
             self.fake_role = Role.WEREWOLF
         if len(allies_co) >= 1:
             self.fake_role = Role.VILLAGER
@@ -265,11 +271,14 @@ class ddhbWerewolf(ddhbPossessed):
                 self.has_report = True
                 guard_agent = self.random_select(self.get_alive(self.allies))
                 return Content(GuardedAgentContentBuilder(guard_agent))
-        # # ---------- PP ----------
-        # # review: これを優先する
-        # if self.PP_flag:
-        #     return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
-        
+
+        # review: villager と同じく talk で投票対象を決めて will vote 宣言すべきかも
+        # review: そうしないと他の人に同調して投票するエージェントが自分に投票してしまう(特に5人村で3人になったとき)
+        # review: 狂人も同様
+        # review: こんな感じでvoteを呼び出すのが楽そう？(下3行)
+        if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
+            self.vote_candidate = self.vote()
+            return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
 
 
@@ -297,6 +306,7 @@ class ddhbWerewolf(ddhbPossessed):
             # 確定狂人がいる場合
             if self.alive_possessed:
                 # 狂人が確定するのは、占い結果のみ
+                # review: 霊媒結果は考慮しない？
                 for judge in self.divination_reports:
                     agent = judge.agent
                     target = judge.target
@@ -305,7 +315,9 @@ class ddhbWerewolf(ddhbPossessed):
                         if result == Species.HUMAN:
                             vote_candidate = self.random_select(vote_candidates)
                         elif result == Species.WEREWOLF:
-                            vote_candidate = target
+                            # review: target が生きているかの確認を追加
+                            if self.is_alive(target):
+                                vote_candidate = target
                         break
             else:
                 vote_candidate = self.random_select(vote_candidates)
