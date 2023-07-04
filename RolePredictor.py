@@ -65,6 +65,7 @@ class RolePredictor:
                 Util.debug_print("len(assignments):", len(self.assignments))
             except timeout_decorator.TimeoutError:
                 Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
+        self.getProbAll() # キャッシュする
     
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
@@ -184,13 +185,11 @@ class RolePredictor:
         return self.prob_all[agent][role]
     
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
-    def chooseMostLikely(self, role: Role, agent_list: List[Agent] = None) -> Agent:
-        if agent_list is None:
-            agent_list = self.game_info.agent_list
+    def chooseMostLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
         if len(agent_list) == 0:
             return AGENT_NONE
         
-        p = self.getProbAll()
+        p = self.prob_all
         ret_agent = agent_list[0]
         for a in agent_list:
             if p[a][role] > p[ret_agent][role]:
@@ -199,7 +198,7 @@ class RolePredictor:
         return ret_agent
 
     def getMostLikelyRole(self, agent: Agent) -> Role:
-        p = self.getProbAll()
+        p = self.prob_all
         ret_role = Role.VILLAGER
         for r in Role:
             if p[agent][r] > p[agent][ret_role]:

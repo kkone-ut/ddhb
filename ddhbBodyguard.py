@@ -89,11 +89,13 @@ class ddhbBodyguard(ddhbVillager):
     def talk(self) -> Content:
         # ---------- CO ----------
         # 戦略D: 3日目CO
+        # review: この部分は initialize でやる
         if self.strategyD:
             self.strategyD = False
             self.co_date = 3
         # 戦略E: (CO予定日-1)目からの護衛成功でCO
         if self.strategyE:
+            # review: False に変更しない
             self.strategyE = False
             if not self.has_co and (self.game_info.day >= self.co_date - 1 and self.guard_success):
                 self.has_co = True
@@ -104,6 +106,8 @@ class ddhbBodyguard(ddhbVillager):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
         # 2: 前日投票の25%以上が自分に入っていたら
+        # review: chooseMostlikelyExecuted も併用する
+        # review: Villager で関数化
         vote_num = 0
         latest_vote_list = self.game_info.latest_vote_list
         for vote in latest_vote_list:
@@ -136,7 +140,7 @@ class ddhbBodyguard(ddhbVillager):
         # todo：勝率で補正する
         if self.strategyA:
             guard_candidates: List[Agent] = candidates
-            p = self.role_predictor.getProbAll()
+            p = self.role_predictor.prob_all
             mx_score = 0
             for agent in guard_candidates:
                 score = p[agent][Role.VILLAGER] + p[agent][Role.SEER] * 3 + p[agent][Role.MEDIUM]
@@ -156,6 +160,8 @@ class ddhbBodyguard(ddhbVillager):
         if self.strategyC:        
             # Guard one of the alive non-fake seers.
             # 護衛先候補：白結果あり
+            # review: guard_candidates: List[Agent] = self.get_alive_others([judge.target for judge in self.divination_reports
+            #                                         if judge.result == Species.HUMAN])
             guard_candidates: List[Agent] = self.get_alive([j.agent for j in self.divination_reports
                                                     if j.result != Species.WEREWOLF or j.target != self.me])
             # Guard one of the alive mediums if there are no candidates.

@@ -188,6 +188,7 @@ class ddhbWerewolf(ddhbPossessed):
     def talk(self) -> Content:
         # 人狼仲間のCO状況を確認する
         # 仲間が1人以上COしていたら、村人を騙る
+        # review: 0のときの処理を追加する
         allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
         if len(allies_co) >= 1:
             self.fake_role = Role.VILLAGER
@@ -253,6 +254,7 @@ class ddhbWerewolf(ddhbPossessed):
                 guard_agent = self.random_select(self.get_alive(self.allies))
                 return Content(GuardedAgentContentBuilder(guard_agent))
         # ---------- PP ----------
+        # review: これを優先する
         if self.PP_flag:
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))    
         
@@ -332,7 +334,7 @@ class ddhbWerewolf(ddhbPossessed):
             self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, attack_vote_candidates)
         # 候補なし → 襲撃スコア
         if self.attack_vote_candidate == AGENT_NONE:
-            p = self.role_predictor.getProbAll()
+            p = self.role_predictor.prob_all
             mx_score = 0
             for agent in candidates:
                 score = p[agent][Role.VILLAGER] + p[agent][Role.SEER]*4 + p[agent][Role.MEDIUM]*3 + p[agent][Role.BODYGUARD]*2
