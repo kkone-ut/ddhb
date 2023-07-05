@@ -26,6 +26,7 @@ from aiwolf.constant import AGENT_NONE
 
 from const import CONTENT_SKIP, JUDGE_EMPTY
 from ddhbPossessed import ddhbPossessed
+from Util import Util
 
 import numpy as np
 
@@ -316,8 +317,11 @@ class ddhbWerewolf(ddhbPossessed):
                             vote_candidate = self.random_select(vote_candidates)
                         elif result == Species.WEREWOLF:
                             # review: target が生きているかの確認を追加
+                            # review: 死んでいた場合候補がいなくなるのでとりあえずランダムセレクト
                             if self.is_alive(target):
                                 vote_candidate = target
+                            else:
+                                vote_candidate = self.random_select(vote_candidates)
                         break
             else:
                 vote_candidate = self.random_select(vote_candidates)
