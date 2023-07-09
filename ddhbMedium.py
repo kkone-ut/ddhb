@@ -42,6 +42,7 @@ class ddhbMedium(ddhbVillager):
     
     werewolves: List[Agent] # 人狼結果のエージェント
     strategies: List[bool] # 戦略フラグのリスト
+    others_medium_co: List[Agent] # 他の霊媒のCOリスト
 
 
     def __init__(self) -> None:
@@ -54,6 +55,7 @@ class ddhbMedium(ddhbVillager):
         
         self.werewolves = []
         self.strategies = []
+        self.others_medium_co = []
 
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -67,6 +69,11 @@ class ddhbMedium(ddhbVillager):
         self.strategies = [True, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（2日目CO）
         self.strategyB = self.strategies[1]
+        self.others_medium_co.clear()
+        
+        # 戦略A: 2日目CO
+        if self.strategyA:
+            self.co_date = 2
 
 
     # 昼スタート→OK
@@ -88,11 +95,7 @@ class ddhbMedium(ddhbVillager):
     def talk(self) -> Content:
         # ---------- CO ----------
         # Do comingout if it's on scheduled day or a werewolf is found.
-        # 戦略A: 2日目CO
-        # review: initialize で行う
-        if self.strategyA:
-            self.strategyA = False
-            self.co_date = 2
+        
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
         if not self.has_co and self.game_info.day == self.co_date:
@@ -103,8 +106,8 @@ class ddhbMedium(ddhbVillager):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         # 3: 他の霊媒がCOしたら(CCO)
-        others_medium_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
-        if not self.has_co and others_medium_co:
+        self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+        if not self.has_co and self.others_medium_co:
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         
@@ -115,45 +118,30 @@ class ddhbMedium(ddhbVillager):
             return Content(IdentContentBuilder(judge.target, judge.result))
         
         # ---------- 投票宣言 ----------
-        # Fake seers.
-        # 偽占い＝自分に黒結果を出している占い
-        fake_seers: List[Agent] = [j.agent for j in self.divination_reports
-                                   if j.target == self.me and j.result == Species.WEREWOLF]
-        # Vote for one of the alive fake mediums.
-        # 投票宣言候補：偽霊媒かつ生存者
-        candidates: List[Agent] = self.get_alive(others_medium_co)
-        # Vote for one of the alive agents that were judged as werewolves by non-fake seers if there are no candidates.
-        # 候補なし → 偽占い以外からの黒結果
-        if not candidates:
-            reported_wolves: List[Agent] = [j.target for j in self.divination_reports
-                                            if j.agent not in fake_seers and j.result == Species.WEREWOLF]
-            candidates = self.get_alive_others(reported_wolves)
-        # Vote for one of the alive fake seers if there are no candidates.
-        # 候補なし → 偽占いかつ生存者
-        if not candidates:
-            candidates = self.get_alive(fake_seers)
-        # Vote for one of the alive agents if there are no candidates.
-        # 候補なし → 生存者
-        if not candidates:
-            candidates = self.get_alive_others(self.game_info.agent_list)
-        # Declare which to vote for if not declare yet or the candidate is changed.
-        # 投票宣言対象：候補からランダムセレクト
-        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-            # review: ここは vote と違って chooseMostLikely を使わない？
-            # review: ここで vote_candidate を決めたら vote ではそれを返せばいいだけになりそう
-            # review: その方が will vote と実際の投票が一致して良い
-            # review: 占いの方も同じ
-            self.vote_candidate = self.random_select(candidates)
-            if self.vote_candidate != AGENT_NONE:
-                return Content(VoteContentBuilder(self.vote_candidate))
+        # self.vote()の利用
+        if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
+            self.vote_candidate = self.vote()
+            return Content(VoteContentBuilder(self.vote_candidate))
         return CONTENT_SKIP
     
     
     # 投票対象→OK
     def vote(self) -> Agent:
-        # todo: 人狼結果とのラインを考える→role_predictorを使っているから間接的に考えられているのでは？
-        # 投票候補：生存者
-        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        # 投票対象：人狼っぽいエージェント
-        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
-        return target if target != AGENT_NONE else self.me
+        self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+        # 投票宣言候補：偽霊媒かつ生存者
+        vote_candidates: List[Agent] = self.get_alive(self.others_medium_co)
+        # 候補なし → 偽占い以外からの黒結果
+        if not vote_candidates:
+            reported_wolves: List[Agent] = [j.target for j in self.divination_reports if j.agent not in fake_seers and j.result == Species.WEREWOLF]
+            vote_candidates = self.get_alive_others(reported_wolves)
+        # 候補なし → 偽占いかつ生存者
+        # 偽占い＝自分に黒結果を出している占い
+        fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
+        if not vote_candidates:
+            vote_candidates = self.get_alive(fake_seers)
+        # 候補なし → 生存者
+        if not vote_candidates:
+            vote_candidates = self.get_alive_others(self.game_info.agent_list)
+        # 投票宣言対象：候補の中で人狼っぽいエージェント
+        vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        return vote_candidate if vote_candidate != AGENT_NONE else self.me

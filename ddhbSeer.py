@@ -45,6 +45,7 @@ class ddhbSeer(ddhbVillager):
     """Found werewolves."""
     
     strategies: List[bool] # 戦略フラグのリスト
+    others_seer_co: List[Agent] # 他の占い師のCOリスト
 
 
     def __init__(self) -> None:
@@ -57,6 +58,7 @@ class ddhbSeer(ddhbVillager):
         self.werewolves = []
         
         self.strategies = []
+        self.others_seer_co = []
 
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -71,9 +73,11 @@ class ddhbSeer(ddhbVillager):
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（初日CO）
         self.strategyB = self.strategies[1] # 戦略B:
         
+        self.others_seer_co.clear()
+        
+        # 戦略A: 初日CO
         if self.strategyA:
             self.co_date = 1
-        
         # ---------- 5人村 ----------
         if self.N == 5:
             # 初日CO
@@ -100,12 +104,6 @@ class ddhbSeer(ddhbVillager):
     # CO、結果報告、投票宣言→OK
     def talk(self) -> Content:
         # ---------- CO ----------
-        # Do comingout if it's on scheduled day or a werewolf is found.
-        # 戦略A: 初日CO
-        # review: initialize で行う
-        # if self.strategyA:
-        #     self.strategyA = False
-        #     self.co_date = 1
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
         if not self.has_co and self.game_info.day == self.co_date:
@@ -117,8 +115,8 @@ class ddhbSeer(ddhbVillager):
             return Content(ComingoutContentBuilder(self.me, Role.SEER))
         # 3: 他の占い師がCOしたら(CCO)
         # 注意：comingout_mapには、自分は含まれていない
-        others_seer_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
-        if not self.has_co and others_seer_co:
+        self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
+        if not self.has_co and self.others_seer_co:
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.SEER))
         
@@ -126,42 +124,52 @@ class ddhbSeer(ddhbVillager):
         # Report the divination result after doing comingout.
         if self.has_co and self.my_judge_queue:
             judge: Judge = self.my_judge_queue.popleft()
-            return Content(DivinedResultContentBuilder(judge.target, judge.result))
+            # ----- 5人村 -----
+            if self.N == 5:
+                # 黒結果
+                if judge.result == Species.WEREWOLF:
+                    return Content(DivinedResultContentBuilder(judge.target, judge.result))
+                # 白結果 → 状況に応じて、結果を捏造して報告する
+                elif judge.result == Species.HUMAN:
+                    others_co_num: int = len(self.others_seer_co)
+                    new_target: Agent = AGENT_NONE
+                    if others_co_num == 0:
+                        new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
+                    elif others_co_num >= 1:
+                        new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.others_seer_co)
+                    if new_target != AGENT_NONE:
+                        new_target = judge.target
+                    return Content(DivinedResultContentBuilder(new_target, judge.result))
+            # ----- 15人村 -----
+            elif self.N == 15:
+                # 正しい結果を報告する
+                return Content(DivinedResultContentBuilder(judge.target, judge.result))
         
         # ---------- 投票宣言 ----------
-        # Vote for one of the alive werewolves.
-        # 投票候補：人狼結果リストかつ生存者
-        candidates: List[Agent] = self.get_alive(self.werewolves)
-        # Vote for one of the alive fake seers if there are no candidates.
-        # 候補なし → 偽占い
-        if not candidates:
-            candidates = self.get_alive(others_seer_co)
-        # Vote for one of the alive agents if there are no candidates.
-        # 候補なし → 生存者
-        if not candidates:
-            candidates = self.get_alive_others(self.game_info.agent_list)
-        # Declare which to vote for if not declare yet or the candidate is changed.
-        # 投票宣言対象：候補からランダムセレクト
-        # todo: 人狼っぽいエージェントを選ぶ→計算時間は大丈夫か？
-        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-            self.vote_candidate = self.random_select(candidates)
-            if self.vote_candidate != AGENT_NONE:
-                Util.debug_print('vote_candidate: ' + str(self.vote_candidate))
-                return Content(VoteContentBuilder(self.vote_candidate))
+        # self.vote()の利用
+        if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
+            self.vote_candidate = self.vote()
+            return Content(VoteContentBuilder(self.vote_candidate))
+        
         return CONTENT_SKIP
 
 
     # 投票対象→OK
     def vote(self) -> Agent:
+        self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         # 投票候補：人狼結果リストかつ生存者
         vote_candidates: List[Agent] = self.get_alive(self.werewolves)
+        # # 候補なし → 偽占い
+        # if not vote_candidates:
+        #     vote_candidates = self.get_alive(self.others_seer_co)
+        # # Vote for one of the alive agents if there are no candidates.
         # 候補なし → 生存者
         # 偽占いとしないのは、偽占いに投票しても投票が集まらないと思われるため
         if not vote_candidates:
             vote_candidates = self.get_alive_others(self.game_info.agent_list)
         # 投票対象：人狼っぽいエージェント
-        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
-        return target if target != AGENT_NONE else self.me
+        vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        return vote_candidate if vote_candidate != AGENT_NONE else self.me
 
 
     # 占い対象→OK

@@ -67,6 +67,7 @@ class ddhbBodyguard(ddhbVillager):
         self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
         self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
         
+        # 戦略D: 3日目CO
         if self.strategyD:
             self.co_date = 3
 
@@ -91,15 +92,8 @@ class ddhbBodyguard(ddhbVillager):
     # CO、報告→OK
     def talk(self) -> Content:
         # ---------- CO ----------
-        # 戦略D: 3日目CO
-        # review: この部分は initialize でやる
-        # if self.strategyD:
-        #     self.strategyD = False
-        #     self.co_date = 3
         # 戦略E: (CO予定日-1)目からの護衛成功でCO
         if self.strategyE:
-            # review: False に変更しない
-            # self.strategyE = False
             if not self.has_co and (self.game_info.day >= self.co_date - 1 and self.guard_success):
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
@@ -108,17 +102,7 @@ class ddhbBodyguard(ddhbVillager):
         if not self.has_co and (self.game_info.day == self.co_date):
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
-        # 2: 前日投票の25%以上が自分に入っていたら
-        # review: chooseMostlikelyExecuted も併用する
-        # review: Villager で関数化
-        # vote_num = 0
-        # latest_vote_list = self.game_info.latest_vote_list
-        # for vote in latest_vote_list:
-        #     if vote.target == self.me:
-        #         vote_num += 1
-        # if not self.has_co and len(latest_vote_list) != 0 and vote_num/len(latest_vote_list) >= 0.25:
-        #     self.has_co = True
-        #     return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
+        # 2: 自分が処刑対象になりそうだったら
         if self.is_Low_HP():
             return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
         
@@ -127,13 +111,8 @@ class ddhbBodyguard(ddhbVillager):
         # COしてて、報告してないなら
         if self.has_co and not self.has_report:
             self.has_report = True
-            # review: GuardedAgentContentBuilder の引数に自分のエージェントは要らないので削除した
             return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
         
-        # review: 狩人としてする発言がなければあとは村人の戦略に従う
-        # review: ただし、Villager の talk() は他のクラスから呼び出されることを考慮する
-        # review: 他の村人陣営も同じ
-        # review: return super().talk()
         # return CONTENT_SKIP
         return super().talk()
 
@@ -167,10 +146,8 @@ class ddhbBodyguard(ddhbVillager):
         if self.strategyC:        
             # Guard one of the alive non-fake seers.
             # 護衛先候補：白結果あり
-            # review: guard_candidates: List[Agent] = self.get_alive_others([judge.target for judge in self.divination_reports
-            #                                         if judge.result == Species.HUMAN])
-            guard_candidates: List[Agent] = self.get_alive([j.agent for j in self.divination_reports
-                                                    if j.result != Species.WEREWOLF or j.target != self.me])
+            guard_candidates: List[Agent] = self.get_alive_others([judge.target for judge in self.divination_reports
+                                                    if judge.result == Species.HUMAN])
             # Guard one of the alive mediums if there are no candidates.
             # 候補なし → 霊媒COかつ生存者
             if not guard_candidates:
