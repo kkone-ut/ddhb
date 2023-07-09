@@ -16,6 +16,8 @@ class ScoreMatrix:
     bodyguard_co_id: List[int]
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
+        self.game_info = game_info
+        self.game_setting = game_setting
         self.N = game_setting.player_num
         self.M = len(game_info.existing_role_list)
         # score_matrix[エージェント1, 役職1, エージェント2, 役職2]: エージェント1が役職1、エージェント2が役職2である相対確率の対数
@@ -35,6 +37,10 @@ class ScoreMatrix:
         for a, r in game_info.role_map.items():
             if r != Role.ANY and r != Role.UNC:
                 self.set_score(a, r, a, r, float('inf'))
+    
+    def update(self, game_info: GameInfo) -> None:
+        self.game_info = game_info
+
 
     # スコアは相対確率の対数を表す
     # スコア = log(相対確率)
@@ -77,7 +83,7 @@ class ScoreMatrix:
 
     # スコアの加算
     # agent1, agent2: Agent or int
-    # role1, rold2: Role or int or list (todo: Species, Side)
+    # role1, rold2: Role, int, Species, Side or List
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
         if type(role1) is Side:
             role1 = role1.get_role_list(self.N)
@@ -380,11 +386,14 @@ class ScoreMatrix:
     # 他者の占い結果を反映
     # 条件分岐は、N人村→myrole→白黒結果→targetが自分かどうか
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
-        if talker == self.me:
-            # 自分のCOは無視
-            return
         N = self.N
         my_role = self.my_role
+        role_map = self.game_info.role_map
+
+        if talker == self.me or (talker in role_map and role_map[talker] == Role.WEREWOLF):
+            # 自分と仲間の人狼のCOは無視
+            return
+
         if N == 5:
             # 自分が占い師の場合
             if my_role == Role.SEER:
@@ -408,14 +417,14 @@ class ScoreMatrix:
                 elif species == Species.HUMAN:
                     if target == self.me:
                         # talkerの占い師である確率を下げる、狂人である確率を上げる（結果の矛盾が起こっているから、値を大きくしている）
-                        self.add_scores(talker, {Role.SEER: -50, Role.POSSESSED: +50})
+                        self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100})
                     else:
                         pass
             else:
                 if species == Species.WEREWOLF:
                     if target == self.me:
                         # talkerの占い師である確率を下げる（結果の矛盾が起こっているから、値を大きくしている）
-                        self.add_scores(talker, {Role.SEER: -50})
+                        self.add_scores(talker, {Role.SEER: -100})
                     else:
                         # talkerが占い師で、targetが人狼である確率を上げる
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
@@ -435,20 +444,20 @@ class ScoreMatrix:
                 self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
             elif my_role == Role.WEREWOLF:
                 if species == Species.WEREWOLF:
-                    if target == self.me: # todo: 他の人狼に当たった場合も考慮する
+                    if target in role_map and role_map[target] == Role.WEREWOLF: # 人狼に黒出ししている場合は本物の可能性が高い
                         self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})                        
-                    else: # todo: 他の人狼でもない場合は外れてるから人狼でなければ狂人確定
-                        pass
+                    else: # 外れてる場合は狂人確定
+                        self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100})
                 elif species == Species.HUMAN:
-                    if target == self.me: # todo: 他の人狼に当たった場合も考慮する
-                        self.add_scores(talker, {Role.SEER: -50, Role.POSSESSED: +50})
-                    else: # todo: 他の人狼でもない場合は当たっているから、若干占い師である可能性を上げる
-                        pass
+                    if target in role_map and role_map[target] == Role.WEREWOLF: # 人狼に白だししている場合は狂人確定
+                        self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100})
+                    else: # 当たっている場合は、若干占い師である可能性を上げる
+                        self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
             else:
                 if species == Species.WEREWOLF:
                     if target == self.me:
-                        # todo: COの段階で占い師以外の市民の確率が下がっているので良さそうだが、CO無しの場合も念のため考慮して人狼陣営の可能性を上げたほうがいい
-                        self.add_scores(talker, {Role.SEER: -50})
+                        # COの段階で占い師以外の市民の確率が下がっているが、COをせずに占い結果を報告する場合も考慮して人狼陣営の可能性も上げる
+                        self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100, Role.WEREWOLF: +100})
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
                         # todo: 逆裏待遇を一つにまとめた関数を作る
