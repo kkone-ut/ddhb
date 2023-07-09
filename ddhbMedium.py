@@ -130,13 +130,13 @@ class ddhbMedium(ddhbVillager):
         self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
         # 投票宣言候補：偽霊媒かつ生存者
         vote_candidates: List[Agent] = self.get_alive(self.others_medium_co)
+        # 偽占い＝自分に黒結果を出している占い
+        fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
         # 候補なし → 偽占い以外からの黒結果
         if not vote_candidates:
             reported_wolves: List[Agent] = [j.target for j in self.divination_reports if j.agent not in fake_seers and j.result == Species.WEREWOLF]
             vote_candidates = self.get_alive_others(reported_wolves)
         # 候補なし → 偽占いかつ生存者
-        # 偽占い＝自分に黒結果を出している占い
-        fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
         if not vote_candidates:
             vote_candidates = self.get_alive(fake_seers)
         # 候補なし → 生存者
