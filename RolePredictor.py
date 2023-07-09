@@ -237,7 +237,8 @@ class RolePredictor:
         return p[agent][role]
 
     # 指定された役職である確率が最も高いプレイヤーの番号を返す
-    def chooseMostLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
+    # 確率が threshold 未満の場合は AGENT_NONE を返す
+    def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Agent:
         if len(agent_list) == 0:
             return AGENT_NONE
         
@@ -246,8 +247,11 @@ class RolePredictor:
         for a in agent_list:
             if p[a][role] > p[ret_agent][role]:
                 ret_agent = a
-                
-        return ret_agent
+        
+        if p[ret_agent][role] < threshold:
+            return AGENT_NONE
+        else:
+            return ret_agent
 
 
     def getMostLikelyRole(self, agent: Agent) -> Role:
