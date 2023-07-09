@@ -7,6 +7,7 @@ from Util import Util
 import ddhbVillager
 from typing import Dict, List
 from Side import Side
+from ddhbVillager import *
 
 class ScoreMatrix:
 
@@ -20,7 +21,7 @@ class ScoreMatrix:
         # score_matrix[エージェント1, 役職1, エージェント2, 役職2]: エージェント1が役職1、エージェント2が役職2である相対確率の対数
         # -infで相対確率は0になる
         self.score_matrix: np.ndarray = np.zeros((self.N, self.M, self.N, self.M))
-        self.player = _player
+        self.player: ddhbVillager = _player
         self.me = _player.me # 自身のエージェント
         self.my_role = game_info.my_role # 自身の役職
         self.rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
@@ -395,11 +396,14 @@ class ScoreMatrix:
                 if species == Species.WEREWOLF:
                     # 対象が自分の場合
                     if target == self.me:
-                        # talkerの占い師である確率を上げる、狂人の誤爆の確率も少し上げる
-                        self.add_scores(talker, {Role.SEER: +5, Role.POSSESSED: +1})
-                    # 対象が自分以外の場合→特に興味なし
+                        # talkerの占い師である確率を上げる (誤爆を考慮しなければ100%)
+                        self.add_scores(talker, {Role.SEER: +100, Role.POSSESSED: +0})
+                    # 対象が自分以外の場合
                     else:
-                        pass
+                        # 対抗に黒出ししている場合は狂人の可能性が高い (ほぼ100%と仮定)
+                        if self.player.comingout_map[target] == Role.SEER:
+                            self.add_scores(talker, {Role.POSSESSED: +100})
+
                 # 他者が白結果を出した場合
                 elif species == Species.HUMAN:
                     if target == self.me:
