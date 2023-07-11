@@ -178,7 +178,13 @@ class ddhbWerewolf(ddhbPossessed):
         self.alive_possessed = False
         if self.agent_possessed != AGENT_NONE:
             self.alive_possessed = self.is_alive(self.agent_possessed)
-        Util.debug_print(f"狂人推定：{self.agent_possessed} 生存：{self.alive_possessed}")
+        # PP：3人以下かつ確定狂人生存
+        self.PP_flag = False
+        alive_cnt: int = len(self.get_alive(self.game_info.agent_list))
+        if alive_cnt <= 3 and self.alive_possessed:
+            self.PP_flag = True
+        # if self.alive_possessed:
+        #     Util.debug_print(f"狂人推定:\t{self.agent_possessed}\t 生存:\t{self.alive_possessed}")
 
 
     # 結果から真占い推定
@@ -200,10 +206,6 @@ class ddhbWerewolf(ddhbPossessed):
         super().day_start()
         self.attack_vote_candidate = AGENT_NONE
         self.estimate_possessed()
-        # PP：3人以下かつ確定狂人生存
-        alive_cnt: int = len(self.get_alive(self.game_info.agent_list))
-        if alive_cnt <= 3 and self.alive_possessed:
-            self.PP_flag = True
         # 騙り結果
         judge: Judge = self.get_fake_judge()
         if judge != JUDGE_EMPTY:
@@ -227,9 +229,9 @@ class ddhbWerewolf(ddhbPossessed):
         self.estimate_possessed()
         self.estimate_seer()
         # ---------- PP ----------
-        if self.PP_flag:
-            self.PP_flag = False
-            return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
+        # if self.PP_flag:
+        #     self.PP_flag = False
+        #     return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
         
         self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         
@@ -377,43 +379,64 @@ class ddhbWerewolf(ddhbPossessed):
         if self.game_info.day == 0:
             return Content(ComingoutContentBuilder(self.me, self.fake_role))
         
-        # ---------- 襲撃対象 ----------
-        # Choose the target of attack vote.
-        # Vote for one of the agent that did comingout.
-        # 襲撃候補
-        candidates: List[Agent] = self.get_alive(self.humans)
-        # 襲撃候補から護衛成功したエージェントを除外
-        if self.game_info.attacked_agent in candidates:
-            candidates.remove(self.game_info.attacked_agent)
-        # 戦略A: 占い重視（占い師っぽい方）
-        if self.strategyA:
-            attack_vote_candidates = [a for a in self.comingout_map if a in candidates and self.comingout_map[a] == Role.SEER]
-            self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, attack_vote_candidates)
-        # 戦略B: 霊媒重視（霊媒っぽい方）
-        if self.strategyB:
-            attack_vote_candidates = [a for a in self.comingout_map if a in candidates and self.comingout_map[a] == Role.MEDIUM]
-            self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, attack_vote_candidates)
-        # 戦略C: 狩人重視（狩人っぽい方）
-        if self.strategyC:
-            attack_vote_candidates = [a for a in self.comingout_map if self.is_alive(a)
-                            and a in self.humans and self.comingout_map[a] == Role.BODYGUARD]
-            self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, attack_vote_candidates)
-        # 候補なし → 襲撃スコア
-        if self.attack_vote_candidate == AGENT_NONE:
-            p = self.role_predictor.prob_all
-            mx_score = 0
-            for agent in candidates:
-                score = p[agent][Role.VILLAGER] + p[agent][Role.SEER]*4 + p[agent][Role.MEDIUM]*3 + p[agent][Role.BODYGUARD]*2
-                if score > mx_score:
-                    mx_score = score
-                    self.attack_vote_candidate = agent
-        # 候補なし → 生存村人
-        if self.attack_vote_candidate == AGENT_NONE:
-            self.attack_vote_candidate = self.random_select(candidates)
-        if self.attack_vote_candidate != AGENT_NONE:
-            return Content(AttackContentBuilder(self.attack_vote_candidate))
+        # ---------- 5人村 ----------
+        if self.N == 5:
+            # ----- 襲撃対象 -----
+            # 対象：占いCOしていない中で、最も村人っぽいエージェント
+            candidates: List[Agent] = self.get_alive(self.humans)
+            seer_candidates: List[Agent] = [a for a in self.comingout_map if a in candidates and self.comingout_map[a] == Role.SEER]
+            for seer_candidate in seer_candidates:
+                if seer_candidate in candidates:
+                    seer_candidates.remove(seer_candidate)
+            self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, candidates)
+            # 候補なし → 生存村人
+            if self.attack_vote_candidate == AGENT_NONE:
+                self.attack_vote_candidate = self.random_select(self.get_alive(self.humans))
+            if self.attack_vote_candidate != AGENT_NONE:
+                return Content(AttackContentBuilder(self.attack_vote_candidate))
+            return CONTENT_SKIP
         
-        return CONTENT_SKIP
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            # ---------- 襲撃対象 ----------
+            # Choose the target of attack vote.
+            # Vote for one of the agent that did comingout.
+            # 襲撃候補
+            candidates: List[Agent] = self.get_alive(self.humans)
+            
+            # 襲撃候補から護衛成功したエージェントを除外
+            if self.game_info.attacked_agent in candidates:
+                candidates.remove(self.game_info.attacked_agent)
+            # 戦略A: 占い重視（占い師っぽい方）
+            if self.strategyA:
+                attack_vote_candidates = [a for a in self.comingout_map if a in candidates and self.comingout_map[a] == Role.SEER]
+                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, attack_vote_candidates)
+            # 戦略B: 霊媒重視（霊媒っぽい方）
+            if self.strategyB:
+                attack_vote_candidates = [a for a in self.comingout_map if a in candidates and self.comingout_map[a] == Role.MEDIUM]
+                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, attack_vote_candidates)
+            # 戦略C: 狩人重視（狩人っぽい方）
+            if self.strategyC:
+                attack_vote_candidates = [a for a in self.comingout_map if self.is_alive(a)
+                                and a in self.humans and self.comingout_map[a] == Role.BODYGUARD]
+                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, attack_vote_candidates)
+            # 候補なし → 襲撃スコア
+            if self.attack_vote_candidate == AGENT_NONE:
+                p = self.role_predictor.prob_all
+                mx_score = 0
+                for agent in candidates:
+                    score = p[agent][Role.VILLAGER] + p[agent][Role.SEER]*4 + p[agent][Role.MEDIUM]*3 + p[agent][Role.BODYGUARD]*2
+                    if score > mx_score:
+                        mx_score = score
+                        self.attack_vote_candidate = agent
+            # 候補なし → 生存村人
+            if self.attack_vote_candidate == AGENT_NONE:
+                self.attack_vote_candidate = self.random_select(candidates)
+            if self.attack_vote_candidate != AGENT_NONE:
+                return Content(AttackContentBuilder(self.attack_vote_candidate))    
+            return CONTENT_SKIP
+        else:
+            return CONTENT_SKIP
 
 
     # 襲撃→OK

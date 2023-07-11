@@ -21,7 +21,8 @@ from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
-                    VoteContentBuilder)
+                    VoteContentBuilder,
+                    EstimateContentBuilder, RequestContentBuilder,)
 from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
 
 from const import CONTENT_SKIP
@@ -285,21 +286,56 @@ class ddhbVillager(AbstractPlayer):
     # 会話
     # まだ実装途中です
     def talk(self) -> Content:
+        
+        day: int = self.game_info.day
+        turn: int = self.talk_turn
+        
+        # ---------- 5人村 ----------
+        if self.N == 5:
+            vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+            if day == 1:    
+                if turn == 1:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
+                elif turn == 2 or turn == 5:
+                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                elif turn == 3 or turn == 6:
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                elif turn == 4 or turn == 7:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                else:
+                    return CONTENT_SKIP
+            elif day >= 2:
+                if turn == 1 or turn == 4:
+                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                elif turn == 2 or turn == 5:
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                elif turn == 3 or turn == 6:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                else:
+                    return CONTENT_SKIP
+            else:
+                return CONTENT_SKIP
+        
         # ---------- CO ----------
         # フルオープンの処理
         # if not self.doFO:
         #     return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
         # todo: 3人以下の時、狂人COを認知→狂人がいるか判定→いる場合、人狼CO
         
-        # 元のコードでの投票先の決定
-        # c = 0
-
-        # if (self.N == 5) :
-        #     c = self.role_predictor.chooseMostLikely(Role.Werewolf)
-        # else :
-        #     c = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list)*0.7)
-        #     if (c == -1) :
-        #         c = self.role_predictor.chooseMostLikely(Role.Werewolf)
+        # # ---------- REQUEST ----------
+        # # 占い師で黒結果の時は必須
+        # request_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        # request_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, request_candidates)
+        # if request_candidate != AGENT_NONE:
+        #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(request_candidate))))
+        
+        # # ---------- ESTIMATE ----------
+        # # 後で修正する
+        # estimate_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        # estimate_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, estimate_candidates)
+        # if estimate_candidate != AGENT_NONE:
+        #     return Content(EstimateContentBuilder(estimate_candidate, Role.WEREWOLF))
         
         # ---------- 投票宣言 ----------
         # 投票候補：偽占い
@@ -324,16 +360,11 @@ class ddhbVillager(AbstractPlayer):
 
 
     def vote(self) -> Agent:
-        # agent_vote_for: Agent = AGENT_NONE
-        # if self.N == 5:
-        #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-        # else:
-        #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-        #     # agent_vote_for = self.chooseMostlikelyExecuted(len(self.game_info.alive_agent_list) * 0.5)
-        #     # if agent_vote_for == AGENT_NONE:
-        #     #     agent_vote_for = self.role_predictor.chooseMostLikely(Role.WEREWOLF)
-
-        # return agent_vote_for
+        
+        if self.N == 5:
+            vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        
 
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.chooseMostlikelyExecuted()
 
