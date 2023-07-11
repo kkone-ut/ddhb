@@ -237,5 +237,7 @@ class ddhbSeer(ddhbVillager):
         # 占い候補：占っていないかつ生存者
         divine_candidates: List[Agent] = self.get_alive(self.not_divined_agents)
         # 占い対象：最も人狼っぽいエージェント
-        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates, 0.3)
+        if target == AGENT_NONE:
+            target = Util.get_strong_agent(divine_candidates)
         return target if target != AGENT_NONE else self.me

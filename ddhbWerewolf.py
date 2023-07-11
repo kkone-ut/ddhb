@@ -287,32 +287,32 @@ class ddhbWerewolf(ddhbPossessed):
                     judge: Judge = self.my_judge_queue.popleft()
                     # 基本は get_fake_judge を利用する
                     return Content(DivinedResultContentBuilder(judge.target, judge.result))
-        # ---------- 霊媒騙り ----------
-        elif self.fake_role == Role.MEDIUM:
-            # ----- CO -----
-            # 1: 予定の日にち
-            if not self.has_co and self.game_info.day == self.co_date:
-                self.has_co = True
-                return Content(ComingoutContentBuilder(self.me, self.fake_role))
-            # 2: 人狼発見
-            if not self.has_co and self.werewolves:
-                self.has_co = True
-                return Content(ComingoutContentBuilder(self.me, self.fake_role))
-            # ----- 結果報告 -----
-            if self.has_co and self.my_judge_queue:
-                judge: Judge = self.my_judge_queue.popleft()
-                # 基本は get_fake_judge を利用する
-                return Content(IdentContentBuilder(judge.target, judge.result))
-        # ---------- 狩人騙り ----------
-        elif self.fake_role == Role.BODYGUARD:
-            # ----- CO -----
-            if self.is_Low_HP():
-                return Content(ComingoutContentBuilder(self.me, self.fake_role))
-            # ----- 結果報告 -----
-            if self.has_co and self.has_report:
-                self.has_report = True
-                guard_agent = self.random_select(self.get_alive(self.allies))
-                return Content(GuardedAgentContentBuilder(guard_agent))
+            # ---------- 霊媒騙り ----------
+            elif self.fake_role == Role.MEDIUM:
+                # ----- CO -----
+                # 1: 予定の日にち
+                if not self.has_co and self.game_info.day == self.co_date:
+                    self.has_co = True
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                # 2: 人狼発見
+                if not self.has_co and self.werewolves:
+                    self.has_co = True
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                # ----- 結果報告 -----
+                if self.has_co and self.my_judge_queue:
+                    judge: Judge = self.my_judge_queue.popleft()
+                    # 基本は get_fake_judge を利用する
+                    return Content(IdentContentBuilder(judge.target, judge.result))
+            # ---------- 狩人騙り ----------
+            elif self.fake_role == Role.BODYGUARD:
+                # ----- CO -----
+                if self.is_Low_HP():
+                    return Content(ComingoutContentBuilder(self.me, self.fake_role))
+                # ----- 結果報告 -----
+                if self.has_co and self.has_report:
+                    self.has_report = True
+                    guard_agent = self.random_select(self.get_alive(self.allies))
+                    return Content(GuardedAgentContentBuilder(guard_agent))
 
         # ---------- 投票宣言 ----------
         # self.vote()の利用
