@@ -352,12 +352,13 @@ class ddhbVillager(AbstractPlayer):
         
         # 自分が人狼陣営で人狼が生存しているか、自分が村人陣営で人狼が生存していない場合に勝利
         alive_wolves = [a for a in self.game_info.alive_agent_list if self.game_info.role_map[a] == Role.WEREWOLF]
-        is_werewolf_side = self.game_info.my_role in [Role.WEREWOLF, Role.POSSESSED]
-        if (len(alive_wolves) > 0) == is_werewolf_side:
-            Util.win_count += 1
+        villagers_win = (len(alive_wolves) == 0)
+        is_villagers_side = self.game_info.my_role in [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
+        Util.update_win_rate(self.game_info, villagers_win)
 
         Util.debug_print("")
-        Util.debug_print("win_rate:\t", Util.win_count, "/", Util.game_count, " = ", Util.win_count / Util.game_count)
+        Util.debug_print("win:\t", is_villagers_side == villagers_win)
+        Util.debug_print("win_rate:\t", Util.win_count[self.me], "/", Util.game_count, " = ", Util.win_rate[self.me])
         Util.debug_print("")
 
         if (len(self.role_predictor.assignments) == 0):
