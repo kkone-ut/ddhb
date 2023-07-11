@@ -177,7 +177,8 @@ class ddhbPossessed(ddhbVillager):
     def talk(self) -> Content:
         # ---------- PP ----------
         if self.PP_flag:
-            return Content(ComingoutContentBuilder(self.me, Role.POSSESSED))   
+            # return Content(ComingoutContentBuilder(self.me, Role.POSSESSED))
+            return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF)) 
         
         alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # もし占い師を語るならば
