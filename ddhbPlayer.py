@@ -73,6 +73,7 @@ class ddhbPlayer(AbstractPlayer):
 
     def day_start(self) -> None:
         Util.start_timer("ddhbPlayer.day_start")
+        self.player.talk_turn = 0
         try:
             self.player.day_start()
             # 自分が死んでいる場合は次のゲーム開始時の ROLE までリクエストが来ないため、ある程度時間をかけても問題ない
