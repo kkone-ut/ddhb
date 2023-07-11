@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import random
 from collections import deque
 from typing import Deque, List, Optional
 
 from aiwolf import (Agent, ComingoutContentBuilder, Content,
                     DivinedResultContentBuilder, GameInfo, GameSetting, Judge,
                     Role, Species, VoteContentBuilder,
-                    RequestContentBuilder)
+                    RequestContentBuilder, EstimateContentBuilder)
 from aiwolf.constant import AGENT_NONE, AGENT_ANY
 
 from const import CONTENT_SKIP
@@ -117,7 +118,7 @@ class ddhbSeer(ddhbVillager):
         turn: int = self.talk_turn
         self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         others_co_num: int = len(self.others_seer_co)
-        
+        self.vote_candidate = self.vote()
         # ---------- 5人村 ----------
         if self.N == 5:
             if day == 1:
@@ -156,16 +157,16 @@ class ddhbSeer(ddhbVillager):
             elif day >= 2:
                 # ----- 結果報告 -----
                 if turn == 1:
-                    # 正しい結果でOK
                     if self.has_co and self.my_judge_queue:
                         judge: Judge = self.my_judge_queue.popleft()
                         self.new_target = judge.target
                         self.new_result = judge.result
+                        # 黒結果→そのまま報告
                         if judge.result == Species.WEREWOLF:
                             return Content(DivinedResultContentBuilder(judge.target, judge.result))
-                        # 白結果なら、残りの1人に黒結果
+                        # 白結果→生存者3人だから、残りの1人に黒結果（結果としては等価）
                         elif judge.result == Species.HUMAN:
-                            self.new_targett = self.random_select(self.get_alive_others(self.not_divined_agents))
+                            self.new_target = self.random_select(self.get_alive_others(self.not_divined_agents))
                             self.new_result = Species.WEREWOLF
                             return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
                 # ----- VOTE and REQUEST -----
@@ -177,13 +178,12 @@ class ddhbSeer(ddhbVillager):
                     return CONTENT_SKIP
             else:
                 return CONTENT_SKIP
-        
         # ---------- 15人村 ----------
         elif self.N == 15:
             # ---------- CO ----------
             # 絶対にCOする→1,2,3
             # 1: 予定の日にち
-            if not self.has_co and self.game_info.day == self.co_date:
+            if not self.has_co and day == self.co_date:
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.SEER))
             # 2: 人狼発見
@@ -191,8 +191,6 @@ class ddhbSeer(ddhbVillager):
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.SEER))
             # 3: 他の占い師がCOしたら(CCO)
-            # 注意：comingout_mapには、自分は含まれていない
-            self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
             if not self.has_co and self.others_seer_co:
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.SEER)) 
@@ -203,41 +201,53 @@ class ddhbSeer(ddhbVillager):
                 # 正しい結果を報告する
                 return Content(DivinedResultContentBuilder(judge.target, judge.result))
             # ---------- 投票宣言 ----------
-            # self.vote()の利用
-            if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
-                self.vote_candidate = self.vote()
-                return Content(VoteContentBuilder(self.vote_candidate))
-            return CONTENT_SKIP
+            # ----- ESTIMATE, VOTE, REQUEST -----
+            if turn >= 2 and turn <= 7:
+                rnd = random.randint(0, 2)
+                if rnd == 0:
+                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                elif rnd == 1:
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                else:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+            else:
+                return CONTENT_SKIP
         else:
             return CONTENT_SKIP
 
 
     # 投票対象→OK
     def vote(self) -> Agent:
+        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
-        # 投票候補：人狼結果リストかつ生存者
-        vote_candidates: List[Agent] = self.get_alive(self.werewolves)
-        # # 候補なし → 偽占い
-        # if not vote_candidates:
-        #     vote_candidates = self.get_alive(self.others_seer_co)
-        # # Vote for one of the alive agents if there are no candidates.
-        # 候補なし → 生存者
-        # 偽占いとしないのは、偽占いに投票しても投票が集まらないと思われるため
-        if not vote_candidates:
-            vote_candidates = self.get_alive_others(self.game_info.agent_list)
-        # 投票対象：人狼っぽいエージェント
-        vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
-        return vote_candidate if vote_candidate != AGENT_NONE else self.me
+        # ---------- 5人村 ----------
+        if self.N == 5:
+            self.vote_candidate = self.new_target
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            # 投票候補：人狼結果リスト
+            vote_candidates = self.get_alive_others(self.werewolves)
+            # 候補なし → 偽占い
+            if not vote_candidates:
+                vote_candidates = self.get_alive_others(self.others_seer_co)
+            # 候補なし → 生存者
+            if not vote_candidates:
+                vote_candidates = self.get_alive_others(self.game_info.agent_list)
+            # 投票対象：人狼っぽいエージェント
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
     # 占い対象→OK
     def divine(self) -> Agent:
-        # Divine a agent randomly chosen from undivined agents.
-        target: Agent = self.random_select(self.not_divined_agents)
-        # 占い候補：占っていないかつ生存者
-        divine_candidates: List[Agent] = self.get_alive(self.not_divined_agents)
-        # 占い対象：最も人狼っぽいエージェント
-        target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates, 0.3)
-        if target == AGENT_NONE:
-            target = Util.get_strong_agent(divine_candidates)
-        return target if target != AGENT_NONE else self.me
+        day: int = self.game_info.day
+        divine_candidate: Agent = AGENT_NONE
+        # 占い候補：占っていないエージェント
+        divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
+        divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+        # ---------- 5人村15人村共通 ----------
+        if day == 0:
+            divine_candidate = Util.get_strong_agent(divine_candidates)
+        # todo: 人狼確率と勝率を組み合わせる
+        return divine_candidate if divine_candidate != AGENT_NONE else self.me

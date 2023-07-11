@@ -142,34 +142,50 @@ class ddhbPossessed(ddhbVillager):
         #     if judge.result == Species.WEREWOLF:
         #         self.werewolves.append(judge.target)
 
+
     def vote(self) -> Agent:
-        alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        self.vote_candidate : Agent = AGENT_NONE
+        ##### シンプルなコードに変更する #####
+        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+        if self.PP_flag:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        # ---------- 5人村 ----------
+        if self.N == 5:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
+        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        ##### シンプルなコードに変更する #####
+        
+        # alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        # self.vote_candidate : Agent = AGENT_NONE
 
-        #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
-        if(self.PP_flag == True) :
-            mx = -1
-            p = self.role_predictor.prob_all
-            for agent in alive_other_list:
-                score = 1 - p[agent][Role.WEREWOLF]
-                if score > mx:
-                    mx = score
-                    self.vote_candidate = agent
-        else :
-            # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
-            if(self.N == 5) :
-                mx = -1
-                p = self.role_predictor.prob_all
-                for agent in alive_other_list:
-                    score = 1 - p[agent][Role.WEREWOLF]
-                    if score > mx:
-                        mx = score
-                        self.vote_candidate = agent
-            # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
-            else :
-                self.vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
+        # #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
+        # if(self.PP_flag == True) :
+        #     mx = -1
+        #     p = self.role_predictor.prob_all
+        #     for agent in alive_other_list:
+        #         score = 1 - p[agent][Role.WEREWOLF]
+        #         if score > mx:
+        #             mx = score
+        #             self.vote_candidate = agent
+        # else :
+        #     # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
+        #     if(self.N == 5) :
+        #         mx = -1
+        #         p = self.role_predictor.prob_all
+        #         for agent in alive_other_list:
+        #             score = 1 - p[agent][Role.WEREWOLF]
+        #             if score > mx:
+        #                 mx = score
+        #                 self.vote_candidate = agent
+        #     # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
+        #     else :
+        #         self.vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
 
-        return self.vote_candidate
+        # return self.vote_candidate
     
     
 
