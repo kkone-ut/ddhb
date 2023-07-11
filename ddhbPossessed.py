@@ -71,22 +71,26 @@ class ddhbPossessed(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
+        # 自分のロールがPOSSESEDでない時、以下をスキップする
+        if self.game_info.my_role != Role.POSSESSED:
+            return
 
-        # ハックを検証するためのフラグ
-        self.strategies = [False, False, True, False, False, True, False, False]
-        self.hackA = self.strategies[0] # 一日で何回も占い結果を言う
-        self.hackB = self.strategies[1] # 狩人COしない(3人目でも出る)
-        self.hackC = self.strategies[2] # 基本的に占い師COする(これ単体だと占いしない)
-        self.hackD = self.strategies[3] # 人狼っぽい人に、占い師でずっと黒判定を出し続ける
-        self.hackE = self.strategies[4] # 人狼っぽくない人に、占い師でずっと黒判定を出し続ける
-        self.hackF = self.strategies[5] # 人狼っぽい人に、占い師でずっと白判定を出し続ける
-        self.hackG = self.strategies[6] # 対抗の占い師がいたら、対抗が黒だという
-        self.hackH = self.strategies[7] # COせず、完全に潜伏（比較用）
+        # 戦略を検証するためのフラグ
+        self.strategies = [False, False, True, False, False, False, False, False, True]
+        self.strategyA = self.strategies[0] # 一日で何回も占い結果を言う
+        self.strategyB = self.strategies[1] # 狩人COしない(3人目でも出る)
+        self.strategyC = self.strategies[2] # 基本的に占い師COする(これ単体だと占いしない)
+        self.strategyD = self.strategies[3] # 人狼っぽい人に、占い師でずっと黒判定を出し続ける
+        self.strategyE = self.strategies[4] # 人狼っぽくない人に、占い師でずっと黒判定を出し続ける
+        self.strategyF = self.strategies[5] # 人狼っぽい人に、占い師でずっと白判定を出し続ける
+        self.strategyG = self.strategies[6] # 対抗の占い師がいたら、対抗が黒だという
+        self.strategyH = self.strategies[7] # COせず、完全に潜伏（比較用）
+        self.strategyI = self.strategies[8] # 占い師/霊媒師っぽい動きをする
 
         if self.N == 5:
             self.fake_role = Role.SEER
         else :
-            if self.hackC == True: # 基本的に占い師COするハック
+            if self.strategyC == True: # 基本的に占い師COする戦略
                 self.fake_role = Role.SEER
             else:
                 # 65%の確率で占い師、35%の確率で霊媒師
@@ -107,6 +111,10 @@ class ddhbPossessed(ddhbVillager):
 
     def day_start(self) -> None:
         super().day_start()
+        # 自分のロールがPOSSESEDでない時、以下をスキップする
+        if self.game_info.my_role != Role.POSSESSED:
+            return
+        
         # 狩人以外のとき、報告済みフラグをfalseにする
         # つまりこれから報告する内容がある
         if (self.fake_role != Role.BODYGUARD):
@@ -136,8 +144,7 @@ class ddhbPossessed(ddhbVillager):
 
     def vote(self) -> Agent:
         alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        max_score = -1
-        agent_vote_for : Agent = AGENT_NONE
+        self.vote_candidate : Agent = AGENT_NONE
 
         #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
         if(self.PP_flag == True) :
@@ -147,7 +154,7 @@ class ddhbPossessed(ddhbVillager):
                 score = 1 - p[agent][Role.WEREWOLF]
                 if score > mx:
                     mx = score
-                    agent_vote_for = agent
+                    self.vote_candidate = agent
         else :
             # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
             if(self.N == 5) :
@@ -157,12 +164,12 @@ class ddhbPossessed(ddhbVillager):
                     score = 1 - p[agent][Role.WEREWOLF]
                     if score > mx:
                         mx = score
-                        agent_vote_for = agent
+                        self.vote_candidate = agent
             # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
             else :
-                agent_vote_for: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
+                self.vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
 
-        return agent_vote_for
+        return self.vote_candidate
     
     
 
@@ -175,7 +182,7 @@ class ddhbPossessed(ddhbVillager):
         alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # もし占い師を語るならば
         if self.fake_role == Role.SEER:
-            if self.hackA == True: # 一日で何回も占い結果を言うハック
+            if self.strategyA == True: # 一日で何回も占い結果を言う戦略
                 # トークのたびにまだ報告していないことにする
                 self.has_report = False
 
@@ -184,11 +191,11 @@ class ddhbPossessed(ddhbVillager):
                 others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
                 num_seer = len(others_seer_co)
 
-                if(self.hackB == False): # 人狼に嚙まれないように、狩人COしないハック
+                if(self.strategyB == False): # 人狼に嚙まれないように、狩人COしない戦略
                     # 占い師が既に二人以上いるならば、霊媒師を騙る
                     if num_seer >= 2:
                         self.fake_role = Role.MEDIUM
-                    elif self.hackH == False: # 潜伏するハックがFalse
+                    elif self.strategyH == False: # 潜伏する戦略がFalse
                             self.has_co = True
                             return Content(ComingoutContentBuilder(self.me, self.fake_role))
                     
@@ -196,28 +203,41 @@ class ddhbPossessed(ddhbVillager):
                 self.has_report = True
                 # 5人村のとき
                 if self.N == 5:
-                    # 対抗がいたら、対抗が黒だという
-                    for agent in alive_other_list:
-                        if self.comingout_map[agent] == Role.SEER:
-                            return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
-                    # 対抗がいなかったら、最も人狼っぽい人を白だと言う
-                    divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
-                    return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
+                    if self.strategyI == True: # 占い師っぽい動きをする戦略
+                        # 人狼っぽくない人を黒という
+                        mx = -1
+                        p = self.role_predictor.prob_all
+                        divine_candidate: Agent = AGENT_NONE
+                        for agent in alive_other_list:
+                            score = 1 - p[agent][Role.WEREWOLF]
+                            if score > mx:
+                                mx = score
+                                divine_candidate = agent
+                        return Content(DivinedResultContentBuilder(divine_candidate, Species.WEREWOLF))
+                    else:
+                        # 対抗がいたら、対抗が黒だという
+                        for agent in alive_other_list:
+                            if self.comingout_map[agent] == Role.SEER:
+                                return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
+                            
+                        # 対抗がいなければ、最も人狼っぽい人を白だという
+                        divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
+                        return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
                             
                 # 15人村のとき
                 else:
-                    if self.hackG == True: # 対抗の占い師がいたら、優先的に対抗が黒だというハック
+                    if self.strategyG == True: # 対抗の占い師がいたら、優先的に対抗が黒だという戦略
                         # 対抗がいたら、対抗が黒だという
                         for agent in self.comingout_map:
                             if self.comingout_map[agent] == Role.SEER:
                                 return Content(DivinedResultContentBuilder(agent, Species.WEREWOLF))
                
-                    if self.hackD == True: # 人狼っぽい人に、占い師でずっと黒判定を出し続けるハック
+                    if self.strategyD == True: # 人狼っぽい人に、占い師でずっと黒判定を出し続ける戦略
                         # 一番人狼っぽい人を黒だという
                         divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
                         return Content(DivinedResultContentBuilder(divine_candidate, Species.WEREWOLF))
                     
-                    if self.hackE == True: # 人狼っぽくない人に、占い師でずっと黒判定を出し続けるハック
+                    if self.strategyE == True: # 人狼っぽくない人に、占い師でずっと黒判定を出し続ける戦略
                         # 一番人狼っぽくない人を黒だという
                         mx = -1
                         p = self.role_predictor.prob_all
@@ -229,28 +249,45 @@ class ddhbPossessed(ddhbVillager):
                                 divine_candidate = agent
                         return Content(DivinedResultContentBuilder(divine_candidate, Species.WEREWOLF))
                     
-                    if self.hackF == True: # 人狼っぽい人に、占い師でずっと白判定を出し続けるハック
+                    if self.strategyF == True: # 人狼っぽい人に、占い師でずっと白判定を出し続ける戦略
                         # 一番人狼っぽい人を白だという
                         divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
                         return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
+                    
+                    if self.strategyI == True: # 占い師っぽい動きをする戦略
+                        # 80%の確率で人狼っぽい人を白だという
+                        if random.random() < 0.8:
+                            divine_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
+                            return Content(DivinedResultContentBuilder(divine_candidate, Species.HUMAN))
+                        # 20%の確率で人狼っぽくない人を黒だという
+                        else:
+                            mx = -1
+                            p = self.role_predictor.prob_all
+                            divine_candidate: Agent = AGENT_NONE
+                            for agent in alive_other_list:
+                                score = 1 - p[agent][Role.WEREWOLF]
+                                if score > mx:
+                                    mx = score
+                                    divine_candidate = agent
+                            return Content(DivinedResultContentBuilder(divine_candidate, Species.WEREWOLF))
+                        
+            if self.strategyI == True: # 占い師っぽい動きをする戦略
+                # 二ターン目以降だったら、投票宣言する
+                if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
+                    self.vote_candidate = self.vote()
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                
+                return CONTENT_SKIP
+
                         
         # もし霊媒師を語るならば
         elif self.fake_role == Role.MEDIUM:
-            if self.has_co == False:
-                # 霊媒師が何人いるかを数える
-                # 注意：comingout_mapには、自分は含まれていない
-                others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
-                num_medium = len(others_medium_co)
-
-                if self.hackB == False: # 人狼に嚙まれないように、狩人COしないハック
-                    # # 霊媒師が既に二人以上いるならば、狩人を騙る
-                    # if num_medium >= 2:
-                    #     self.fake_role = Role.BODYGUARD
-                    #     self.has_report = True
-                    # el
-                    if self.hackH == False: # 潜伏するハックがFalse
-                            self.has_co = True
-                            return Content(ComingoutContentBuilder(self.me, self.fake_role))
+            # まだCOしてなくて、二日目以降ならば
+            if self.has_co == False and self.game_info.day >= 2:
+                if self.strategyB == False: # 人狼に嚙まれないように、狩人COしない戦略
+                    if self.strategyH == False: # 潜伏する戦略がFalse
+                        self.has_co = True
+                        return Content(ComingoutContentBuilder(self.me, self.fake_role))
                     
             if self.has_report == False:
                 self.has_report = True
@@ -266,13 +303,20 @@ class ddhbPossessed(ddhbVillager):
                     # それ以外は白判定する
                     else:
                         return Content(IdentContentBuilder(target, Species.HUMAN))
+            
+            if self.strategyI == True: # 霊媒師っぽい動きをする戦略
+                # ２週目以降で、投票宣言していなかったら
+                if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
+                    self.vote_candidate = self.vote()
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                return CONTENT_SKIP
 
         # もし狩人を騙るならば          
         else:
             # COしていなかったら
             if self.has_co == False:
                 # 護衛成功したら、狩人CO
-                if self.has_report == False and self.hackH == False: # 潜伏するハックがFalse
+                if self.has_report == False and self.strategyH == False: # 潜伏する戦略がFalse
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
                 
@@ -282,7 +326,7 @@ class ddhbPossessed(ddhbVillager):
                     if vote.target == self.me:
                         vote_num += 1
                 
-                if vote_num >= 3 and self.hackH == False: # 潜伏するハックがFalse
+                if vote_num >= 3 and self.strategyH == False: # 潜伏する戦略がFalse
                     self.has_co = True
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
 
