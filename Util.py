@@ -2,12 +2,13 @@ from collections import Counter
 from heapq import merge
 from itertools import product
 import sys
-from collections import deque
+from collections import deque, defaultdict
 
-from aiwolf import Role
+from aiwolf import Role, GameInfo, Agent, Role
+from aiwolf.constant import AGENT_NONE
 import time
 import traceback
-from typing import Dict
+from typing import Dict, DefaultDict, List
 import library.timeout_decorator as timeout_decorator
 
 class Util:
@@ -20,9 +21,18 @@ class Util:
     debug_mode = True
     time_start = Dict[str, float]
 
+    game_count: int = 0
+    win_count: DefaultDict[Agent, int] = {}
+    win_rate: DefaultDict[Agent, float] = {}
+    sum_score: float = 0.0
+
     @staticmethod
     def init():
         Util.time_start = {}
+        Util.game_count = 0
+        Util.win_count = defaultdict(int)
+        Util.win_rate = defaultdict(float)
+        Util.sum_score = 0
 
     @staticmethod
     def debug_print(*args, **kwargs):
@@ -71,6 +81,30 @@ class Util:
         except timeout_decorator.TimeoutError:
             Util.error_print("TimeoutError:\t", func.__name__, timeout, "ms")
             return None
+    
+    @staticmethod
+    def update_win_rate(game_info: GameInfo, villager_win: bool):
+        for agent, role in game_info.role_map.items():
+            is_villager_side = role in [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
+            win = villager_win if is_villager_side else not villager_win
+            if win:
+                Util.win_count[agent] += 1
+            Util.win_rate[agent] = Util.win_count[agent] / Util.game_count
+        for agent in game_info.agent_list:
+            Util.debug_print("win_rate:\t", agent, Util.win_rate[agent])
+
+
+    @staticmethod
+    def get_strong_agent(agent_list: List[Agent], threshold: float = 0.0) -> Agent:
+        rate = threshold
+        strong_agent = AGENT_NONE
+        for agent in agent_list:
+            if Util.win_rate[agent] > rate:
+                rate = Util.win_rate[agent]
+                strong_agent = agent
+
+        return strong_agent
+
 
     @staticmethod
     def unique_permutations_stack(lst, fixed_positions=None):
