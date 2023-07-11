@@ -20,6 +20,10 @@ class Util:
     debug_mode = True
     time_start = Dict[str, float]
 
+    game_count: int = 0
+    win_count: int = 0
+    sum_score: float = 0.0
+
     @staticmethod
     def init():
         Util.time_start = {}

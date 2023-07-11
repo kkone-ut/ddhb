@@ -78,10 +78,6 @@ class ddhbVillager(AbstractPlayer):
         self.agent_idx_0based = -1
         # フルオープンしたかどうか
         self.doFO = False
-        # 統計
-        self.game_count = 0
-        self.win_count = 0
-        self.sum_score = 0
 
 
     # エージェントが生存しているか
@@ -185,6 +181,9 @@ class ddhbVillager(AbstractPlayer):
         self.identification_reports.clear()
         self.talk_list_head = 0
         self.talk_turn = 0
+
+        # 統計
+        Util.game_count += 1
         
         self.will_vote_reports.clear()
         self.talk_list_all = []
@@ -194,10 +193,9 @@ class ddhbVillager(AbstractPlayer):
         self.M = len(game_info.existing_role_list)
         self.agent_idx_0based = self.me.agent_idx - 1
         
+        Util.debug_print("game:\t", Util.game_count)
         Util.debug_print("my role:\t", game_info.my_role)
-        Util.debug_print("my idx:\t", self.me.agent_idx-1)
-        # 統計
-        self.game_count += 1
+        Util.debug_print("my idx:\t", self.me)
 
 
     # 昼スタート
@@ -356,10 +354,10 @@ class ddhbVillager(AbstractPlayer):
         alive_wolves = [a for a in self.game_info.alive_agent_list if self.game_info.role_map[a] == Role.WEREWOLF]
         is_werewolf_side = self.game_info.my_role in [Role.WEREWOLF, Role.POSSESSED]
         if (len(alive_wolves) > 0) == is_werewolf_side:
-            self.win_count += 1
+            Util.win_count += 1
 
         Util.debug_print("")
-        Util.debug_print("win_rate:\t", self.win_count, "/", self.game_count, " = ", self.win_count / self.game_count)
+        Util.debug_print("win_rate:\t", Util.win_count, "/", Util.game_count, " = ", Util.win_count / Util.game_count)
         Util.debug_print("")
 
         if (len(self.role_predictor.assignments) == 0):
@@ -407,10 +405,10 @@ class ddhbVillager(AbstractPlayer):
                 for r in self.game_info.existing_role_list:
                     Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
         
-        self.sum_score += score
+        Util.sum_score += score
         Util.debug_print("")
         Util.debug_print("score:\t", score, "/", self.N)
-        Util.debug_print("rate:\t", self.sum_score, "/", self.game_count, "=", round(self.sum_score / self.game_count, 2))
+        Util.debug_print("rate:\t", Util.sum_score, "/", Util.game_count, "=", round(Util.sum_score / Util.game_count, 2))
         Util.debug_print("")
 
         # 実際の割り当てが予測の割り当てに含まれていたのか
