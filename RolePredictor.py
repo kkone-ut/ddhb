@@ -79,7 +79,7 @@ class RolePredictor:
         else:
             try: 
                 self.addAssignments(game_info, game_setting, timeout=20)
-                Util.debug_print("len(assignments):", len(self.assignments))
+                Util.debug_print("len(assignments):\t", len(self.assignments))
             except timeout_decorator.TimeoutError:
                 Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
 
@@ -89,7 +89,7 @@ class RolePredictor:
 
         self.game_info = game_info
 
-        Util.debug_print("len(self.assignments)1:", len(self.assignments))
+        # Util.debug_print("len(self.assignments)1:\t", len(self.assignments))
 
         Util.start_timer("RolePredictor.update")
 
@@ -107,7 +107,7 @@ class RolePredictor:
                 # raise timeout_decorator.TimeoutError
                 break
 
-        Util.debug_print("len(self.assignments)2:", len(self.assignments))
+        # Util.debug_print("len(self.assignments)2:\t", len(self.assignments))
 
         # ここで確率の更新をしてキャッシュする
         self.getProbAll()

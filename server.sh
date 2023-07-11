@@ -7,7 +7,7 @@ log=./log/
 setting=./SampleSetting.cfg
 client=false
 loop=false
-otherAgents="basket"
+otherAgents="all"
 
 help=false
 
@@ -68,7 +68,9 @@ if [ "$otherAgents" = "all" ]; then
         echo "WasabiPlayer,java,jp.ac.shibaura_it.ma15082.player.WasabiRoleAssignPlayer" >> AutoStarter.ini
         echo "TomatoPlayer,java,com.gmail.toooo1718tyan.Player.RoleAssignPlayer" >> AutoStarter.ini
         echo "IOHPlayer,java,org.aiwolf.IOH.IOHRoleAssignPlayer" >> AutoStarter.ini
-        echo "KarmaPlayer,java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
+        if [ "$client" = "false" ]; then
+            echo "KarmaPlayer,java,aiwolf.org.karma.KarmaRoleAssignPlayer" >> AutoStarter.ini
+        fi
     elif [ "$n" = 15 ]; then
         for i in $(seq 1 2)
         do

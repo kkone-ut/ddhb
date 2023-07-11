@@ -73,6 +73,7 @@ class ddhbPlayer(AbstractPlayer):
 
     def day_start(self) -> None:
         Util.start_timer("ddhbPlayer.day_start")
+        self.player.talk_turn = 0
         try:
             self.player.day_start()
             # 自分が死んでいる場合は次のゲーム開始時の ROLE までリクエストが来ないため、ある程度時間をかけても問題ない
@@ -152,14 +153,14 @@ class ddhbPlayer(AbstractPlayer):
         try:
             Util.start_timer("ddhbPlayer.talk.update")
             self.player.role_predictor.update(self.game_info, self.game_setting, 30)
-            Util.end_timer("ddhbPlayer.talk.update")
+            Util.end_timer("ddhbPlayer.talk.update", 40)
             content = self.player.talk()
             if content.topic != Topic.Skip:
                 Util.debug_print("My Topic:\t", content.text)
             Util.start_timer("ddhbPlayer.talk.addAssignments")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
-            Util.end_timer("ddhbPlayer.talk.addAssignments")
-            Util.end_timer("ddhbPlayer.talk")
+            Util.end_timer("ddhbPlayer.talk.addAssignments", 40)
+            Util.end_timer("ddhbPlayer.talk", 80)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.talk")
             Util.error_print("TimeoutError:\t", "talk")
@@ -175,7 +176,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.update")
         try:
             self._update(game_info)
-            Util.end_timer("ddhbPlayer.update")
+            Util.end_timer("ddhbPlayer.update", 30)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("TimeoutError:\t", "update")
@@ -186,7 +187,7 @@ class ddhbPlayer(AbstractPlayer):
         try:
             agent = self.player.vote()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
-            Util.end_timer("ddhbPlayer.vote")
+            Util.end_timer("ddhbPlayer.vote", 80)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.vote")
             Util.error_print("TimeoutError:\t", "vote")
@@ -197,7 +198,7 @@ class ddhbPlayer(AbstractPlayer):
         content = CONTENT_SKIP
         try:
             content = self.player.whisper()
-            # self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
+            self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.whisper")
             Util.error_print("TimeoutError:\t", "whisper")
