@@ -1,4 +1,4 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
 import numpy as np
 import time
 from collections import defaultdict
@@ -274,3 +274,16 @@ class RolePredictor:
             if p[agent][r] > p[agent][ret_role]:
                 ret_role = r
         return ret_role
+
+
+    # 狂人が生存しているか推測する
+    def estimate_alive_possessed(self, threshold=0.5) -> bool:
+        alive_possessed: bool = False
+        p = self.getProbCache()
+        all = 0
+        alive = 0
+        for agent in self.game_info.agent_list:
+            all += p[agent][Role.POSSESSED]
+            if self.game_info.status_map[agent] == Status.ALIVE:
+                alive += p[agent][Role.POSSESSED]
+        return alive / all > threshold
