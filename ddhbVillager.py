@@ -302,6 +302,11 @@ class ddhbVillager(AbstractPlayer):
                     return CONTENT_SKIP
             elif day >= 2:
                 # todo: 3人以下の時、狂人COを認知→狂人がいるか判定→いる場合、人狼CO
+                agent_possessed: Agent = self.role_predictor.chooseMostLikely(Role.POSSESSED, self.game_info.agent_list, 0.4)
+                if agent_possessed != AGENT_NONE:
+                    alive_possessed = self.is_alive(agent_possessed)
+                    if alive_possessed:
+                        return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
                 if turn == 1 or turn == 4:
                     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
                 elif turn == 2 or turn == 5:
