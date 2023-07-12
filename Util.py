@@ -36,8 +36,8 @@ class Util:
 
     @staticmethod
     def debug_print(*args, **kwargs):
-        # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
-        #     return
+        if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
+            return
         if Util.debug_mode:
             print(*args, **kwargs)
 
@@ -99,7 +99,7 @@ class Util:
         rate = threshold
         strong_agent = AGENT_NONE
         for agent in agent_list:
-            if Util.win_rate[agent] > rate:
+            if Util.win_rate[agent] >= rate:
                 rate = Util.win_rate[agent]
                 strong_agent = agent
 
