@@ -48,7 +48,6 @@ class ddhbSeer(ddhbVillager):
     
     strategies: List[bool] # 戦略フラグのリスト
     others_seer_co: List[Agent] # 他の占い師のCOリスト
-    
     new_target: Agent # 偽の占い対象
     new_result: Species # 偽の占い結果
 
@@ -113,7 +112,6 @@ class ddhbSeer(ddhbVillager):
 
     # CO、結果報告、投票宣言→OK
     def talk(self) -> Content:
-        
         day: int = self.game_info.day
         turn: int = self.talk_turn
         self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
@@ -169,6 +167,8 @@ class ddhbSeer(ddhbVillager):
                             self.new_target = self.random_select(self.get_alive_others(self.not_divined_agents))
                             self.new_result = Species.WEREWOLF
                             return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
+                elif turn == 2 and self.role_predictor.estimate_alive_possessed(threshold=0.5):
+                    return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
                 # ----- VOTE and REQUEST -----
                 elif turn == 2 or turn == 4:
                     return Content(VoteContentBuilder(self.new_target))

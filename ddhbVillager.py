@@ -21,8 +21,7 @@ from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
-                    VoteContentBuilder,
-                    EstimateContentBuilder, RequestContentBuilder,)
+                    VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder,)
 from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
 
 from const import CONTENT_SKIP
@@ -142,6 +141,7 @@ class ddhbVillager(AbstractPlayer):
 
     # 最も処刑されそうなエージェントを返す
     # todo: 情報が足りない時は、AGENT_NONEを返す
+    # todo: thresholdの追加
     def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count: DefaultDict[Agent, float] = defaultdict(float)
@@ -345,6 +345,7 @@ class ddhbVillager(AbstractPlayer):
             vote_candidates = self.get_alive_others(self.game_info.agent_list)
         # ---------- 15人村 ----------
         elif self.N == 15:
+            # todo: MostLikelyExecutedに変更する？
             # 投票候補：偽占い
             fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
             vote_candidates = self.get_alive(fake_seers)

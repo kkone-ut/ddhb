@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import random
 from collections import deque
 from typing import Deque, List, Optional
 
 from aiwolf import (Agent, ComingoutContentBuilder, Content, GameInfo,
                     GameSetting, IdentContentBuilder, Judge, Role, Species,
-                    VoteContentBuilder)
-from aiwolf.constant import AGENT_NONE
+                    VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder)
+from aiwolf.constant import AGENT_NONE, AGENT_ANY
 
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
@@ -93,12 +94,13 @@ class ddhbMedium(ddhbVillager):
 
     # CO、結果報告、投票宣言→OK
     def talk(self) -> Content:
-        # ---------- CO ----------
-        # Do comingout if it's on scheduled day or a werewolf is found.
-        
+        day: int = self.game_info.day
+        turn: int = self.talk_turn
+        self.vote_candidate = self.vote()
+        # ---------- CO ----------        
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
-        if not self.has_co and self.game_info.day == self.co_date:
+        if not self.has_co and day == self.co_date:
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         # 2: 人狼発見
@@ -110,21 +112,24 @@ class ddhbMedium(ddhbVillager):
         if not self.has_co and self.others_medium_co:
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
-        
         # ---------- 結果報告 ----------
-        # Report the medium result after doing comingout.
         if self.has_co and self.my_judge_queue:
             judge: Judge = self.my_judge_queue.popleft()
             return Content(IdentContentBuilder(judge.target, judge.result))
-        
         # ---------- 投票宣言 ----------
-        # self.vote()の利用
-        if self.talk_turn >= 2 and self.vote_candidate == AGENT_NONE:
-            self.vote_candidate = self.vote()
-            return Content(VoteContentBuilder(self.vote_candidate))
-        return CONTENT_SKIP
-    
-    
+        # ----- ESTIMATE, VOTE, REQUEST -----
+        if turn >= 2 and turn <= 7:
+            rnd = random.randint(0, 2)
+            if rnd == 0:
+                return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+            elif rnd == 1:
+                return Content(VoteContentBuilder(self.vote_candidate))
+            else:
+                return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+        else:
+            return CONTENT_SKIP
+
+
     # 投票対象→OK
     def vote(self) -> Agent:
         self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]

@@ -48,14 +48,15 @@ class ddhbWerewolf(ddhbPossessed):
     agent_possessed: Agent # 狂人
     alive_possessed: bool # 確定狂人の生存フラグ
     PP_flag: bool # PPフラグ
+    has_PP: bool # PP宣言したか
     kakoi: bool # 囲いフラグ
     not_judged_humans: List[Agent] # 占っていない村陣営
     others_seer_co: List[Agent] # 他の占い師のCOリスト
     found_me: bool # 自分が見つかったかどうか
     agent_seer: Agent # 占い師
     guard_success: bool # 護衛成功したか
-    new_target: Agent # 偽の占い対象
-    new_result: Species # 偽の占い結果
+    # new_target: Agent # 偽の占い対象
+    # new_result: Species # 偽の占い結果
 
 
     def __init__(self) -> None:
@@ -69,6 +70,7 @@ class ddhbWerewolf(ddhbPossessed):
         self.agent_possessed = AGENT_NONE
         self.alive_possessed = False
         self.PP_flag = False
+        self.has_PP = False
         self.kakoi = False
         self.not_judged_humans = []
         self.others_seer_co = []
@@ -84,11 +86,12 @@ class ddhbWerewolf(ddhbPossessed):
         self.agent_possessed = AGENT_NONE
         self.alive_possessed = False
         self.PP_flag = False
+        self.has_PP = False
         self.not_judged_humans = self.humans.copy()
         self.others_seer_co.clear()
         self.guard_success = False
-        self.new_target = AGENT_NONE
-        self.new_result = Species.WEREWOLF
+        # self.new_target = AGENT_NONE
+        # self.new_result = Species.WEREWOLF
         # ---------- 5人村 ----------
         if self.N == 5:
             # # 騙り役職：90%村人、10%占い師
@@ -107,7 +110,7 @@ class ddhbWerewolf(ddhbPossessed):
             self.co_date = random.randint(1, 2)
             self.kakoi = True
         
-        self.strategies = [True, False, False, False, False]
+        self.strategies = [False, False, True, False, False]
         self.strategyA = self.strategies[0] # 戦略A: 占い重視
         self.strategyB = self.strategies[1] # 戦略B: 霊媒重視
         self.strategyC = self.strategies[2] # 戦略C: 狩人重視
@@ -139,8 +142,8 @@ class ddhbWerewolf(ddhbPossessed):
                     judge_candidate = self.random_select(judge_candidates)
                     result = Species.HUMAN
                 else:
-                    # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果
-                    if len(self.werewolves) < self.num_wolves and random.random() < 0.3:
+                    # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果 and 黒判定<3回 で黒結果
+                    if len(self.werewolves) < self.num_wolves and random.random() < 0.3 and self.black_count < 3:
                         result = Species.WEREWOLF
                         self.black_count += 1
             # ----- 霊媒騙り -----
@@ -169,6 +172,7 @@ class ddhbWerewolf(ddhbPossessed):
         alive_cnt: int = len(self.get_alive(self.game_info.agent_list))
         if alive_cnt <= 3 and self.alive_possessed:
             self.PP_flag = True
+            self.has_PP = False
         if self.alive_possessed:
             Util.debug_print(f"狂人推定:\t{self.agent_possessed}\t 生存:\t{self.alive_possessed}")
 
@@ -191,8 +195,8 @@ class ddhbWerewolf(ddhbPossessed):
     def day_start(self) -> None:
         super().day_start()
         self.attack_vote_candidate = AGENT_NONE
-        self.new_target = AGENT_NONE
-        self.new_result = Species.WEREWOLF
+        # self.new_target = AGENT_NONE
+        # self.new_result = Species.WEREWOLF
         self.estimate_possessed()
         # 騙り結果
         judge: Judge = self.get_fake_judge()
@@ -222,8 +226,8 @@ class ddhbWerewolf(ddhbPossessed):
         others_seer_co_num = len(self.others_seer_co)
         self.vote_candidate = self.vote()
         # ---------- PP ----------
-        if self.PP_flag:
-            self.PP_flag = False
+        if self.PP_flag and not self.has_PP:
+            self.has_PP = True
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
         # ---------- 5人村 ----------
         if self.N == 5:
@@ -348,7 +352,7 @@ class ddhbWerewolf(ddhbPossessed):
                 vote_candidates = self.get_alive_others(self.others_seer_co)
                 if not vote_candidates:
                     vote_candidates = self.get_alive_others(self.humans)
-                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
+                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
             # 投票候補：人狼結果リスト
@@ -407,14 +411,15 @@ class ddhbWerewolf(ddhbPossessed):
                 self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, attack_vote_candidates)
             # 戦略C: 狩人重視（狩人っぽい方）
             if self.strategyC:
-                attack_vote_candidates = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
-                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, attack_vote_candidates)
-            # 候補なし → 襲撃スコア
+                candidates = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
+                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, candidates)
+            # 候補なし → 襲撃スコア = スコア + 勝率
             if self.attack_vote_candidate == AGENT_NONE:
                 p = self.role_predictor.prob_all
                 mx_score = 0
                 for agent in attack_vote_candidates:
                     score = p[agent][Role.VILLAGER] + p[agent][Role.SEER]*4 + p[agent][Role.MEDIUM]*3 + p[agent][Role.BODYGUARD]*2
+                    score += 3 * Util.win_rate[agent]
                     if score > mx_score:
                         mx_score = score
                         self.attack_vote_candidate = agent

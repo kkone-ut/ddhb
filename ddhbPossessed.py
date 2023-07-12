@@ -51,7 +51,8 @@ class ddhbPossessed(ddhbVillager):
     werewolves: List[Agent] # 人狼結果のエージェント
     """Fake werewolves."""
 
-    PP_flag: bool # パワープレイフラグ
+    PP_flag: bool # PPフラグ
+    has_PP: bool # PP宣言したか
     others_seer_co: List[Agent] # 他の占い師のCOリスト
     new_target: Agent # 偽の占い対象
     new_result: Species # 偽の占い結果
@@ -72,6 +73,7 @@ class ddhbPossessed(ddhbVillager):
         self.has_report = False # 占い等の結果を報告したかのフラグ
         self.black_count = 0 # 霊媒師が黒判定した数
         self.PP_flag = False
+        self.has_PP = False
         self.others_seer_co = []
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -103,6 +105,7 @@ class ddhbPossessed(ddhbVillager):
         self.has_report = False
         self.black_count = 0
         self.PP_flag = False
+        self.has_PP = False
         self.others_seer_co.clear()
         self.new_target = AGENT_NONE
         self.new_result = Species.WEREWOLF
@@ -118,7 +121,7 @@ class ddhbPossessed(ddhbVillager):
                 self.fake_role = Role.SEER
             else:
                 # 65%の確率で占い師、35%の確率で霊媒師
-                self.fake_role = Role.SEER if random.random() < 0.7 else Role.MEDIUM
+                self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
         
         # ----- 戦略H：潜伏する -----
         if self.strategyH:
@@ -159,6 +162,8 @@ class ddhbPossessed(ddhbVillager):
 
     def day_start(self) -> None:
         super().day_start()
+        self.new_target = AGENT_NONE
+        self.new_result = Species.WEREWOLF
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
             return
@@ -177,6 +182,7 @@ class ddhbPossessed(ddhbVillager):
         alive_cnt: int = len(self.get_alive(self.game_info.agent_list))
         if alive_cnt <= 3:
             self.PP_flag = True
+            self.has_PP = False
 
         self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
         # # Process the fake judgement.
@@ -244,8 +250,8 @@ class ddhbPossessed(ddhbVillager):
     # CO、結果報告
     def talk(self) -> Content:
         # ---------- PP ----------
-        if self.PP_flag:
-            self.PP_flag = False
+        if self.PP_flag and not self.has_PP:
+            self.has_PP = False
             # return Content(ComingoutContentBuilder(self.me, Role.POSSESSED))
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
         
@@ -359,8 +365,10 @@ class ddhbPossessed(ddhbVillager):
                     result: Species = Species.HUMAN
                     if target == AGENT_NONE:
                         return CONTENT_SKIP
+                    # targetが占いCO→白結果
                     if target in self.others_seer_co:
                         result = Species.HUMAN
+                    # 2人までは黒結果
                     elif self.black_count < 2:
                         self.black_count += 1
                         result = Species.WEREWOLF
