@@ -252,6 +252,19 @@ class RolePredictor:
             return AGENT_NONE
         else:
             return ret_agent
+    
+    
+    # 指定された役職である確率が最も低いプレイヤーの番号を返す
+    def chooseLeastLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        
+        p = self.getProbCache()
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            if p[a][role] < p[ret_agent][role]:
+                ret_agent = a
+        return ret_agent
 
 
     def getMostLikelyRole(self, agent: Agent) -> Role:
