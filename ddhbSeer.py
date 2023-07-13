@@ -138,7 +138,9 @@ class ddhbSeer(ddhbVillager):
                         elif judge.result == Species.HUMAN:
                             self.new_result = Species.WEREWOLF
                             if others_co_num == 0:
-                                self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
+                                # todo: 勝率を反映する
+                                self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.5)
+                                # self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
                             else:
                                 self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.others_seer_co)
                             if self.new_target == AGENT_NONE:
@@ -146,10 +148,11 @@ class ddhbSeer(ddhbVillager):
                                 self.new_result = judge.result
                             return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
                 # ----- VOTE and REQUEST -----
-                elif turn == 3 or turn == 5:
-                    return Content(VoteContentBuilder(self.new_target))
-                elif turn == 4 or turn == 6:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                elif 3 <= turn <= 9:
+                    if turn % 2 == 0:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                    else:
+                        return Content(VoteContentBuilder(self.new_target))
                 else:
                     return CONTENT_SKIP
             elif day >= 2:
@@ -163,17 +166,21 @@ class ddhbSeer(ddhbVillager):
                         if judge.result == Species.WEREWOLF:
                             return Content(DivinedResultContentBuilder(judge.target, judge.result))
                         # 白結果→生存者3人だから、残りの1人に黒結果（結果としては等価）
+                        # 注意：占い先が噛まれた場合は等価ではない→人狼っぽい方に黒結果
                         elif judge.result == Species.HUMAN:
-                            self.new_target = self.random_select(self.get_alive_others(self.not_divined_agents))
+                            # self.new_target = self.random_select(self.get_alive_others(self.not_divined_agents))
+                            self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents))
                             self.new_result = Species.WEREWOLF
                             return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
+                # 狂人が生きている場合→人狼CO
                 elif turn == 2 and self.role_predictor.estimate_alive_possessed(threshold=0.5):
                     return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
                 # ----- VOTE and REQUEST -----
-                elif turn == 2 or turn == 4:
-                    return Content(VoteContentBuilder(self.new_target))
-                elif turn == 3 or turn == 5:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                elif 2 <= turn <= 9:
+                    if turn % 2 == 0:
+                        return Content(VoteContentBuilder(self.new_target))
+                    else:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
                 else:
                     return CONTENT_SKIP
             else:
@@ -218,12 +225,21 @@ class ddhbSeer(ddhbVillager):
 
     # 投票対象→OK
     def vote(self) -> Agent:
+        day: int = self.game_info.day
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         self.others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         # ---------- 5人村 ----------
         if self.N == 5:
-            self.vote_candidate = self.new_target
+            latest_vote_list = self.game_info.latest_vote_list
+            if day == 1 and latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+            # 投票対象：自分の黒先→人狼っぽいエージェント
+            if self.new_target != AGENT_NONE:
+                self.vote_candidate = self.new_target
+            else:
+                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
             # 投票候補：人狼結果リスト
@@ -245,9 +261,10 @@ class ddhbSeer(ddhbVillager):
         divine_candidate: Agent = AGENT_NONE
         # 占い候補：占っていないエージェント
         divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
-        divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+        # todo: 人狼確率と勝率を組み合わせる
+        divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
+        # divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
         # ---------- 5人村15人村共通 ----------
         if day == 0:
             divine_candidate = Util.get_strong_agent(divine_candidates)
-        # todo: 人狼確率と勝率を組み合わせる
         return divine_candidate if divine_candidate != AGENT_NONE else self.me

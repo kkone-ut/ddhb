@@ -31,6 +31,7 @@ from aiwolf.constant import AGENT_NONE, AGENT_ANY
 from const import CONTENT_SKIP, JUDGE_EMPTY
 from ddhbVillager import ddhbVillager
 from RolePredictor import RolePredictor
+from Util import Util
 
 # 裏切り者
 class ddhbPossessed(ddhbVillager):
@@ -162,7 +163,7 @@ class ddhbPossessed(ddhbVillager):
 
     def day_start(self) -> None:
         super().day_start()
-        self.new_target = AGENT_NONE
+        self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
         self.new_result = Species.WEREWOLF
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
@@ -201,6 +202,7 @@ class ddhbPossessed(ddhbVillager):
     # 投票対象
     def vote(self) -> Agent:
         ##### シンプルなコードに変更する #####
+        day: int = self.game_info.day
         alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
         if self.PP_flag:
@@ -209,7 +211,16 @@ class ddhbPossessed(ddhbVillager):
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         # ---------- 5人村 ----------
         if self.N == 5:
-            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+            latest_vote_list = self.game_info.latest_vote_list
+            if day == 1 and latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+            # 投票対象：自分の黒先→処刑されそうなエージェント
+            if self.new_target != AGENT_NONE:
+                self.vote_candidate = self.new_target
+            else:
+                self.vote_candidate = self.chooseMostlikelyExecuted()
+                # self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
             # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
         # ---------- 15人村 ----------
         elif self.N == 15:
@@ -251,7 +262,8 @@ class ddhbPossessed(ddhbVillager):
     def talk(self) -> Content:
         # ---------- PP ----------
         if self.PP_flag and not self.has_PP:
-            self.has_PP = False
+            Util.debug_print('PP: Possessed')
+            self.has_PP = True
             # return Content(ComingoutContentBuilder(self.me, Role.POSSESSED))
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
         
@@ -277,7 +289,8 @@ class ddhbPossessed(ddhbVillager):
                         return Content(ComingoutContentBuilder(self.me, Role.SEER))
                 # ----- 結果報告 -----
                 elif turn == talk_start + 1:
-                    if self.has_co:
+                    if self.has_co and not self.has_report:
+                        self.has_report = True
                         # 候補：対抗の占いっぽいエージェント
                         self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, self.others_seer_co)
                         # 候補なし → 村人っぽいエージェント or 人狼っぽくないエージェント
@@ -287,10 +300,11 @@ class ddhbPossessed(ddhbVillager):
                         self.new_result = Species.WEREWOLF
                         return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
                 # ----- VOTE and REQUEST -----
-                elif turn == 3 or turn == 5:
-                    return Content(VoteContentBuilder(self.new_target))
-                elif turn == 4 or turn == 6:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                elif 2 <= turn <= 9:
+                    if turn % 2 == 0:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                    else:
+                        return Content(VoteContentBuilder(self.vote_candidate))
                 else:
                     return CONTENT_SKIP
             elif day >= 2:
@@ -302,10 +316,11 @@ class ddhbPossessed(ddhbVillager):
                     # self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
                     self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
                 # ----- VOTE and REQUEST -----
-                elif turn == 3 or turn == 5:
-                    return Content(VoteContentBuilder(self.new_target))
-                elif turn == 4 or turn == 6:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                elif 2 <= turn <= 9:
+                    if turn % 2 == 0:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
+                    else:
+                        return Content(VoteContentBuilder(self.vote_candidate))
                 else:
                     return CONTENT_SKIP
             else:
