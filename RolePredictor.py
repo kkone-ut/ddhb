@@ -236,7 +236,7 @@ class RolePredictor:
         p = self.getProbCache()
         return p[agent][role]
 
-    # 指定された役職である確率が最も高いプレイヤーの番号を返す
+    # 指定された役職である確率が最も高いプレイヤーを返す
     # 確率が threshold 未満の場合は AGENT_NONE を返す
     def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Agent:
         if len(agent_list) == 0:
@@ -254,7 +254,7 @@ class RolePredictor:
             return ret_agent
     
     
-    # 指定された役職である確率が最も低いプレイヤーの番号を返す
+    # 指定された役職である確率が最も低いプレイヤーを返す
     def chooseLeastLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
         if len(agent_list) == 0:
             return AGENT_NONE
@@ -287,3 +287,19 @@ class RolePredictor:
             if self.game_info.status_map[agent] == Status.ALIVE:
                 alive += p[agent][Role.POSSESSED]
         return alive / all > threshold
+
+
+    # (役職である確率＋係数＊勝率)が最も高いプレイヤーを返す
+    def chooseStrongLikely(self, role: Role, agent_list: List[Agent], coef: float = 0.0) -> Agent:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        p = self.getProbCache()
+        mx_score = 0
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            score = p[a][role]
+            score += coef * Util.win_rate[a]
+            if score > mx_score:
+                mx_score = score
+                ret_agent = a        
+        return ret_agent
