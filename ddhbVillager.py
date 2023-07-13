@@ -143,6 +143,7 @@ class ddhbVillager(AbstractPlayer):
     # 最も処刑されそうなエージェントを返す
     # todo: 情報が足りない時は、AGENT_NONEを返す
     # todo: thresholdの追加
+    # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
     def chooseMostlikelyExecuted(self) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count: DefaultDict[Agent, float] = defaultdict(float)
@@ -177,6 +178,7 @@ class ddhbVillager(AbstractPlayer):
     # 同数投票の時に、自分の捨て票を変更する
     # 5人村用
     # todo: 15人村にも対応する
+    # todo: 最大投票以外のエージェントに投票している場合、投票先を変更する
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         count: DefaultDict[Agent, float] = defaultdict(float)
