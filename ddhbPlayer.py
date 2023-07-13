@@ -186,6 +186,9 @@ class ddhbPlayer(AbstractPlayer):
         agent = AGENT_NONE
         try:
             agent = self.player.vote()
+            Util.debug_print("----------")
+            Util.debug_print("My Vote:\t", agent)
+            Util.debug_print("----------")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.vote", 80)
         except timeout_decorator.TimeoutError:
