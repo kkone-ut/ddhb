@@ -209,7 +209,7 @@ class ddhbSeer(ddhbVillager):
                 return Content(DivinedResultContentBuilder(judge.target, judge.result))
             # ---------- 投票宣言 ----------
             # ----- ESTIMATE, VOTE, REQUEST -----
-            if turn >= 2 and turn <= 7:
+            if 2 <= turn <= 7:
                 rnd = random.randint(0, 2)
                 if rnd == 0:
                     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
@@ -236,7 +236,9 @@ class ddhbSeer(ddhbVillager):
                 self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
                 return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 投票対象：自分の黒先→人狼っぽいエージェント
-            if self.new_target != AGENT_NONE:
+            if self.get_alive_others(self.werewolves):
+                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.werewolves))
+            elif self.new_target != AGENT_NONE:
                 self.vote_candidate = self.new_target
             else:
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
