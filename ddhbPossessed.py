@@ -260,10 +260,9 @@ class ddhbPossessed(ddhbVillager):
 
     # CO、結果報告
     def talk(self) -> Content:
-        # # 自分のロールがPOSSESEDでない時、以下をスキップする
-        # if self.game_info.my_role != Role.POSSESSED:
-        #     return
-        Util.debug_print('Possessed: talk()')
+        # 自分のロールがPOSSESEDでない時、以下をスキップする
+        if self.game_info.my_role != Role.POSSESSED:
+            return
         # ---------- PP ----------
         if self.PP_flag and not self.has_PP:
             Util.debug_print('PP: Possessed')
