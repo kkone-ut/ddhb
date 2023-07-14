@@ -257,7 +257,8 @@ class ddhbVillager(AbstractPlayer):
         
         Util.debug_print("Executed:\t", self.game_info.executed_agent)
         
-        for v in self.game_info.vote_list:
+        # for v in self.game_info.vote_list:
+        for v in self.game_info.latest_vote_list:
             self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
 
 
