@@ -144,11 +144,14 @@ class ddhbVillager(AbstractPlayer):
     # todo: 情報が足りない時は、AGENT_NONEを返す
     # todo: thresholdの追加
     # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
-    def chooseMostlikelyExecuted(self) -> Agent:
+    def chooseMostlikelyExecuted(self, exclude_list: List[Agent]=None) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count: DefaultDict[Agent, float] = defaultdict(float)
         for talker, target in self.will_vote_reports.items():
-            count[target] += 1
+            if exclude_list is not None and target in exclude_list:
+                continue
+            if self.is_alive(talker) and self.is_alive(target):
+                count[target] += 1
         if self.vote_candidate != AGENT_NONE:
             count[self.vote_candidate] += 1
         
@@ -159,18 +162,18 @@ class ddhbVillager(AbstractPlayer):
     # todo: EstimateBlack,Whiteにも対応させる
     def is_Low_HP(self) -> bool:
         is_low_hp: bool = False
-        # will_vote：投票が半数以上で、自分が最も処刑されそうな場合
+        # will_vote：投票が20%以上で、自分が最も処刑されそうな場合
         alive_cnt = len(self.game_info.alive_agent_list)
         will_vote_cnt = len(self.will_vote_reports)
-        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.5 and self.chooseMostlikelyExecuted() == self.me:
+        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.2 and self.chooseMostlikelyExecuted() == self.me:
             is_low_hp = True
-        # latest_vote：前日投票の25%以上がが自分に入っている場合
+        # latest_vote：前日投票の20%以上がが自分に入っている場合
         latest_vote_cnt = 0
         latest_vote_list = self.game_info.latest_vote_list
         for vote in latest_vote_list:
             if vote.target == self.me:
                 latest_vote_cnt += 1
-        if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.25:
+        if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.2:
             is_low_hp = True
         return is_low_hp
 
@@ -229,7 +232,8 @@ class ddhbVillager(AbstractPlayer):
         self.M = len(game_info.existing_role_list)
         self.agent_idx_0based = self.me.agent_idx - 1
         
-        Util.debug_print("game:\t", Util.game_count)
+        # Util.debug_print("game:\t", Util.game_count)
+        Util.debug_print("game:\t", Util.game_count - 1)
         Util.debug_print("my role:\t", game_info.my_role)
         Util.debug_print("my idx:\t", self.me)
 
@@ -314,6 +318,7 @@ class ddhbVillager(AbstractPlayer):
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
+                # todo: ESTIMATEとREQUEST VOTEでも、will_vote_reportsを更新する
         
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
