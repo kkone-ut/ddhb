@@ -156,6 +156,7 @@ class ddhbPlayer(AbstractPlayer):
             Util.end_timer("ddhbPlayer.talk.update", 40)
             content = self.player.talk()
             if content.topic != Topic.Skip:
+                # Util.debug_print("W--------------:\t", self.player.role_predictor.chooseMostLikely_demo(Role.WEREWOLF, self.player.get_alive_others(self.game_info.agent_list)))
                 Util.debug_print("My Topic:\t", content.text)
             Util.start_timer("ddhbPlayer.talk.addAssignments")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)

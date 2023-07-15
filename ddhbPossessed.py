@@ -186,17 +186,6 @@ class ddhbPossessed(ddhbVillager):
             self.has_PP = False
 
         self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
-        # # Process the fake judgement.
-        # # 昼に騙り結果
-        # judge: Judge = self.get_fake_judge()
-        # if judge != JUDGE_EMPTY:
-        #     self.my_judge_queue.append(judge)
-        #     # 占い対象を、占っていないエージェントリストから除く
-        #     if judge.target in self.not_judged_agents:
-        #         self.not_judged_agents.remove(judge.target)
-        #     # 人狼発見 → 人狼結果リストに追加
-        #     if judge.result == Species.WEREWOLF:
-        #         self.werewolves.append(judge.target)
 
 
     # 投票対象
