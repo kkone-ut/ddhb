@@ -107,6 +107,17 @@ class Util:
 
 
     @staticmethod
+    def get_weak_agent(agent_list: List[Agent], threshold: float = 1.0) -> Agent:
+        rate = threshold
+        weak_agent = AGENT_NONE
+        for agent in agent_list:
+            if Util.win_rate[agent] <= rate:
+                rate = Util.win_rate[agent]
+                weak_agent = agent
+        return weak_agent
+
+
+    @staticmethod
     def unique_permutations_stack(lst, fixed_positions=None):
         if fixed_positions is None:
             fixed_positions = {}
