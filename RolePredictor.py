@@ -3,7 +3,7 @@ import numpy as np
 import time
 from collections import defaultdict
 import queue
-from typing import List, Dict, Set, DefaultDict
+from typing import List, Dict, Set, DefaultDict, Tuple
 
 from Util import Util
 from Assignment import Assignment
@@ -252,8 +252,23 @@ class RolePredictor:
             return AGENT_NONE
         else:
             return ret_agent
-    
-    
+
+
+    # 指定された役職である確率が最も高いプレイヤーと確率を返す
+    def chooseMostLikely_demo(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Tuple[int, float]:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        p = self.getProbCache()
+        mx_score = 0
+        ret_agent = AGENT_NONE
+        for a in agent_list:
+            score = p[a][role]
+            if score > mx_score:
+                mx_score = score
+                ret_agent = a
+        return ret_agent.agent_idx, mx_score
+
+
     # 指定された役職である確率が最も低いプレイヤーを返す
     def chooseLeastLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
         if len(agent_list) == 0:
