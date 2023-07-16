@@ -109,7 +109,7 @@ class ddhbPlayer(AbstractPlayer):
         except Exception as e:
             Util.error_print(traceback.format_exc())
         Util.debug_print("finish")
-        Util.debug_print("---------")
+        Util.debug_print("---------------------------------------")
         Util.debug_print("")
 
     def guard(self) -> Agent:

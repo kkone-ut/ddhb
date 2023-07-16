@@ -90,8 +90,11 @@ class Util:
             if win:
                 Util.win_count[agent] += 1
             Util.win_rate[agent] = Util.win_count[agent] / Util.game_count
+        Util.debug_print("")
+        Util.debug_print("------------------")
         for agent in game_info.agent_list:
             Util.debug_print("win_rate:\t", agent, Util.win_rate[agent])
+        Util.debug_print("------------------")
 
 
     @staticmethod
