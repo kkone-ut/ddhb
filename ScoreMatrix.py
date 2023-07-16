@@ -737,36 +737,75 @@ class ScoreMatrix:
         day = self.game_info.day
         turn = self.player.talk_turn
         my_role = self.my_role
+        role_map = self.game_info.role_map
+        # 自分と仲間の人狼の結果は無視
+        if talker == self.me or (talker in role_map and role_map[talker] == Role.WEREWOLF):
+            return
         # 1日目の報告は、人外
         if day <= 1:
-            # 
-            pass
+            self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
         # ----- 霊媒 -----
         if my_role == Role.MEDIUM:
             self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
         # ----- 人狼 -----
         elif my_role == Role.WEREWOLF:
-            pass
-        # ----- それ以外 -----
+            allies: List[Agent] = role_map.keys()
+            # 黒結果
+            if species == Species.WEREWOLF:
+                # 対象：人狼仲間
+                if target in allies:
+                    # 人狼に黒出ししている場合は本物の可能性が高い
+                    self.add_scores(talker, {Role.MEDIUM: +10, Role.POSSESSED: +1})
+                # 対象：それ以外
+                else:
+                    # 外れてる場合は狂人確定
+                    self.add_scores(talker, {Role.MEDIUM: -100, Role.POSSESSED: +100})
+                    Util.debug_print('狂人:\t', talker)
+            # 白結果
+            elif species == Species.HUMAN:
+                # 対象：人狼仲間
+                if target in allies:
+                    # 人狼に白だししている場合は狂人確定
+                    self.add_scores(talker, {Role.MEDIUM: -100, Role.POSSESSED: +100})
+                    Util.debug_print('狂人:\t', talker)
+                # 対象：それ以外
+                else:
+                    # 当たっている場合は、若干霊媒師である可能性を上げる
+                    self.add_scores(talker, {Role.MEDIUM: +5, Role.POSSESSED: +1})
+        # ----- 狂人 or 村人 or 占い or 狩人 -----
         else:
-            pass
-        # 本物の霊媒師が嘘を言うことは無いと仮定する
-        if species == Species.WEREWOLF:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
+            # 黒結果
+            if species == Species.WEREWOLF:
+                self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
+                # todo: 逆・裏・対偶を一つにまとめた関数を作る
+                self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
+                self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+                self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
+            # 白結果
+            elif species == Species.HUMAN:
+                self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
+                self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
+                self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
 
-            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
-            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
-            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
-        elif species == Species.HUMAN:
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
 
-            self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
-            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
-            # 人狼陣営でも本物の白出しをする場合があるので、この可能性は排除しない (黒出しと白出しで異なる部分)
-            # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5) 
-        else:
-            pass # 有益な情報ではないので無視する
-    # --------------- 他の人の発言から推測する ---------------
+
+    #     # 本物の霊媒師が嘘を言うことは無いと仮定する
+    #     if species == Species.WEREWOLF:
+    #         self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
+
+    #         self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
+    #         self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+    #         self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
+    #     elif species == Species.HUMAN:
+    #         self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
+
+    #         self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
+    #         self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+    #         # 人狼陣営でも本物の白出しをする場合があるので、この可能性は排除しない (黒出しと白出しで異なる部分)
+    #         # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5) 
+    #     else:
+    #         pass # 有益な情報ではないので無視する
+    # # --------------- 他の人の発言から推測する ---------------
 
 
     # 1日目の終わりに推測する (主に5人村の場合)
@@ -813,17 +852,23 @@ class ScoreMatrix:
             self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
         # ----- 人狼 -----
         elif my_role == Role.WEREWOLF:
-            pass
-        # ----- それ以外 -----
+            if game_info.attacked_agent == target:
+                # 襲撃先と護衛成功発言先が一致していたら狩人の可能性を増やす
+                self.add_scores(talker, {Role.BODYGUARD: +10, Role.POSSESSED: +5})
+            else:
+                # 襲撃先と護衛成功発言先が一致していなかったら狂人確定
+                self.add_scores(talker, {Role.BODYGUARD: -100, Role.POSSESSED: +100})
+        # ----- 狂人 or 村人 or 占い or 霊媒 -----
         else:
-            pass
+            if len(game_info.last_dead_agent_list) == 0:
+                # 護衛が成功していたら護衛対象は人狼ではない
+                self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -10)
+                self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +10)
+                self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
+                self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
             
-        if len(game_info.last_dead_agent_list) == 0:
-            # 護衛が成功していたら護衛対象は人狼ではない
-            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -10)
-            self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +10)
-            self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
-            self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+            
+
 
     # 投票した発言を反映
     # 後で実装する→そんなに重要でない
