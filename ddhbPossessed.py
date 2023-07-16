@@ -129,36 +129,6 @@ class ddhbPossessed(ddhbVillager):
             self.fake_role = Role.VILLAGER
 
         ##### ここまで変更 #####
-        
-
-        # # ---------- 5人村 ----------
-        # if self.N == 5:
-        #     self.fake_role = Role.SEER
-            
-        # # ---------- 15人村 ----------
-        # elif self.N == 15:
-        # # else :
-        #     if self.strategyC == True: # 基本的に占い師COする戦略
-        #         self.fake_role = Role.SEER
-        #     else:
-        #         # 65%の確率で占い師、35%の確率で霊媒師
-        #         self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
-        # # self.N = game_setting.player_num
-
-        # self.co_date = 1 # 最低でも1日目にCO → 変更する
-        # self.has_co = False
-        # self.my_judge_queue.clear()
-        # self.not_judged_agents = self.get_others(self.game_info.agent_list)
-        # self.num_wolves = game_setting.role_num_map.get(Role.WEREWOLF, 0)
-        # self.werewolves.clear()
-        # # self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
-
-        # self.has_report = False
-        # self.black_count = 0
-        # self.PP_flag = False
-        # self.others_seer_co.clear()
-        # self.new_target = AGENT_NONE
-        # self.new_result = Species.WEREWOLF
 
 
     def day_start(self) -> None:
@@ -188,65 +158,6 @@ class ddhbPossessed(ddhbVillager):
         self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
 
 
-    # 投票対象
-    def vote(self) -> Agent:
-        ##### シンプルなコードに変更する #####
-        day: int = self.game_info.day
-        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
-        if self.PP_flag:
-            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
-            # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
-            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-        # ---------- 5人村 ----------
-        if self.N == 5:
-            latest_vote_list = self.game_info.latest_vote_list
-            if day == 1 and latest_vote_list:
-                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
-                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-            # 投票対象：自分の黒先→処刑されそうなエージェント
-            if self.new_target != AGENT_NONE:
-                self.vote_candidate = self.new_target
-            else:
-                self.vote_candidate = self.chooseMostlikelyExecuted()
-                # self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
-            # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
-        # ---------- 15人村 ----------
-        elif self.N == 15:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
-        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-        ##### シンプルなコードに変更する #####
-        
-        # alive_other_list: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        # self.vote_candidate : Agent = AGENT_NONE
-
-        # #  狂人の場合：生存するエージェントが3人以下だったら、一番人狼っぽくない人に投票
-        # if(self.PP_flag == True) :
-        #     mx = -1
-        #     p = self.role_predictor.prob_all
-        #     for agent in alive_other_list:
-        #         score = 1 - p[agent][Role.WEREWOLF]
-        #         if score > mx:
-        #             mx = score
-        #             self.vote_candidate = agent
-        # else :
-        #     # 狂人の場合：5人村だったら、一番人狼っぽくない人に投票
-        #     if(self.N == 5) :
-        #         mx = -1
-        #         p = self.role_predictor.prob_all
-        #         for agent in alive_other_list:
-        #             score = 1 - p[agent][Role.WEREWOLF]
-        #             if score > mx:
-        #                 mx = score
-        #                 self.vote_candidate = agent
-        #     # 狂人の場合：15人村だったら、一番人狼っぽい人に投票
-        #     else :
-        #         self.vote_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_other_list)
-
-        # return self.vote_candidate
-    
-    
-
     # CO、結果報告
     def talk(self) -> Content:
         # 自分のロールがPOSSESEDでない時、以下をスキップする
@@ -273,7 +184,7 @@ class ddhbPossessed(ddhbVillager):
         # ---------- 5人村 ----------
         if self.N == 5:
             if day == 1:
-                talk_start: int = 2
+                talk_start: int = 1
                 # ----- CO -----
                 if turn == talk_start:
                     if not self.has_co:
@@ -569,3 +480,33 @@ class ddhbPossessed(ddhbVillager):
         #             # 発言をする（未実装）
 
         # return CONTENT_SKIP
+
+
+    # 投票対象
+    def vote(self) -> Agent:
+        ##### シンプルなコードに変更する #####
+        day: int = self.game_info.day
+        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+        if self.PP_flag:
+            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+            # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        # ---------- 5人村 ----------
+        if self.N == 5:
+            latest_vote_list = self.game_info.latest_vote_list
+            if day == 1 and latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+            # 投票対象：自分の黒先→処刑されそうなエージェント
+            if self.new_target != AGENT_NONE:
+                self.vote_candidate = self.new_target
+            else:
+                self.vote_candidate = self.chooseMostlikelyExecuted()
+                # self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+            # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
+        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        ##### シンプルなコードに変更する #####
