@@ -325,7 +325,7 @@ class ddhbWerewolf(ddhbPossessed):
             # 人狼仲間のCO状況を確認して、COするかを決める
             allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
             # Util.debug_print("仲間CO数:\t", len(allies_co))
-            if len(allies_co) >= 1:
+            if len(allies_co) >= 1 and not self.has_co:
                 self.fake_role = Role.VILLAGER
             # ---------- 占い騙り ----------
             if self.fake_role == Role.SEER:
@@ -441,10 +441,21 @@ class ddhbWerewolf(ddhbPossessed):
                     # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
+            if latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 投票候補の優先順位
-            # 自分の黒先→占い→処刑されそうなエージェント
+            # 仲間の投票先→自分の黒先→占い→処刑されそうなエージェント
+            allies_will_vote_reports = [target for agent, target in self.will_vote_reports.items() if agent in self.allies]
+            allies_will_vote_reports_num = [target.agent_idx for agent, target in self.will_vote_reports.items() if agent in self.allies]
+            
             humans_seer_co = [a for a in self.comingout_map if a in vote_candidates and  self.comingout_map[a] == Role.SEER]
-            if self.get_alive_others(self.werewolves):
+            if allies_will_vote_reports:
+                self.vote_candidate = self.chooseMostlikelyExecuted_2(include_list=allies_will_vote_reports)
+                if turn >= 12:
+                    Util.debug_print("仲間の投票先:\t", allies_will_vote_reports_num)
+                    Util.debug_print("仲間の投票先投票:\t", self.vote_candidate.agent_idx)
+            elif self.get_alive_others(self.werewolves):
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.werewolves))
             # 初日に真偽がわからない占いに投票するのはおかしいから、2日目以降にする
             elif humans_seer_co and day >= 2:
