@@ -404,9 +404,10 @@ class ddhbWerewolf(ddhbPossessed):
         if self.PP_flag:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        
+        latest_vote_list = self.game_info.latest_vote_list
         # ---------- 5人村 ----------
         if self.N == 5:
-            latest_vote_list = self.game_info.latest_vote_list
             if day == 1 and latest_vote_list:
                 self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
                 return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
