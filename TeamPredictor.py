@@ -95,7 +95,7 @@ class TeamPredictor:
 
                 # todo: 一日に何度も占い・霊媒報告
 
-        Util.debug_print("TeamPredictor")
-        for agent in game_info.agent_list:
-            Util.debug_print(agent, "\t", TeamPredictor.team_map[agent])
-        Util.debug_print("")
+        # Util.debug_print("TeamPredictor")
+        # for agent in game_info.agent_list:
+        #     Util.debug_print(agent, "\t", TeamPredictor.team_map[agent])
+        # Util.debug_print("")

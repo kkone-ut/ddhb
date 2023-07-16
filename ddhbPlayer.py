@@ -109,7 +109,7 @@ class ddhbPlayer(AbstractPlayer):
         except Exception as e:
             Util.error_print(traceback.format_exc())
         Util.debug_print("finish")
-        Util.debug_print("---------")
+        Util.debug_print("---------------------------------------")
         Util.debug_print("")
 
     def guard(self) -> Agent:
@@ -156,6 +156,7 @@ class ddhbPlayer(AbstractPlayer):
             Util.end_timer("ddhbPlayer.talk.update", 40)
             content = self.player.talk()
             if content.topic != Topic.Skip:
+                # Util.debug_print("W--------------:\t", self.player.role_predictor.chooseMostLikely_demo(Role.WEREWOLF, self.player.get_alive_others(self.game_info.agent_list)))
                 Util.debug_print("My Topic:\t", content.text)
             Util.start_timer("ddhbPlayer.talk.addAssignments")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
@@ -186,6 +187,9 @@ class ddhbPlayer(AbstractPlayer):
         agent = AGENT_NONE
         try:
             agent = self.player.vote()
+            Util.debug_print("----------")
+            Util.debug_print("My Vote:\t", agent)
+            Util.debug_print("----------")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.vote", 80)
         except timeout_decorator.TimeoutError:

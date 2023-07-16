@@ -21,9 +21,9 @@ from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
                     Judge, Role, Species, Status, Talk, Topic,
-                    VoteContentBuilder,
-                    EstimateContentBuilder, RequestContentBuilder,)
+                    VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder,)
 from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
+from aiwolf.vote import Vote
 
 from const import CONTENT_SKIP
 
@@ -57,7 +57,9 @@ class ddhbVillager(AbstractPlayer):
     
     will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_all: List[Talk] # 全talkリスト
+    talk_turn: int # talkのターン
     role_predictor: RolePredictor # role_predictor
+    
 
 
     def __init__(self) -> None:
@@ -69,10 +71,10 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports = []
         self.identification_reports = []
         self.talk_list_head = 0
-        self.talk_turn = 0
         
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_all = []
+        self.talk_turn = 0
         self.role_predictor = None
         self.N = -1
         self.M = -1
@@ -140,11 +142,16 @@ class ddhbVillager(AbstractPlayer):
 
     # 最も処刑されそうなエージェントを返す
     # todo: 情報が足りない時は、AGENT_NONEを返す
-    def chooseMostlikelyExecuted(self) -> Agent:
+    # todo: thresholdの追加
+    # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
+    def chooseMostlikelyExecuted(self, exclude_list: List[Agent]=None) -> Agent:
         # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count: DefaultDict[Agent, float] = defaultdict(float)
         for talker, target in self.will_vote_reports.items():
-            count[target] += 1
+            if exclude_list is not None and target in exclude_list:
+                continue
+            if self.is_alive(talker) and self.is_alive(target):
+                count[target] += 1
         if self.vote_candidate != AGENT_NONE:
             count[self.vote_candidate] += 1
         
@@ -155,20 +162,62 @@ class ddhbVillager(AbstractPlayer):
     # todo: EstimateBlack,Whiteにも対応させる
     def is_Low_HP(self) -> bool:
         is_low_hp: bool = False
-        # will_vote：投票が半数以上で、自分が最も処刑されそうな場合
+        # will_vote：投票が20%以上で、自分が最も処刑されそうな場合
         alive_cnt = len(self.game_info.alive_agent_list)
         will_vote_cnt = len(self.will_vote_reports)
-        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.5 and self.chooseMostlikelyExecuted() == self.me:
-                is_low_hp = True
-        # latest_vote：前日投票の25%以上がが自分に入っている場合
-        latest_vote_cnt = 0
-        latest_vote_list = self.game_info.latest_vote_list
-        for vote in latest_vote_list:
-            if vote.target == self.me:
-                latest_vote_cnt += 1
-        if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.25:
+        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.2 and self.chooseMostlikelyExecuted() == self.me:
             is_low_hp = True
+        # latest_vote：前日投票の20%以上がが自分に入っている場合
+        # latest_vote_listは、day_startで[]となっているため、前日の投票はvote_listに入っている
+        vote_cnt = 0
+        vote_list = self.game_info.vote_list
+        for vote in vote_list:
+            if vote.target == self.me:
+                vote_cnt += 1
+        if len(vote_list) != 0 and vote_cnt/len(vote_list) >= 0.2:
+            is_low_hp = True
+        # latest_vote_cnt = 0
+        # latest_vote_list = self.game_info.latest_vote_list
+        # for vote in latest_vote_list:
+        #     if vote.target == self.me:
+        #         latest_vote_cnt += 1
+        # if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.2:
+        #     is_low_hp = True
+        if is_low_hp:
+            Util.debug_print("Low_HP")
         return is_low_hp
+
+
+    # 同数投票の時に、自分の捨て票を変更する
+    # 5人村用
+    # todo: 15人村にも対応する
+    # todo: 最大投票以外のエージェントに投票している場合、投票先を変更する
+    def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
+        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        count: DefaultDict[Agent, float] = defaultdict(float)
+        count_num: DefaultDict[str, float] = defaultdict(float)
+        my_target: Agent = AGENT_NONE
+        new_target: Agent = AGENT_NONE
+        for vote in vote_list:
+            agent = vote.agent
+            target = vote.target
+            no = str(target.agent_idx)
+            if agent == self.me:
+                my_target = target
+            count[target] += 1
+            count_num[no] += 1
+        Util.debug_print('count_num:\t', count_num)
+        vote_candidates = list(count.keys())
+        if count[my_target] == 1.0:
+            vote_candidates.remove(my_target)
+            if mostlikely:
+                new_target = self.role_predictor.chooseMostLikely(role, vote_candidates)
+            else:
+                new_target = self.role_predictor.chooseLeastLikely(role, vote_candidates)   
+        if new_target == AGENT_NONE:
+            new_target = my_target
+        Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
+        return new_target if new_target != AGENT_NONE else self.me
 
 
     # 初期化
@@ -181,20 +230,20 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports.clear()
         self.identification_reports.clear()
         self.talk_list_head = 0
-        self.talk_turn = 0
-
         # 統計
         Util.game_count += 1
         
         self.will_vote_reports.clear()
         self.talk_list_all = []
+        self.talk_turn = 0
         self.score_matrix = ScoreMatrix(game_info, game_setting, self)
         self.role_predictor = RolePredictor(game_info, game_setting, self, self.score_matrix)
         self.N = game_setting.player_num
         self.M = len(game_info.existing_role_list)
         self.agent_idx_0based = self.me.agent_idx - 1
         
-        Util.debug_print("game:\t", Util.game_count)
+        # Util.debug_print("game:\t", Util.game_count)
+        Util.debug_print("game:\t", Util.game_count - 1)
         Util.debug_print("my role:\t", game_info.my_role)
         Util.debug_print("my idx:\t", self.me)
 
@@ -204,25 +253,31 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
         self.will_vote_reports.clear()
-
+        
         Util.debug_print("")
         Util.debug_print("DayStart:\t", self.game_info.day)
-
+        Util.debug_print("生存者数:\t", len(self.game_info.alive_agent_list))
+        
+        Util.debug_print("Executed:\t", self.game_info.executed_agent)
+        if self.game_info.executed_agent == self.me:
+            Util.debug_print("---------- 処刑された ----------")
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
         killed: List[Agent] = self.game_info.last_dead_agent_list
         if len(killed) > 0:
             self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
             Util.debug_print("Killed:\t", self.game_info.last_dead_agent_list[0])
+            if self.game_info.last_dead_agent_list[0] == self.me:
+                Util.debug_print("---------- 噛まれた ----------")
             # 本来複数人殺されることはないが、念のためkilled()は呼び出した上でエラーログを出しておく
             if len(killed) > 1:
                 Util.error_print("Killed:\t", *self.game_info.last_dead_agent_list)
         else:
             Util.debug_print("Killed:\t", AGENT_NONE)
-
-        Util.debug_print("Executed:\t", self.game_info.executed_agent)
-
-        for v in self.game_info.vote_list:
+        
+        
+        # for v in self.game_info.vote_list:
+        for v in self.game_info.latest_vote_list:
             self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
 
 
@@ -278,93 +333,113 @@ class ddhbVillager(AbstractPlayer):
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
-
+                # todo: ESTIMATEとREQUEST VOTEでも、will_vote_reportsを更新する
+        
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
-    # 会話
-    # まだ実装途中です
+    # CO、投票宣言
     def talk(self) -> Content:
-        
         day: int = self.game_info.day
-        turn: int = self.talk_turn
-        
+        turn: int = self.talk_turn        
+        self.vote_candidate = self.vote()
         # ---------- 5人村 ----------
         if self.N == 5:
-            vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
             if day == 1:    
                 if turn == 1:
                     return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
-                elif turn == 2 or turn == 5:
-                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
-                elif turn == 3 or turn == 6:
-                    return Content(VoteContentBuilder(self.vote_candidate))
-                elif turn == 4 or turn == 7:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                elif 2<= turn <= 8:
+                    rnd = random.randint(0, 2)
+                    if rnd == 0:
+                        return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                    elif rnd == 1:
+                        return Content(VoteContentBuilder(self.vote_candidate))
+                    else:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
                 else:
                     return CONTENT_SKIP
+                # elif turn == 2 or turn == 5:
+                #     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                # elif turn == 3 or turn == 6:
+                #     return Content(VoteContentBuilder(self.vote_candidate))
+                # elif turn == 4 or turn == 7:
+                #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                # else:
+                #     return CONTENT_SKIP
             elif day >= 2:
-                if turn == 1 or turn == 4:
-                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
-                elif turn == 2 or turn == 5:
-                    return Content(VoteContentBuilder(self.vote_candidate))
-                elif turn == 3 or turn == 6:
-                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                # 2日目：狂人COを認知→狂人がいるか判定→いる場合、人狼CO
+                agent_possessed: Agent = self.role_predictor.chooseMostLikely(Role.POSSESSED, self.game_info.agent_list, 0.4)
+                if agent_possessed != AGENT_NONE:
+                    alive_possessed = self.is_alive(agent_possessed)
+                    if turn == 1 and alive_possessed:
+                        return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
+                if 1<= turn <= 6:
+                    rnd = random.randint(0, 2)
+                    if rnd == 0:
+                        return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                    elif rnd == 1:
+                        return Content(VoteContentBuilder(self.vote_candidate))
+                    else:
+                        return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
                 else:
                     return CONTENT_SKIP
+                # if turn == 1 or turn == 4:
+                #     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                # elif turn == 2 or turn == 5:
+                #     return Content(VoteContentBuilder(self.vote_candidate))
+                # elif turn == 3 or turn == 6:
+                #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
+                # else:
+                #     return CONTENT_SKIP
+            else:
+                return CONTENT_SKIP        
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            if day == 1 and turn == 1: 
+                return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
+            # ----- ESTIMATE, VOTE, REQUEST -----
+            elif turn <= 7:
+                rnd = random.randint(0, 2)
+                if rnd == 0:
+                    return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
+                elif rnd == 1:
+                    return Content(VoteContentBuilder(self.vote_candidate))
+                else:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
             else:
                 return CONTENT_SKIP
-        
-        # ---------- CO ----------
-        # フルオープンの処理
-        # if not self.doFO:
-        #     return Content(ComingoutContentBuilder(self.me, Role.VILLAGER))
-        # todo: 3人以下の時、狂人COを認知→狂人がいるか判定→いる場合、人狼CO
-        
-        # # ---------- REQUEST ----------
-        # # 占い師で黒結果の時は必須
-        # request_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        # request_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, request_candidates)
-        # if request_candidate != AGENT_NONE:
-        #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(request_candidate))))
-        
-        # # ---------- ESTIMATE ----------
-        # # 後で修正する
-        # estimate_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        # estimate_candidate: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, estimate_candidates)
-        # if estimate_candidate != AGENT_NONE:
-        #     return Content(EstimateContentBuilder(estimate_candidate, Role.WEREWOLF))
-        
-        # ---------- 投票宣言 ----------
-        # 投票候補：偽占い
-        fake_seers: List[Agent] = [j.agent for j in self.divination_reports
-                                   if j.target == self.me and j.result == Species.WEREWOLF]
-        candidates: List[Agent] = self.get_alive(fake_seers)
-        # 候補なし → 偽占い以外の黒結果
-        if not candidates:
-            reported_wolves: List[Agent] = [j.target for j in self.divination_reports
-                                        if j.agent not in fake_seers and j.result == Species.WEREWOLF]
-            candidates = self.get_alive_others(reported_wolves)
-        # 候補なし → 生存者
-        if not candidates:
-            candidates = self.get_alive_others(self.game_info.agent_list)
-        # 投票宣言対象：候補からランダムセレクト
-        if self.vote_candidate == AGENT_NONE or self.vote_candidate not in candidates:
-            # self.vote_candidate = self.chooseMostlikelyExecuted()
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, candidates)
-            if self.vote_candidate != AGENT_NONE:
-                return Content(VoteContentBuilder(self.vote_candidate))
-        return CONTENT_SKIP
+        else:
+            return CONTENT_SKIP
 
 
+    # 投票対象
     def vote(self) -> Agent:
+        day: int = self.game_info.day
         
+        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        # ---------- 5人村 ----------
         if self.N == 5:
-            vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+            latest_vote_list = self.game_info.latest_vote_list
+            if day == 1 and latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+                
+        # ---------- 15人村 ----------
+        elif self.N == 15:
+            # todo: MostLikelyExecutedに変更する？
+            # 投票候補：偽占い
+            fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
+            vote_candidates = self.get_alive(fake_seers)
+            # 候補なし → 偽占い以外の黒結果
+            if not vote_candidates:
+                reported_wolves: List[Agent] = [j.target for j in self.divination_reports if j.agent not in fake_seers and j.result == Species.WEREWOLF]
+                vote_candidates = self.get_alive_others(reported_wolves)
+            # 候補なし → 生存者
+            if not vote_candidates:
+                vote_candidates = self.get_alive_others(self.game_info.agent_list)
         
-
-        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.chooseMostlikelyExecuted()
+        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
     def attack(self) -> Agent:
@@ -380,7 +455,6 @@ class ddhbVillager(AbstractPlayer):
         raise NotImplementedError()
 
     def finish(self) -> None:
-        
         # 自分が人狼陣営で人狼が生存しているか、自分が村人陣営で人狼が生存していない場合に勝利
         alive_wolves = [a for a in self.game_info.alive_agent_list if self.game_info.role_map[a] == Role.WEREWOLF]
         villagers_win = (len(alive_wolves) == 0)
@@ -427,47 +501,47 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("actual:\t", actual_assignment)
         Util.debug_print("predicted:\t", predicted_assignment)
         
-        # 一致率を計算
-        score = 0
-        for i in range(self.N):
-            if predicted_assignment[i] == actual_assignment[i]:
-                score += 1
-            elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM or predicted_assignment[i] == Role.SEER or actual_assignment[i] == Role.SEER:
-                Util.debug_print("")
-                for r in self.game_info.existing_role_list:
-                    Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
+        # # 一致率を計算
+        # score = 0
+        # for i in range(self.N):
+        #     if predicted_assignment[i] == actual_assignment[i]:
+        #         score += 1
+        #     elif predicted_assignment[i] == Role.MEDIUM or actual_assignment[i] == Role.MEDIUM or predicted_assignment[i] == Role.SEER or actual_assignment[i] == Role.SEER:
+        #         Util.debug_print("")
+        #         for r in self.game_info.existing_role_list:
+        #             Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
         
-        Util.sum_score += score
-        Util.debug_print("")
-        Util.debug_print("score:\t", score, "/", self.N)
-        Util.debug_print("rate:\t", Util.sum_score, "/", Util.game_count, "=", round(Util.sum_score / Util.game_count, 2))
-        Util.debug_print("")
+        # Util.sum_score += score
+        # Util.debug_print("")
+        # Util.debug_print("score:\t", score, "/", self.N)
+        # Util.debug_print("rate:\t", Util.sum_score, "/", Util.game_count, "=", round(Util.sum_score / Util.game_count, 2))
+        # Util.debug_print("")
 
-        # 実際の割り当てが予測の割り当てに含まれていたのか
-        Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
-        Util.debug_print("in role_predictor.assignments(set):\t", actual_assignment in self.role_predictor.assignments_set)
-        Util.debug_print("len(role_predictor.assignments(set):\t", len(self.role_predictor.assignments_set))
-        Util.debug_print("")
+        # # 実際の割り当てが予測の割り当てに含まれていたのか
+        # Util.debug_print("in role_predictor.assignments:\t", actual_assignment in self.role_predictor.assignments)
+        # Util.debug_print("in role_predictor.assignments(set):\t", actual_assignment in self.role_predictor.assignments_set)
+        # Util.debug_print("len(role_predictor.assignments(set):\t", len(self.role_predictor.assignments_set))
+        # Util.debug_print("")
 
-        # もし含まれていないなら、含まれていたときのスコアを表示
-        if actual_assignment not in self.role_predictor.assignments:
-            actual_assignment.evaluate(self.score_matrix)
+        # # もし含まれていないなら、含まれていたときのスコアを表示
+        # if actual_assignment not in self.role_predictor.assignments:
+        #     actual_assignment.evaluate(self.score_matrix)
         
-        # 予測の割り当てのスコアを表示 (デバッグモード)
-        predicted_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("")
-        Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
-        Util.debug_print("")
+        # # 予測の割り当てのスコアを表示 (デバッグモード)
+        # predicted_assignment.evaluate(self.score_matrix, debug=True)
+        # Util.debug_print("")
+        # Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
+        # Util.debug_print("")
 
-        # 実際の割り当てのスコアを表示 (デバッグモード)
-        actual_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("")
-        Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
+        # # 実際の割り当てのスコアを表示 (デバッグモード)
+        # actual_assignment.evaluate(self.score_matrix, debug=True)
+        # Util.debug_print("")
+        # Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
 
-        # 最下位の割り当てのスコアを表示
-        Util.debug_print("")
-        Util.debug_print("worst score:\t", round(self.role_predictor.assignments[0].score, 4))
-        Util.debug_print("")
+        # # 最下位の割り当てのスコアを表示
+        # Util.debug_print("")
+        # Util.debug_print("worst score:\t", round(self.role_predictor.assignments[0].score, 4))
+        # Util.debug_print("")
 
         # COしていない人から占い師、霊媒師、狩人が選ばれてはいないかのチェック
         for a in self.game_info.agent_list:

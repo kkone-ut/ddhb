@@ -36,8 +36,8 @@ class Util:
 
     @staticmethod
     def debug_print(*args, **kwargs):
-        # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
-        #     return
+        if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
+            return
         if Util.debug_mode:
             print(*args, **kwargs)
 
@@ -90,8 +90,11 @@ class Util:
             if win:
                 Util.win_count[agent] += 1
             Util.win_rate[agent] = Util.win_count[agent] / Util.game_count
+        Util.debug_print("")
+        Util.debug_print("------------------")
         for agent in game_info.agent_list:
             Util.debug_print("win_rate:\t", agent, Util.win_rate[agent])
+        Util.debug_print("------------------")
 
 
     @staticmethod
@@ -99,11 +102,22 @@ class Util:
         rate = threshold
         strong_agent = AGENT_NONE
         for agent in agent_list:
-            if Util.win_rate[agent] > rate:
+            if Util.win_rate[agent] >= rate:
                 rate = Util.win_rate[agent]
                 strong_agent = agent
 
         return strong_agent
+
+
+    @staticmethod
+    def get_weak_agent(agent_list: List[Agent], threshold: float = 1.0) -> Agent:
+        rate = threshold
+        weak_agent = AGENT_NONE
+        for agent in agent_list:
+            if Util.win_rate[agent] <= rate:
+                rate = Util.win_rate[agent]
+                weak_agent = agent
+        return weak_agent
 
 
     @staticmethod

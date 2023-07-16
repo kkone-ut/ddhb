@@ -1,9 +1,9 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role
+from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
 import numpy as np
 import time
 from collections import defaultdict
 import queue
-from typing import List, Dict, Set, DefaultDict
+from typing import List, Dict, Set, DefaultDict, Tuple
 
 from Util import Util
 from Assignment import Assignment
@@ -236,7 +236,7 @@ class RolePredictor:
         p = self.getProbCache()
         return p[agent][role]
 
-    # 指定された役職である確率が最も高いプレイヤーの番号を返す
+    # 指定された役職である確率が最も高いプレイヤーを返す
     # 確率が threshold 未満の場合は AGENT_NONE を返す
     def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Agent:
         if len(agent_list) == 0:
@@ -254,6 +254,34 @@ class RolePredictor:
             return ret_agent
 
 
+    # 指定された役職である確率が最も高いプレイヤーと確率を返す
+    def chooseMostLikely_demo(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Tuple[int, float]:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        p = self.getProbCache()
+        mx_score = 0
+        ret_agent = AGENT_NONE
+        for a in agent_list:
+            score = p[a][role]
+            if score > mx_score:
+                mx_score = score
+                ret_agent = a
+        return ret_agent.agent_idx, mx_score
+
+
+    # 指定された役職である確率が最も低いプレイヤーを返す
+    def chooseLeastLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        
+        p = self.getProbCache()
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            if p[a][role] < p[ret_agent][role]:
+                ret_agent = a
+        return ret_agent
+
+
     def getMostLikelyRole(self, agent: Agent) -> Role:
         p = self.getProbCache()
         ret_role = Role.VILLAGER
@@ -261,3 +289,32 @@ class RolePredictor:
             if p[agent][r] > p[agent][ret_role]:
                 ret_role = r
         return ret_role
+
+
+    # 狂人が生存しているか推測する
+    def estimate_alive_possessed(self, threshold=0.5) -> bool:
+        alive_possessed: bool = False
+        p = self.getProbCache()
+        all = 0
+        alive = 0
+        for agent in self.game_info.agent_list:
+            all += p[agent][Role.POSSESSED]
+            if self.game_info.status_map[agent] == Status.ALIVE:
+                alive += p[agent][Role.POSSESSED]
+        return alive / all > threshold
+
+
+    # (役職である確率＋係数＊勝率)が最も高いプレイヤーを返す
+    def chooseStrongLikely(self, role: Role, agent_list: List[Agent], coef: float = 0.0) -> Agent:
+        if len(agent_list) == 0:
+            return AGENT_NONE
+        p = self.getProbCache()
+        mx_score = 0
+        ret_agent = agent_list[0]
+        for a in agent_list:
+            score = p[a][role]
+            score += coef * Util.win_rate[a]
+            if score > mx_score:
+                mx_score = score
+                ret_agent = a        
+        return ret_agent
