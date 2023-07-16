@@ -167,6 +167,9 @@ class ddhbMedium(ddhbVillager):
 
     # 投票対象→OK
     def vote(self) -> Agent:
+        latest_vote_list = self.game_info.latest_vote_list
+        if latest_vote_list:
+            self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
         self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
