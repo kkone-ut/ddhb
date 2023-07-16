@@ -244,6 +244,9 @@ class ddhbSeer(ddhbVillager):
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
+            latest_vote_list = self.game_info.latest_vote_list
+            if latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
             # 投票候補：人狼結果リスト
             vote_candidates = self.get_alive_others(self.werewolves)
             # 候補なし → 偽占い

@@ -257,7 +257,7 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print('count_num:\t', count_num)
         # 最大投票数を取得
         max_vote = max(count_num.values())
-        max_voted_agents = []
+        max_voted_agents: List[Agent] = []
         for agent, num in count.items():
             if num == max_vote and agent != self.me:
                 # if agent == my_target:
@@ -474,6 +474,10 @@ class ddhbVillager(AbstractPlayer):
         # ---------- 15人村 ----------
         elif self.N == 15:
             # todo: MostLikelyExecutedに変更する？
+            latest_vote_list = self.game_info.latest_vote_list
+            if latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 投票候補：偽占い
             fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
             vote_candidates = self.get_alive(fake_seers)
