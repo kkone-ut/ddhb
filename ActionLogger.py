@@ -1,8 +1,8 @@
 from aiwolf import Agent, GameInfo, GameSetting, Role, Talk, Content, Topic, Species, Operator
 
 from enum import Enum
-from typing import List, DefaultDict
-from collections import defaultdict
+from typing import List, DefaultDict, Dict, Deque
+from collections import defaultdict, deque
 from Util import Util
 
 
@@ -24,6 +24,19 @@ class Action(Enum):
     ESTIMATE_VILLAGER = "ESTIMATE_VILLAGER"
     OTHER = "OTHER"
 
+class ActionLog:
+    game: int
+    day: int
+    turn: int
+    agent: Agent
+    action: Action
+    def __init__(self, game: int, day: int, turn: int, agent: Agent, action: Action):
+        self.game = game
+        self.day = day
+        self.turn = turn
+        self.agent = agent
+        self.action = action
+
 
 class ActionLogger:
 
@@ -33,15 +46,16 @@ class ActionLogger:
     M: int
     MAX_DAY: int
     MAX_TURN: int
-    action_count: "defaultdict[(int, int, Agent, Action), int]"
-    action_count_all: "defaultdict[(int, int, Agent, Role, Action), int]"
+    action_log: Deque[ActionLog]
+    action_count_all: "DefaultDict[(int, int, Agent, Role, Action), int]"
+    old_role_map: List[Dict[Agent, Role]]
 
     @staticmethod
     def init():
-        # day, turn, agent, action
-        ActionLogger.action_count: "defaultdict[(int, int, Agent, Action), int]" = defaultdict(int)
+        ActionLogger.action_log: Deque[ActionLog] = deque()
         # day, turn, agent, role, action
-        ActionLogger.action_count_all: "defaultdict[(int, int, Agent, Role, Action), int]" = defaultdict(int)
+        ActionLogger.action_count_all: "DefaultDict[(int, int, Agent, Role, Action), int]" = defaultdict(int)
+        ActionLogger.old_role_map: List[Dict[Agent, Role]] = []
     
     @staticmethod
     def initialize(game_info: GameInfo, game_setting: GameSetting):
@@ -61,7 +75,20 @@ class ActionLogger:
         turn: int = talk.turn
         action: Action = ActionLogger.get_action(content)
         if action is not None:
-            ActionLogger.action_count[(day, turn, talker, action)] += 1
+            # ActionLogger.action_count[(day, turn, talker, action)] += 1
+            ActionLogger.action_log.append(ActionLog(Util.game_count, day, turn, talker, action))
+
+        # 前ゲームのログを action_count_all に反映
+        # 現在のターンまでのもののみを処理することで負担を減らす
+        oldest_log: ActionLog = ActionLogger.action_log[0] if len(ActionLogger.action_log) > 0 else None
+        while oldest_log is not None and oldest_log.game < Util.game_count and (oldest_log.day <= day or (oldest_log.day == day and oldest_log.turn == turn)):
+            role: Role = ActionLogger.old_role_map[oldest_log.game-1][oldest_log.agent]
+            # Util.debug_print("ActionLogger.update", f"game={oldest_log.game}, day={oldest_log.day}, turn={oldest_log.turn}, agent={oldest_log.agent}, role={role}, action={oldest_log.action}")
+            ActionLogger.action_count_all[(oldest_log.day, oldest_log.turn, oldest_log.agent, role, oldest_log.action)] += 1
+            ActionLogger.action_log.popleft()
+            if len(ActionLogger.action_log) > 0:
+                oldest_log = ActionLogger.action_log[0]
+        
         return action
 
 
@@ -84,11 +111,7 @@ class ActionLogger:
 
     @staticmethod
     def finish(game_info: GameInfo):
-        for a, r in game_info.role_map.items():
-            for d in range(1, ActionLogger.MAX_DAY + 1):
-                for t in range(ActionLogger.MAX_TURN):
-                    for action in Action:
-                        ActionLogger.action_count_all[(d, t, a, r, action)] += ActionLogger.action_count[(d, t, a, action)]
+        ActionLogger.old_role_map.append(game_info.role_map)
 
 
     @staticmethod
