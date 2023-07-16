@@ -20,7 +20,7 @@ from collections import defaultdict
 from typing import Dict, List, DefaultDict
 
 from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
-                    Judge, Role, Species, Status, Talk, Topic,
+                    Judge, Role, Species, Status, Talk, Topic, Operator,
                     VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder,)
 from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
 from aiwolf.vote import Vote
@@ -145,7 +145,6 @@ class ddhbVillager(AbstractPlayer):
     # todo: thresholdの追加
     # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
     def chooseMostlikelyExecuted(self, exclude_list: List[Agent]=None) -> Agent:
-        # return self.random_select(self.get_alive_others(self.game_info.agent_list))
         count: DefaultDict[Agent, float] = defaultdict(float)
         for talker, target in self.will_vote_reports.items():
             if exclude_list is not None and target in exclude_list:
@@ -155,6 +154,30 @@ class ddhbVillager(AbstractPlayer):
         if self.vote_candidate != AGENT_NONE:
             count[self.vote_candidate] += 1
         
+        return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
+
+
+    def chooseMostlikelyExecuted_2(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
+        if include_list is None:
+            include_list = self.get_alive_others(self.game_info.agent_list)
+        count: DefaultDict[Agent, float] = defaultdict(float)
+        count_num: DefaultDict[str, float] = defaultdict(float)
+        will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+        # Util.debug_print("will_vote_reports:\t", will_vote_reports)
+        for talker, target in self.will_vote_reports.items():
+            # Util.debug_print("target:\t", target, "include_list:\t", include_list)
+            if target not in include_list:
+                continue
+            if exclude_list is not None and target in exclude_list:
+                continue
+            # Util.debug_print("talker:\t", talker, "target:\t", target)
+            if self.is_alive(talker) and self.is_alive(target):
+                count[target] += 1
+                no = str(target.agent_idx)
+                count_num[no] += 1
+        if self.vote_candidate != AGENT_NONE:
+            count[self.vote_candidate] += 1
+        # Util.debug_print("count2:\t", count_num)
         return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
 
 
@@ -334,6 +357,13 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
                 # todo: ESTIMATEとREQUEST VOTEでも、will_vote_reportsを更新する
+                self.will_vote_reports[talker] = content.target
+                will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+                # Util.debug_print("will_vote_estimate:\t", will_vote)
+            elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
+                self.will_vote_reports[talker] = content.content_list[0].target
+                will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+                # Util.debug_print("will_vote_request:\t", will_vote)
         
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
