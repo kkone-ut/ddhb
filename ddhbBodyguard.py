@@ -147,6 +147,9 @@ class ddhbBodyguard(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
+        latest_vote_list = self.game_info.latest_vote_list
+        if latest_vote_list:
+            self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # 護衛成功したエージェントは除外
         for guard_success_agent in self.guard_success_agents:

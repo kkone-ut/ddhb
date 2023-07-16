@@ -441,6 +441,9 @@ class ddhbWerewolf(ddhbPossessed):
                     # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
+            if latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 投票候補の優先順位
             # 仲間の投票先→自分の黒先→占い→処刑されそうなエージェント
             allies_will_vote_reports = [target for agent, target in self.will_vote_reports.items() if agent in self.allies]
