@@ -156,7 +156,7 @@ class ddhbPossessed(ddhbVillager):
 
 
     # CO、結果報告
-    def talk(self) -> Content:
+    def talke(self) -> Content:
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
             return
@@ -181,14 +181,27 @@ class ddhbPossessed(ddhbVillager):
         if self.N == 5:
             if day == 1:
                 talk_start: int = 1
-                # ----- CO -----
-                if turn == talk_start:
-                    if not self.has_co:
-                        self.has_co = True
-                        return Content(ComingoutContentBuilder(self.me, Role.SEER))
+                # # ----- CO -----
+                # if turn == talk_start:
+                #     if not self.has_co:
+                #         self.has_co = True
+                #         return CONTENT_SKIP
+                #         # return Content(ComingoutContentBuilder(self.me, Role.SEER))
+                # # ----- 結果報告 -----
+                # elif turn == talk_start + 1:
+                #     if self.has_co and not self.has_report:
+                #         self.has_report = True
+                #         # 候補：対抗の占いっぽいエージェント
+                #         self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, self.others_seer_co)
+                #         # 候補なし → 村人っぽいエージェント or 人狼っぽくないエージェント
+                #         if self.new_target == AGENT_NONE:
+                #             # self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+                #             self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+                #         self.new_result = Species.WEREWOLF
+                #         return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
                 # ----- 結果報告 -----
-                elif turn == talk_start + 1:
-                    if self.has_co and not self.has_report:
+                if turn == talk_start:
+                    if not self.has_report:
                         self.has_report = True
                         # 候補：対抗の占いっぽいエージェント
                         self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, self.others_seer_co)
