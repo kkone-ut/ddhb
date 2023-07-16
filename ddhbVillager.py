@@ -215,8 +215,34 @@ class ddhbVillager(AbstractPlayer):
     # 5人村用
     # todo: 15人村にも対応する
     # todo: 最大投票以外のエージェントに投票している場合、投票先を変更する
+    # def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
+    #     vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+    #     count: DefaultDict[Agent, float] = defaultdict(float)
+    #     count_num: DefaultDict[str, float] = defaultdict(float)
+    #     my_target: Agent = AGENT_NONE
+    #     new_target: Agent = AGENT_NONE
+    #     for vote in vote_list:
+    #         agent = vote.agent
+    #         target = vote.target
+    #         no = str(target.agent_idx)
+    #         if agent == self.me:
+    #             my_target = target
+    #         count[target] += 1
+    #         count_num[no] += 1
+    #     Util.debug_print('count_num:\t', count_num)
+    #     vote_candidates = list(count.keys())
+    #     if count[my_target] == 1.0:
+    #         vote_candidates.remove(my_target)
+    #         if mostlikely:
+    #             new_target = self.role_predictor.chooseMostLikely(role, vote_candidates)
+    #         else:
+    #             new_target = self.role_predictor.chooseLeastLikely(role, vote_candidates)   
+    #     if new_target == AGENT_NONE:
+    #         new_target = my_target
+    #     Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
+    #     return new_target if new_target != AGENT_NONE else self.me
+    
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
-        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         count: DefaultDict[Agent, float] = defaultdict(float)
         count_num: DefaultDict[str, float] = defaultdict(float)
         my_target: Agent = AGENT_NONE
@@ -230,13 +256,23 @@ class ddhbVillager(AbstractPlayer):
             count[target] += 1
             count_num[no] += 1
         Util.debug_print('count_num:\t', count_num)
-        vote_candidates = list(count.keys())
-        if count[my_target] == 1.0:
-            vote_candidates.remove(my_target)
+
+        # 最大投票数を取得
+        max_vote = max(count_num.values())
+        max_voted_agents = []
+        for agent, num in count.items():
+            if num == max_vote and agent != self.me:
+                if agent == my_target:
+                    return my_target
+                else:
+                    max_voted_agents.append(agent)
+        
+        # 最大投票数のエージェントが複数人の場合
+        if len(max_voted_agents) > 1:
             if mostlikely:
-                new_target = self.role_predictor.chooseMostLikely(role, vote_candidates)
+                new_target = self.role_predictor.chooseMostLikely(role, max_voted_agents)
             else:
-                new_target = self.role_predictor.chooseLeastLikely(role, vote_candidates)   
+                new_target = self.role_predictor.chooseLeastLikely(role, max_voted_agents)
         if new_target == AGENT_NONE:
             new_target = my_target
         Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
