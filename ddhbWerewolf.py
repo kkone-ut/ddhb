@@ -314,6 +314,8 @@ class ddhbWerewolf(ddhbPossessed):
                     return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
             # ----- VOTE and REQUEST -----
             if 2<= turn <= 9:
+                if self.PP_flag:
+                    self.new_target = self.role_predictor.chooseLeastLikely(Role.POSSESSED, self.get_alive_others(self.game_info.agent_list))
                 if turn % 2 == 0:
                     return Content(VoteContentBuilder(self.new_target))
                 else:
