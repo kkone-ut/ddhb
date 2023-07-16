@@ -344,6 +344,12 @@ class ddhbPossessed(ddhbVillager):
             # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
         # ---------- 15人村 ----------
         elif self.N == 15:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
+            latest_vote_list = self.game_info.latest_vote_list
+            Util.debug_print('latest_vote_list: ', len(latest_vote_list))
+            if latest_vote_list:
+                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+            # 投票対象：黒っぽくないエージェント
+            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         ##### シンプルなコードに変更する #####
