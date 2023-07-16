@@ -163,8 +163,9 @@ class ddhbWerewolf(ddhbPossessed):
                     self.kakoi = False
                     # 占い候補：人狼仲間
                     judge_candidates = self.get_alive_others(self.allies)
-                    # todo: HPが少ない方を囲う
-                    judge_candidate = self.random_select(judge_candidates)
+                    # 囲い先：勝率の高い方
+                    judge_candidate = Util.get_strong_agent(judge_candidates)
+                    # judge_candidate = self.random_select(judge_candidates)
                     result = Species.HUMAN
                 else:
                     # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果 and 黒判定<3回 で黒結果
@@ -359,7 +360,7 @@ class ddhbWerewolf(ddhbPossessed):
                     return Content(ComingoutContentBuilder(self.me, self.fake_role))
                 # ----- 結果報告 -----
                 # 人狼仲間を護衛
-                if self.has_co and not self.has_report:
+                if self.has_co and not self.has_report and self.guard_success:
                     self.has_report = True
                     guard_agent = self.random_select(self.get_alive_others(self.allies))
                     return Content(GuardedAgentContentBuilder(guard_agent))
@@ -523,6 +524,10 @@ class ddhbWerewolf(ddhbPossessed):
                     self.attack_vote_candidate = agent
         if turn <= 2 and self.attack_vote_candidate != AGENT_NONE:
             return Content(AttackContentBuilder(self.attack_vote_candidate))
+        elif turn == 3 and self.alive_possessed:
+            return Content(EstimateContentBuilder(self.agent_possessed, Role.POSSESSED))
+        elif turn == 4 and self.alive_seer:
+            return Content(EstimateContentBuilder(self.agent_seer, Role.SEER))
         return CONTENT_SKIP
 
 
