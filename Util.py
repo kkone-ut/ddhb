@@ -24,6 +24,12 @@ class Util:
     game_count: int = 0
     win_count: DefaultDict[Agent, int] = {}
     win_rate: DefaultDict[Agent, float] = {}
+    # 役職ごとの回数
+    agent_role_count: DefaultDict[Agent, DefaultDict[Role, int]] = defaultdict(lambda: defaultdict(int))
+    # 役職ごとの勝利回数
+    win_role_count: DefaultDict[Agent, DefaultDict[Role, int]] = defaultdict(lambda: defaultdict(int))
+    # 役職ごとの勝率
+    win_role_rate: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
     sum_score: float = 0.0
 
     @staticmethod
@@ -87,13 +93,18 @@ class Util:
         for agent, role in game_info.role_map.items():
             is_villager_side = role in [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
             win = villager_win if is_villager_side else not villager_win
+            Util.agent_role_count[agent][role] += 1
             if win:
                 Util.win_count[agent] += 1
+                Util.win_role_count[agent][role] += 1
             Util.win_rate[agent] = Util.win_count[agent] / Util.game_count
+            Util.win_role_rate[agent][role] = Util.win_role_count[agent][role] / Util.agent_role_count[agent][role]
         Util.debug_print("")
         Util.debug_print("------------------")
         for agent in game_info.agent_list:
             Util.debug_print("win_rate:\t", agent, Util.win_rate[agent])
+            role = game_info.role_map[agent]
+            Util.debug_print("win_role_rate:\t", agent, role, Util.win_role_rate[agent][role])
         Util.debug_print("------------------")
 
 
