@@ -305,7 +305,7 @@ class ddhbPossessed(ddhbVillager):
                     guard_agent: Agent = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
                     return Content(GuardedAgentContentBuilder(guard_agent))
             # ----- ESTIMATE, VOTE, REQUEST -----
-            if turn >= 2 and turn <= 7:
+            if 2 <= turn <= 7:
                 rnd = random.randint(0, 2)
                 if rnd == 0:
                     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
