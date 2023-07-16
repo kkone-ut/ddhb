@@ -98,6 +98,9 @@ class ActionLogger:
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0
 
+        if Util.game_count <= 10:
+            return score
+
         if t >= 4:
             return score
 
