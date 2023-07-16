@@ -211,10 +211,8 @@ class ddhbVillager(AbstractPlayer):
         return is_low_hp
 
 
-    # 同数投票の時に、自分の捨て票を変更する
     # 5人村用
     # todo: 15人村にも対応する
-    # todo: 最大投票以外のエージェントに投票している場合、投票先を変更する
     # def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
     #     vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
     #     count: DefaultDict[Agent, float] = defaultdict(float)
@@ -242,6 +240,7 @@ class ddhbVillager(AbstractPlayer):
     #     Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
     #     return new_target if new_target != AGENT_NONE else self.me
     
+    # 同数投票の時に自分の捨て票を変更する：最大投票以外のエージェントに投票している場合、投票先を変更する
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
         count: DefaultDict[Agent, float] = defaultdict(float)
         count_num: DefaultDict[str, float] = defaultdict(float)
@@ -256,17 +255,15 @@ class ddhbVillager(AbstractPlayer):
             count[target] += 1
             count_num[no] += 1
         Util.debug_print('count_num:\t', count_num)
-
         # 最大投票数を取得
         max_vote = max(count_num.values())
         max_voted_agents = []
         for agent, num in count.items():
             if num == max_vote and agent != self.me:
-                if agent == my_target:
-                    return my_target
-                else:
-                    max_voted_agents.append(agent)
-        
+                # if agent == my_target:
+                #     return my_target
+                # else:
+                max_voted_agents.append(agent)
         # 最大投票数のエージェントが複数人の場合
         if len(max_voted_agents) > 1:
             if mostlikely:
@@ -334,10 +331,12 @@ class ddhbVillager(AbstractPlayer):
         else:
             Util.debug_print("Killed:\t", AGENT_NONE)
         
-        
-        # for v in self.game_info.vote_list:
-        for v in self.game_info.latest_vote_list:
+        for v in self.game_info.vote_list:
             self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
+        # 噛まれていない違和感を反映
+        day: int = self.game_info.day
+        if day >= 3:
+            self.score_matrix.Nth_day_start(self.game_info, self.game_setting)
 
 
     # ゲーム情報の更新
@@ -392,13 +391,12 @@ class ddhbVillager(AbstractPlayer):
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
-                # todo: ESTIMATEとREQUEST VOTEでも、will_vote_reportsを更新する
                 self.will_vote_reports[talker] = content.target
-                will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+                # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
                 # Util.debug_print("will_vote_estimate:\t", will_vote)
             elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
                 self.will_vote_reports[talker] = content.content_list[0].target
-                will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+                # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
                 # Util.debug_print("will_vote_request:\t", will_vote)
         
         self.talk_list_head = len(game_info.talk_list)  # All done.
@@ -423,14 +421,6 @@ class ddhbVillager(AbstractPlayer):
                         return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
                 else:
                     return CONTENT_SKIP
-                # elif turn == 2 or turn == 5:
-                #     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
-                # elif turn == 3 or turn == 6:
-                #     return Content(VoteContentBuilder(self.vote_candidate))
-                # elif turn == 4 or turn == 7:
-                #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
-                # else:
-                #     return CONTENT_SKIP
             elif day >= 2:
                 # 2日目：狂人COを認知→狂人がいるか判定→いる場合、人狼CO
                 agent_possessed: Agent = self.role_predictor.chooseMostLikely(Role.POSSESSED, self.game_info.agent_list, 0.4)
@@ -448,14 +438,6 @@ class ddhbVillager(AbstractPlayer):
                         return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
                 else:
                     return CONTENT_SKIP
-                # if turn == 1 or turn == 4:
-                #     return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
-                # elif turn == 2 or turn == 5:
-                #     return Content(VoteContentBuilder(self.vote_candidate))
-                # elif turn == 3 or turn == 6:
-                #     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
-                # else:
-                #     return CONTENT_SKIP
             else:
                 return CONTENT_SKIP        
         # ---------- 15人村 ----------
@@ -489,7 +471,6 @@ class ddhbVillager(AbstractPlayer):
             if day == 1 and latest_vote_list:
                 self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
                 return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-                
         # ---------- 15人村 ----------
         elif self.N == 15:
             # todo: MostLikelyExecutedに変更する？
