@@ -168,13 +168,23 @@ class ddhbVillager(AbstractPlayer):
         if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.2 and self.chooseMostlikelyExecuted() == self.me:
             is_low_hp = True
         # latest_vote：前日投票の20%以上がが自分に入っている場合
-        latest_vote_cnt = 0
-        latest_vote_list = self.game_info.latest_vote_list
-        for vote in latest_vote_list:
+        # latest_vote_listは、day_startで[]となっているため、前日の投票はvote_listに入っている
+        vote_cnt = 0
+        vote_list = self.game_info.vote_list
+        for vote in vote_list:
             if vote.target == self.me:
-                latest_vote_cnt += 1
-        if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.2:
+                vote_cnt += 1
+        if len(vote_list) != 0 and vote_cnt/len(vote_list) >= 0.2:
             is_low_hp = True
+        # latest_vote_cnt = 0
+        # latest_vote_list = self.game_info.latest_vote_list
+        # for vote in latest_vote_list:
+        #     if vote.target == self.me:
+        #         latest_vote_cnt += 1
+        # if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.2:
+        #     is_low_hp = True
+        if is_low_hp:
+            Util.debug_print("Low_HP")
         return is_low_hp
 
 
@@ -246,20 +256,25 @@ class ddhbVillager(AbstractPlayer):
         
         Util.debug_print("")
         Util.debug_print("DayStart:\t", self.game_info.day)
+        Util.debug_print("生存者数:\t", len(self.game_info.alive_agent_list))
         
+        Util.debug_print("Executed:\t", self.game_info.executed_agent)
+        if self.game_info.executed_agent == self.me:
+            Util.debug_print("---------- 処刑された ----------")
         # self.game_info.last_dead_agent_list は昨夜殺されたエージェントのリスト
         # (self.game_info.executed_agent が昨夜処刑されたエージェント)
         killed: List[Agent] = self.game_info.last_dead_agent_list
         if len(killed) > 0:
             self.score_matrix.killed(self.game_info, self.game_setting, killed[0])
             Util.debug_print("Killed:\t", self.game_info.last_dead_agent_list[0])
+            if self.game_info.last_dead_agent_list[0] == self.me:
+                Util.debug_print("---------- 噛まれた ----------")
             # 本来複数人殺されることはないが、念のためkilled()は呼び出した上でエラーログを出しておく
             if len(killed) > 1:
                 Util.error_print("Killed:\t", *self.game_info.last_dead_agent_list)
         else:
             Util.debug_print("Killed:\t", AGENT_NONE)
         
-        Util.debug_print("Executed:\t", self.game_info.executed_agent)
         
         # for v in self.game_info.vote_list:
         for v in self.game_info.latest_vote_list:
