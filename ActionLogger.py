@@ -94,12 +94,19 @@ class ActionLogger:
 
     @staticmethod
     def get_score(d: int, t: int, talker: Agent, action:Action) -> DefaultDict[Role, float]:
-        count: DefaultDict[Role, int] = defaultdict(int)
+        count: DefaultDict[Role, float] = defaultdict(float)
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0
 
+        if t >= 4:
+            return score
+
         for r in ActionLogger.game_info.existing_role_list:
-            count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)]
+            if Util.agent_role_count[talker][r] == 0:
+                count[r] = 0
+            else:
+                # count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)]
+                count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)] / Util.agent_role_count[talker][r]
             sum += count[r]
         
         if sum > 0:

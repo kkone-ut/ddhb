@@ -880,5 +880,5 @@ class ScoreMatrix:
 
     def apply_action_learning(self, talker: Agent, score: DefaultDict[Role, float]) -> None:
         for r, s in score.items():
-            # Util.debug_print(f"apply_action_learning: {talker} {r} {s}")
+            Util.debug_print(f"apply_action_learning: {talker} {r} {s}")
             self.add_score(talker, r, talker, r, s)
