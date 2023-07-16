@@ -22,6 +22,7 @@ from aiwolf import AbstractPlayer, TcpipClient
 
 from ddhbPlayer import ddhbPlayer
 from Util import Util
+from ActionLogger import ActionLogger
 
 import warnings
 
@@ -43,4 +44,7 @@ if __name__ == "__main__":
     Util.debug_print("name: ", input_args.name)
     if input_args.name == None:
         Util.local = True
+
+    ActionLogger.init()
+
     TcpipClient(agent, input_args.name, input_args.hostname, input_args.port, input_args.role).connect()
