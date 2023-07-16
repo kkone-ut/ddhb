@@ -819,4 +819,10 @@ class ScoreMatrix:
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
         pass
-    # --------------- 新プロトコルでの発言に対応する ---------------
+
+    # --------------- 行動学習 ---------------
+
+    def apply_action_learning(self, talker: Agent, score: DefaultDict[Role, float]) -> None:
+        for r, s in score.items():
+            Util.debug_print(f"apply_action_learning: {talker} {r} {s}")
+            self.add_score(talker, r, talker, r, s)

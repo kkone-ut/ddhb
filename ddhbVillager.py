@@ -32,6 +32,7 @@ from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
 from Assignment import Assignment
 from TeamPredictor import TeamPredictor
+from ActionLogger import ActionLogger, Action
 
 
 # 村役職
@@ -297,6 +298,8 @@ class ddhbVillager(AbstractPlayer):
         self.N = game_setting.player_num
         self.M = len(game_info.existing_role_list)
         self.agent_idx_0based = self.me.agent_idx - 1
+
+        ActionLogger.initialize(game_info, game_setting)
         
         # Util.debug_print("game:\t", Util.game_count)
         Util.debug_print("game:\t", Util.game_count - 1)
@@ -398,7 +401,11 @@ class ddhbVillager(AbstractPlayer):
                 self.will_vote_reports[talker] = content.content_list[0].target
                 # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
                 # Util.debug_print("will_vote_request:\t", will_vote)
-        
+            
+            action: Action = ActionLogger.update(game_info, tk, content)
+            score = ActionLogger.get_score(tk.day, tk.turn, talker, action)
+            self.score_matrix.apply_action_learning(talker, score)
+
         self.talk_list_head = len(game_info.talk_list)  # All done.
 
     # CO、投票宣言
@@ -516,6 +523,8 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("win:\t", is_villagers_side == villagers_win)
         Util.debug_print("win_rate:\t", Util.win_count[self.me], "/", Util.game_count, " = ", Util.win_rate[self.me])
         Util.debug_print("")
+
+        ActionLogger.finish(self.game_info)
 
         if (len(self.role_predictor.assignments) == 0):
             Util.debug_print("No assignments")
