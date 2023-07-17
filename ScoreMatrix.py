@@ -513,6 +513,16 @@ class ScoreMatrix:
         # CO の時点で占い師以外の村人陣営の可能性を0にしているが、COせずに占い結果を出した場合のためにここでも同じ処理を行う
         self.add_scores(talker, {Role.VILLAGER: -100, Role.MEDIUM: -100, Role.BODYGUARD: -100})
 
+        # すでに同じ相手に対する占い結果がある場合は無視
+        # ただし、結果が異なる場合は、人狼・狂人の確率を上げる
+        for report in self.player.divination_reports:
+            if report.agent == talker and report.target == target:
+                if report.result == species:
+                    return
+                else:
+                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                    return
+
         # ---------- 5人村 ----------
         if N == 5:
             # ----- 占い -----
@@ -724,6 +734,16 @@ class ScoreMatrix:
 
         # CO の時点で霊媒師以外の村人陣営の可能性を0にしているが、COせずに霊媒結果を出した場合のためにここでも同じ処理を行う
         self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
+
+        # すでに同じ相手に対する霊媒結果がある場合は無視
+        # ただし、結果が異なる場合は、人狼・狂人の確率を上げる
+        for report in self.player.identification_reports:
+            if report.agent == talker and report.target == target:
+                if report.result == species:
+                    return
+                else:
+                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                    return
 
         # ----- 霊媒 -----
         if my_role == Role.MEDIUM:
