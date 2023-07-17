@@ -801,15 +801,8 @@ class ScoreMatrix:
         day: int = self.game_info.day
         my_role = self.my_role
         alive_comingout_map = {a: r for a, r in self.player.comingout_map.items() if self.player.is_alive(a)}
-        # ----- 人狼 -----
-        if my_role == Role.WEREWOLF:
-            allies: List[Agent] = self.game_info.role_map.keys()
-            for agent, role in alive_comingout_map.items():
-                if agent in allies:
-                    continue
-                self.add_scores(agent, {role: +5})
-        # ----- それ以外 -----
-        else:
+
+        if my_role != Role.WEREWOLF:
             for agent, role in alive_comingout_map.items():
                 self.add_scores(agent, {Role.POSSESSED: +day/2, Role.WEREWOLF: +day})
 
