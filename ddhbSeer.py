@@ -182,8 +182,8 @@ class ddhbSeer(ddhbVillager):
                         return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
                 else:
                     return CONTENT_SKIP
-            else:
-                return CONTENT_SKIP
+            
+            return CONTENT_SKIP
         # ---------- 15人村 ----------
         elif self.N == 15:
             # ---------- CO ----------

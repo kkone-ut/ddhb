@@ -427,8 +427,8 @@ class ddhbVillager(AbstractPlayer):
                     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
             else:
                 return CONTENT_SKIP
-        else:
-            return CONTENT_SKIP
+        
+        return CONTENT_SKIP
 
 
     # 投票対象

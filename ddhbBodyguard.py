@@ -141,8 +141,8 @@ class ddhbBodyguard(ddhbVillager):
                 return Content(VoteContentBuilder(self.vote_candidate))
             else:
                 return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
-        else:
-            return CONTENT_SKIP
+        
+        return CONTENT_SKIP
 
 
     # 投票対象
