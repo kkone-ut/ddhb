@@ -405,7 +405,7 @@ class ddhbVillager(AbstractPlayer):
                 # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
                 # Util.debug_print("will_vote_request:\t", will_vote)
             
-            action: Action = ActionLogger.update(game_info, tk, content)
+            action: Action = ActionLogger.update(game_info, tk, content, self)
             score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
 
