@@ -177,7 +177,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.update")
         try:
             self._update(game_info)
-            Util.end_timer("ddhbPlayer.update", 30)
+            Util.end_timer("ddhbPlayer.update", 10)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("TimeoutError:\t", "update")
