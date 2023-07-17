@@ -202,7 +202,8 @@ class ddhbPlayer(AbstractPlayer):
         content = CONTENT_SKIP
         try:
             content = self.player.whisper()
-            self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
+            # 人狼陣営の場合は割り当てはそこまで探索しなくてもいい
+            # self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.whisper")
             Util.error_print("TimeoutError:\t", "whisper")
