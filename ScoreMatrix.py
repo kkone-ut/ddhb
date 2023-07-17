@@ -14,6 +14,7 @@ class ScoreMatrix:
     seer_co: List[Agent]
     medium_co: List[Agent]
     bodyguard_co: List[Agent]
+    rtoi: DefaultDict[Role, int]
 
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
@@ -27,7 +28,10 @@ class ScoreMatrix:
         self.player: ddhbVillager = _player
         self.me = _player.me # 自身のエージェント
         self.my_role = game_info.my_role # 自身の役職
-        self.rtoi = {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}
+        self.rtoi = defaultdict(lambda: -1)
+        for r, i in {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}.items():
+            self.rtoi[r] = i
+        Util.debug_print(self.rtoi[Role.UNC])
         self.seer_co_count = 0
         self.medium_co_count = 0
         self.bodyguard_co_count = 0
@@ -60,7 +64,7 @@ class ScoreMatrix:
         j = agent2.agent_idx-1 if type(agent2) is Agent else agent2
         rj = self.rtoi[role2] if type(role2) is Role else role2
 
-        if ri >= self.M or rj >= self.M: # 存在しない役職の場合はスコアを-infにする (5人村の場合)
+        if ri >= self.M or rj >= self.M or ri < 0 or rj < 0: # 存在しない役職の場合はスコアを-infにする (5人村の場合)
             return -float('inf')
         
         return self.score_matrix[i, ri, j, rj]
@@ -75,7 +79,7 @@ class ScoreMatrix:
         j = agent2.agent_idx-1 if type(agent2) is Agent else agent2
         rj = self.rtoi[role2] if type(role2) is Role else role2
         
-        if ri >= self.M or rj >= self.M: # 存在しない役職の場合はスコアを設定しない (5人村の場合)
+        if ri >= self.M or rj >= self.M or ri < 0 or rj < 0: # 存在しない役職の場合はスコアを設定しない (5人村の場合)
             return
         
         if score == float('inf'): # スコアを+infにすると相対確率も無限に発散するので、代わりにそれ以外のスコアを0にする。

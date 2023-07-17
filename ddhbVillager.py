@@ -318,9 +318,10 @@ class ddhbVillager(AbstractPlayer):
                     continue
 
             if content.topic == Topic.COMINGOUT:
-                self.comingout_map[talker] = content.role
-                self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role, day, turn)
-                Util.debug_print("CO:\t", talker, content.role)
+                if content.role in self.game_info.existing_role_list: # Role.UNC 対策
+                    self.comingout_map[talker] = content.role
+                    self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role, day, turn)
+                    Util.debug_print("CO:\t", talker, content.role)
             elif content.topic == Topic.DIVINED:
                 self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result, day, turn)
                 self.divination_reports.append(Judge(talker, day, content.target, content.result))
