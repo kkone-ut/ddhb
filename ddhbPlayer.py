@@ -144,7 +144,7 @@ class ddhbPlayer(AbstractPlayer):
         elif role == Role.WEREWOLF:
             self.player = self.werewolf
         self.player.initialize(game_info, game_setting)
-        Util.end_timer("ddhbPlayer.initialize", 60)
+        Util.end_timer("ddhbPlayer.initialize", 20)
         
     def talk(self) -> Content:
         Util.start_timer("ddhbPlayer.talk")
@@ -177,7 +177,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.update")
         try:
             self._update(game_info)
-            Util.end_timer("ddhbPlayer.update", 30)
+            Util.end_timer("ddhbPlayer.update", 10)
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("TimeoutError:\t", "update")
