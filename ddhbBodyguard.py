@@ -53,6 +53,7 @@ class ddhbBodyguard(ddhbVillager):
         self.co_date = 0
         self.has_co = False
         self.guard_success = False
+        self.guard_success_agent = AGENT_NONE
         self.guard_success_agents = []
         self.has_report = False
         self.strategies = []
@@ -70,13 +71,12 @@ class ddhbBodyguard(ddhbVillager):
         self.guard_success_agents.clear()
         self.has_report = False
         self.strategies = [False, False, False, False, False, True]
-        self.strategyA = self.strategies[0] # 戦略A: 護衛スコア
-        self.strategyB = self.strategies[1] # 戦略B: 占い重視
-        self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
+        # self.strategyA = self.strategies[0] # 戦略A: 護衛スコア
+        # self.strategyB = self.strategies[1] # 戦略B: 占い重視
+        # self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
         self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
         self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
         self.strategyF = self.strategies[5] # 戦略F: (CO予定日-1)日目からの2GJ成功でCO
-        
         # 戦略D: 3日目CO
         if self.strategyD:
             self.co_date = 3
@@ -91,8 +91,6 @@ class ddhbBodyguard(ddhbVillager):
         # 処刑で死亡している場合
         if self.guard_success_agent != AGENT_NONE and not self.is_alive(self.guard_success_agent):
             self.guard_success_agent = AGENT_NONE
-        
-        # Util.debug_print("guarded: ", self.game_info.guarded_agent)
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
             self.gj_cnt += 1
@@ -100,6 +98,7 @@ class ddhbBodyguard(ddhbVillager):
             self.guard_success_agents.append(self.game_info.guarded_agent)
             Util.debug_print("護衛成功:\tエージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
             self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
+        # 護衛が失敗した場合
         elif self.game_info.guarded_agent != None:
             self.guard_success_agent = AGENT_NONE
             Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
@@ -119,6 +118,7 @@ class ddhbBodyguard(ddhbVillager):
         # 戦略F: (CO予定日-1)目からの2GJ成功でCO
         if self.strategyF:
             if not self.has_co and (day >= self.co_date - 1 and self.gj_cnt >= 2):
+                Util.debug_print("狩人CO：2GJ")
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
         # 絶対にCOする→1,2
@@ -131,9 +131,8 @@ class ddhbBodyguard(ddhbVillager):
         if self.has_co and not self.has_report and day >= 2:
             self.has_report = True
             return Content(GuardedAgentContentBuilder(self.game_info.guarded_agent))
-        # ---------- 投票宣言 ----------
         # ----- ESTIMATE, VOTE, REQUEST -----
-        if 2 <= turn <= 7:
+        if 2 <= turn <= 6:
             rnd = random.randint(0, 2)
             if rnd == 0:
                 return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
@@ -147,15 +146,18 @@ class ddhbBodyguard(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
+        # 同数投票の処理
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        # 投票候補
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # 護衛成功したエージェントは除外
         for guard_success_agent in self.guard_success_agents:
             if guard_success_agent in vote_candidates:
                 vote_candidates.remove(guard_success_agent)
-        # 投票候補：偽占い
+        # 投票対象の優先順位：偽占い→人狼っぽいエージェント
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.agent in vote_candidates and j.target == self.me and j.result == Species.WEREWOLF]
         if fake_seers:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, fake_seers)
@@ -164,15 +166,14 @@ class ddhbBodyguard(ddhbVillager):
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
-    # 護衛スコアの高いエージェント
-    # 護衛スコア＝村人スコア＋占い師スコア*3＋霊媒師スコア＋勝率
-    def get_guard_agent(self, agent_list: List[Agent]) -> Agent:
+    # 護衛スコア(=村人スコア＋占い師スコア*3＋霊媒師スコア＋coef*勝率)の高いエージェント
+    def get_guard_agent(self, agent_list: List[Agent], coef: float = 1.0) -> Agent:
         p = self.role_predictor.prob_all
         mx_score = 0
         ret_agent = AGENT_NONE
         for agent in agent_list:
             score = p[agent][Role.VILLAGER] + 3 * p[agent][Role.SEER] + p[agent][Role.MEDIUM]
-            score += Util.win_rate[agent]
+            score += coef * Util.win_rate[agent]
             if score > mx_score:
                 mx_score = score
                 ret_agent = agent
@@ -193,27 +194,28 @@ class ddhbBodyguard(ddhbVillager):
             for fake_seer in fake_seers:
                 if fake_seer in guard_candidates:
                     guard_candidates.remove(fake_seer)
+            # 占いと霊媒の数を数える
             others_seer_co: List[Agent] = [a for a in self.comingout_map if a in guard_candidates and self.comingout_map[a] == Role.SEER]
             others_medium_co: List[Agent] = [a for a in self.comingout_map if a in guard_candidates and self.comingout_map[a] == Role.MEDIUM]
             seer_co_cnt: int = len(others_seer_co)
             medium_co_cnt: int = len(others_medium_co)
-            # 占いCO：0人
+            # 占い0CO：霊媒→護衛スコア
             if seer_co_cnt == 0:
                 if medium_co_cnt >= 1:
                     self.to_be_guarded = self.role_predictor.chooseMostLikely(Role.MEDIUM, others_medium_co)
                 else:
                     self.to_be_guarded = self.get_guard_agent(guard_candidates)
-            # 占いCO：1人
+            # 占い1CO：占い（人狼っぽいなら：霊媒→護衛スコア）
             elif seer_co_cnt == 1:
                 self.to_be_guarded = others_seer_co[0]
-                if self.role_predictor.getMostLikelyRole(self.to_be_guarded) == Role.WEREWOLF:
+                mostlikely_role: Role = self.role_predictor.getMostLikelyRole(self.to_be_guarded)
+                if mostlikely_role == Role.WEREWOLF or mostlikely_role == Role.POSSESSED:
                     if medium_co_cnt == 1:
                         self.to_be_guarded = others_medium_co[0]
                     else:
                         self.to_be_guarded = self.get_guard_agent(guard_candidates)
                     Util.debug_print("護衛先変更:", others_seer_co[0], "→", self.to_be_guarded)
-            # 占いCO：2人以上
-            # todo: (2,1)盤面でも占い護衛の方がいいかも
+            # 占い2CO：初日:占い、2日目以降:霊媒→護衛スコア
             else:
                 if day == 1:
                     self.to_be_guarded = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
@@ -222,11 +224,9 @@ class ddhbBodyguard(ddhbVillager):
                         self.to_be_guarded = others_medium_co[0]
                     else:
                         self.to_be_guarded = self.get_guard_agent(guard_candidates)
-
             alive_comingout_map = {a.agent_idx: r.value for a, r in self.comingout_map.items() if self.is_alive(a)}
             Util.debug_print("alive_comingout_map:\t", alive_comingout_map)
             Util.debug_print(f"seer:{seer_co_cnt}, medium:{medium_co_cnt}")
         Util.debug_print("to_be_guarded:\t", self.to_be_guarded)
-        
         self.guard_success_agent = self.to_be_guarded
         return self.to_be_guarded if self.to_be_guarded != AGENT_NONE else self.me

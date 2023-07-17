@@ -24,10 +24,10 @@ from aiwolf import (Agent, ComingoutContentBuilder, Content, GameInfo,
                     VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder)
 from aiwolf.constant import AGENT_NONE, AGENT_ANY
 
+from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
 
-from Util import Util
 
 
 # 霊媒
@@ -44,12 +44,9 @@ class ddhbMedium(ddhbVillager):
     """Queue of medium results."""
     
     werewolves: List[Agent] # 人狼結果のエージェント
-    strategies: List[bool] # 戦略フラグのリスト
-    others_medium_co: List[Agent] # 他の霊媒のCOリスト
-    latest_result: List[Agent] # 昨夜の霊媒結果
-    whites: List[Agent] # 前日に黒結果に投票したエージェント（白っぽいエージェント）
-    blacks: List[Agent] # 前日に白結果に投票したエージェント（黒っぽいエージェント）
+    latest_result: List[Agent] # 前日の霊媒結果
     votefor_executed_agent: List[Agent] # 前日に追放されたエージェントに投票したエージェント
+    strategies: List[bool] # 戦略フラグのリスト
 
 
     def __init__(self) -> None:
@@ -61,34 +58,28 @@ class ddhbMedium(ddhbVillager):
         self.my_judge_queue = deque()
         
         self.werewolves = []
-        self.strategies = []
-        self.others_medium_co = []
         self.latest_result = Species.UNC
-        self.whites = []
-        self.blacks = []
         self.votefor_executed_agent = []
+        self.strategies = []
 
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        self.co_date = 3 # 最低でも3日目にCO
+        self.co_date = 3
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue.clear()
         
         self.werewolves.clear()
+        self.latest_result = Species.UNC
+        self.votefor_executed_agent.clear()
         self.strategies = [True, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（2日目CO）
         self.strategyB = self.strategies[1] # 戦略B: COする日にちの変更（1日目CO）
-        self.others_medium_co.clear()
-        self.latest_result = Species.UNC
-        self.whites.clear()
-        self.blacks.clear()
-        self.votefor_executed_agent.clear()
-        
         # 戦略A: 2日目CO
         if self.strategyA:
             self.co_date = 2 # 79%, 71%
+        # 戦略B: 1日目CO
         if self.strategyB:
             self.co_date = 1 # 73%, 70%
 
@@ -96,19 +87,20 @@ class ddhbMedium(ddhbVillager):
     # 昼スタート→OK
     def day_start(self) -> None:
         super().day_start()
-        self.votefor_executed_agent.clear()
-        vote_list = self.game_info.vote_list
         alive_comingout_map = {a.agent_idx: r.value for a, r in self.comingout_map.items() if self.is_alive(a)}
         Util.debug_print("alive_comingout_map:\t", alive_comingout_map)
-        # Queue the medium result.
-        # 霊結果
+        
+        self.latest_result = Species.UNC
+        self.votefor_executed_agent.clear()
+        vote_list = self.game_info.vote_list
+        # 霊媒結果
         judge: Optional[Judge] = self.game_info.medium_result
         if judge is not None:
             self.my_judge_queue.append(judge) # 結果追加
             self.latest_result = judge.result
             Util.debug_print("latest_result:\t", self.latest_result)
-            # Util.debug_print("vote_list:\t", len(vote_list))
             for vote in vote_list:
+                # 前日に追放されたエージェントに投票したエージェントを追加する
                 if vote.target == judge.target:
                     self.votefor_executed_agent.append(vote.agent)
             votefor_executed_agent_no = [a.agent_idx for a in self.votefor_executed_agent]
@@ -130,25 +122,28 @@ class ddhbMedium(ddhbVillager):
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
         if not self.has_co and day == self.co_date:
+            Util.debug_print("霊媒CO：予定日")
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         # 2: 人狼発見
         if not self.has_co and self.werewolves:
+            Util.debug_print("霊媒CO：人狼発見")
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         # 3: 他の霊媒がCOしたら(CCO)
-        self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
-        if not self.has_co and self.others_medium_co:
+        others_medium_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+        if not self.has_co and others_medium_co:
+            Util.debug_print("霊媒CO：CCO")
             self.has_co = True
             return Content(ComingoutContentBuilder(self.me, Role.MEDIUM))
         # ---------- 結果報告 ----------
         if self.has_co and self.my_judge_queue:
             judge: Judge = self.my_judge_queue.popleft()
             return Content(IdentContentBuilder(judge.target, judge.result))
-        # ---------- 投票宣言 ----------
         # ----- ESTIMATE, VOTE, REQUEST -----
         if 2 <= turn <= 6:
             # 黒結果
+            # 前日、黒に投票したエージェントを村人っぽいとESTIMATE
             if self.latest_result == Species.WEREWOLF:
                 white_candidate = self.random_select(self.votefor_executed_agent)
                 return Content(EstimateContentBuilder(white_candidate, Role.VILLAGER))
@@ -167,12 +162,13 @@ class ddhbMedium(ddhbVillager):
 
     # 投票対象→OK
     def vote(self) -> Agent:
+        # 同数投票の処理
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
-        self.others_medium_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
+        # 投票候補：結果によって変える
         # 白結果：投票したエージェント
         if self.latest_result == Species.HUMAN:
             vote_candidates = self.votefor_executed_agent
@@ -181,16 +177,13 @@ class ddhbMedium(ddhbVillager):
             for agent in self.votefor_executed_agent:
                 if agent in vote_candidates:
                     vote_candidates.remove(agent)
-        # 投票候補の優先順位
-        # 偽占い→対抗霊媒→霊結果から推定
+        # 投票対象の優先順位：偽占い→偽霊媒→人狼っぽいエージェント
+        fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
+        others_medium_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
         if fake_seers:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, fake_seers)
-        elif self.others_medium_co:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.others_medium_co)
+        elif others_medium_co:
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_medium_co)
         else:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
-        # # 候補なし → 偽占い以外からの黒結果
-        # if not vote_candidates:
-        #     reported_wolves: List[Agent] = [j.target for j in self.divination_reports if j.agent not in fake_seers and j.result == Species.WEREWOLF]
-        #     vote_candidates = self.get_alive_others(reported_wolves)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
