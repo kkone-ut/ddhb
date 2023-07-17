@@ -349,6 +349,8 @@ class ddhbVillager(AbstractPlayer):
         self.score_matrix.update(game_info)
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
             tk: Talk = game_info.talk_list[i]  # The talk to be analyzed.
+            day: int = tk.day
+            turn: int = tk.turn
             talker: Agent = tk.agent
             self.talk_list_all.append(tk)
             if talker == self.me:  # Skip my talk.
@@ -373,28 +375,28 @@ class ddhbVillager(AbstractPlayer):
 
             if content.topic == Topic.COMINGOUT:
                 self.comingout_map[talker] = content.role
-                self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role)
+                self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role, day, turn)
                 Util.debug_print("CO:\t", talker, content.role)
             elif content.topic == Topic.DIVINED:
-                self.divination_reports.append(Judge(talker, game_info.day, content.target, content.result))
-                self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result)
+                self.divination_reports.append(Judge(talker, day, content.target, content.result))
+                self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result, day, turn)
                 Util.debug_print("DIVINED:\t", talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
-                self.identification_reports.append(Judge(talker, game_info.day, content.target, content.result))
-                self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result)
+                self.identification_reports.append(Judge(talker, day, content.target, content.result))
+                self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result, day, turn)
                 Util.debug_print("IDENTIFIED:\t", talker, content.target, content.result)
             elif content.topic == Topic.VOTE:
                 # 古い投票先が上書きされる前にスコアを更新 (2回以上投票宣言している場合に信頼度を下げるため)
-                self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target)
+                self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target, day, turn)
                 # 投票先を保存
                 self.will_vote_reports[talker] = content.target
             elif content.topic == Topic.VOTED:
-                self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target)
+                self.score_matrix.talk_voted(self.game_info, self.game_setting, talker, content.target, day, turn)
             elif content.topic == Topic.GUARDED:
-                self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target)
+                self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target, day, turn)
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
-                self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role)
+                self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role, day, turn)
                 self.will_vote_reports[talker] = content.target
                 # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
                 # Util.debug_print("will_vote_estimate:\t", will_vote)
@@ -404,7 +406,7 @@ class ddhbVillager(AbstractPlayer):
                 # Util.debug_print("will_vote_request:\t", will_vote)
             
             action: Action = ActionLogger.update(game_info, tk, content)
-            score = ActionLogger.get_score(tk.day, tk.turn, talker, action)
+            score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
 
         self.talk_list_head = len(game_info.talk_list)  # All done.
