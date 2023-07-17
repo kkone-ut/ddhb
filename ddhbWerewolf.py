@@ -410,6 +410,8 @@ class ddhbWerewolf(ddhbPossessed):
         if self.PP_flag:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        
+        latest_vote_list = self.game_info.latest_vote_list
         # ---------- 5人村 ----------
         if self.N == 5:
             # 確定狂人がいる場合→狂人の結果に合わせる
