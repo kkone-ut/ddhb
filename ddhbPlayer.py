@@ -60,41 +60,41 @@ class ddhbPlayer(AbstractPlayer):
 
     # オーバーライドしていく
     def attack(self) -> Agent:
-        Util.start_timer("ddhbPlayer.attack")
         agent = AGENT_NONE
         try:
+            Util.start_timer("ddhbPlayer.attack")
             agent = self.player.attack()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
+            Util.end_timer("ddhbPlayer.attack", 70)
+        except:
             Util.end_timer("ddhbPlayer.attack")
-        except timeout_decorator.TimeoutError:
-            Util.end_timer("ddhbPlayer.attack")
-            Util.error_print("TimeoutError:\t", "attack")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return agent
 
     def day_start(self) -> None:
-        Util.start_timer("ddhbPlayer.day_start")
         self.player.talk_turn = 0
         try:
+            Util.start_timer("ddhbPlayer.day_start")
             self.player.day_start()
             # 自分が死んでいる場合は次のゲーム開始時の ROLE までリクエストが来ないため、ある程度時間をかけても問題ない
             # finish のときに RolePredictor を更新していると次のゲーム開始に間に合わない
             if self.game_info.status_map[self.player.me] == Status.DEAD:
                 self.player.role_predictor.update(self.game_info, self.game_setting)
+            Util.end_timer("ddhbPlayer.day_start", 10)
+        except:
             Util.end_timer("ddhbPlayer.day_start")
-        except timeout_decorator.TimeoutError:
-            Util.end_timer("ddhbPlayer.day_start")
-            Util.error_print("TimeoutError:\t", "day_start")
+            Util.error_print("Trace:\t", traceback.format_exc())
 
     def divine(self) -> Agent:
-        Util.start_timer("ddhbPlayer.divine")
         agent = AGENT_NONE
         try:
+            Util.start_timer("ddhbPlayer.divine")
             agent = self.player.divine()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
+            Util.end_timer("ddhbPlayer.divine", 70)
+        except:
             Util.end_timer("ddhbPlayer.divine")
-        except timeout_decorator.TimeoutError:
-            Util.end_timer("ddhbPlayer.divine")
-            Util.error_print("TimeoutError:\t", "divine")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return agent
 
     def finish(self) -> None:
@@ -102,55 +102,56 @@ class ddhbPlayer(AbstractPlayer):
         try:
             self.player.finish()
             TeamPredictor.finish(self.player)
-            Util.end_timer("ddhbPlayer.finish")
-        except timeout_decorator.TimeoutError:
-            Util.end_timer("ddhbPlayer.finish")
-            Util.error_print("TimeoutError:\t", "finish")
-        except Exception as e:
+            Util.end_timer("ddhbPlayer.finish", 20)
+        except:
             Util.error_print(traceback.format_exc())
         Util.debug_print("finish")
         Util.debug_print("---------------------------------------")
         Util.debug_print("")
 
     def guard(self) -> Agent:
-        Util.start_timer("ddhbPlayer.guard")
         agent = AGENT_NONE
         try:
+            Util.start_timer("ddhbPlayer.guard")
             agent = self.player.guard()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
-            Util.end_timer("ddhbPlayer.guard")
-        except timeout_decorator.TimeoutError:
+            Util.end_timer("ddhbPlayer.guard", 70)
+        except:
             Util.end_timer("ddhbPlayer.guard")
             Util.error_print("TimeoutError:\t", "guard")
         return agent
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
-        Util.start_timer("ddhbPlayer.initialize")
-        self.game_setting = game_setting
-        self.game_info = game_info
+        try:
+            Util.start_timer("ddhbPlayer.initialize")
+            self.game_setting = game_setting
+            self.game_info = game_info
 
-        role: Role = game_info.my_role
-        if role == Role.VILLAGER:
-            self.player = self.villager
-        elif role == Role.BODYGUARD:
-            self.player = self.bodyguard
-        elif role == Role.MEDIUM:
-            self.player = self.medium
-        elif role == Role.SEER:
-            self.player = self.seer
-        elif role == Role.POSSESSED:
-            self.player = self.possessed
-        elif role == Role.WEREWOLF:
-            self.player = self.werewolf
-        self.player.initialize(game_info, game_setting)
-        Util.end_timer("ddhbPlayer.initialize", 20)
+            role: Role = game_info.my_role
+            if role == Role.VILLAGER:
+                self.player = self.villager
+            elif role == Role.BODYGUARD:
+                self.player = self.bodyguard
+            elif role == Role.MEDIUM:
+                self.player = self.medium
+            elif role == Role.SEER:
+                self.player = self.seer
+            elif role == Role.POSSESSED:
+                self.player = self.possessed
+            elif role == Role.WEREWOLF:
+                self.player = self.werewolf
+            self.player.initialize(game_info, game_setting)
+            Util.end_timer("ddhbPlayer.initialize", 20)
+        except:
+            Util.end_timer("ddhbPlayer.initialize")
+            Util.error_print("Trace:\t", traceback.format_exc())
         
     def talk(self) -> Content:
-        Util.start_timer("ddhbPlayer.talk")
         content = CONTENT_SKIP
         self.player.talk_turn += 1
         try:
+            Util.start_timer("ddhbPlayer.talk")
             Util.start_timer("ddhbPlayer.talk.update")
             self.player.role_predictor.update(self.game_info, self.game_setting, 30)
             Util.end_timer("ddhbPlayer.talk.update", 40)
@@ -162,9 +163,9 @@ class ddhbPlayer(AbstractPlayer):
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
             Util.end_timer("ddhbPlayer.talk.addAssignments", 40)
             Util.end_timer("ddhbPlayer.talk", 80)
-        except timeout_decorator.TimeoutError:
+        except:
             Util.end_timer("ddhbPlayer.talk")
-            Util.error_print("TimeoutError:\t", "talk")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return content
 
     @timeout_decorator.timeout(0.02)
@@ -181,6 +182,9 @@ class ddhbPlayer(AbstractPlayer):
         except timeout_decorator.TimeoutError:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("TimeoutError:\t", "update")
+        except:
+            Util.end_timer("ddhbPlayer.update")
+            Util.error_print("Trace:\t", traceback.format_exc())
 
     def vote(self) -> Agent:
         Util.start_timer("ddhbPlayer.vote")
@@ -192,19 +196,20 @@ class ddhbPlayer(AbstractPlayer):
             Util.debug_print("----------")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.vote", 80)
-        except timeout_decorator.TimeoutError:
+        except:
             Util.end_timer("ddhbPlayer.vote")
-            Util.error_print("TimeoutError:\t", "vote")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return agent
 
     def whisper(self) -> Content:
-        Util.start_timer("ddhbPlayer.whisper")
         content = CONTENT_SKIP
         try:
+            Util.start_timer("ddhbPlayer.whisper")
             content = self.player.whisper()
             # 人狼陣営の場合は割り当てはそこまで探索しなくてもいい
             # self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
-        except timeout_decorator.TimeoutError:
+            Util.end_timer("ddhbPlayer.whisper", 20)
+        except:
             Util.end_timer("ddhbPlayer.whisper")
-            Util.error_print("TimeoutError:\t", "whisper")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return content
