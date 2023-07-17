@@ -145,7 +145,7 @@ class ddhbVillager(AbstractPlayer):
     # todo: 情報が足りない時は、AGENT_NONEを返す
     # todo: thresholdの追加
     # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
-    def chooseMostlikelyExecuted(self, exclude_list: List[Agent]=None) -> Agent:
+    def chooseMostlikelyExecuted_miss(self, exclude_list: List[Agent]=None) -> Agent:
         count: DefaultDict[Agent, float] = defaultdict(float)
         for talker, target in self.will_vote_reports.items():
             if exclude_list is not None and target in exclude_list:
@@ -158,7 +158,7 @@ class ddhbVillager(AbstractPlayer):
         return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
 
 
-    def chooseMostlikelyExecuted_2(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
+    def chooseMostlikelyExecuted(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
         count: DefaultDict[Agent, float] = defaultdict(float)
