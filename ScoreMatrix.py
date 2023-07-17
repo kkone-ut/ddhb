@@ -799,10 +799,9 @@ class ScoreMatrix:
         self.update(game_info)
         day: int = self.game_info.day
         my_role = self.my_role
-        alive_comingout_map = {a: r for a, r in self.player.comingout_map.items() if self.player.is_alive(a)}
 
         if my_role != Role.WEREWOLF:
-            for agent, role in alive_comingout_map.items():
+            for agent, role in self.player.alive_comingout_map.items():
                 self.add_scores(agent, {Role.POSSESSED: +day/2, Role.WEREWOLF: +day})
 
 

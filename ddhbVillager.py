@@ -139,6 +139,15 @@ class ddhbVillager(AbstractPlayer):
             A agent randomly chosen from agent_list.
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
+    
+    
+    @property
+    def alive_comingout_map(self) -> DefaultDict[Agent, Role]:
+        return {a: r for a, r in self.comingout_map.items() if self.is_alive(a) and r != Role.UNC}
+    
+    @property
+    def alive_comingout_map_str(self) -> DefaultDict[str, str]:
+        return {a.agent_idx: r.value for a, r in self.alive_comingout_map.items() if self.is_alive(a) and r != Role.UNC}
 
 
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
@@ -356,6 +365,9 @@ class ddhbVillager(AbstractPlayer):
             score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
 
+            if action in [Action.DIVINED_CONTRADICT, Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO]:
+                Util.debug_print("Action:\t", talker, action)
+
             self.talk_list_head += 1
 
             if Util.timeout("Villager.update", timeout):
@@ -501,7 +513,8 @@ class ddhbVillager(AbstractPlayer):
 
         # COを表示
         for a, r in self.comingout_map.items():
-            Util.debug_print("CO:\t", a, r)
+            if r != Role.UNC:
+                Util.debug_print("CO:\t", a, r)
         Util.debug_print("")
 
         # 実際の割り当てと予測の割り当てを比較

@@ -87,8 +87,7 @@ class ddhbMedium(ddhbVillager):
     # 昼スタート→OK
     def day_start(self) -> None:
         super().day_start()
-        alive_comingout_map = {a.agent_idx: r.value for a, r in self.comingout_map.items() if self.is_alive(a)}
-        Util.debug_print("alive_comingout_map:\t", alive_comingout_map)
+        Util.debug_print("alive_comingout_map:\t", self.alive_comingout_map_str)
         
         self.latest_result = Species.UNC
         self.votefor_executed_agent.clear()

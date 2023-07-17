@@ -225,8 +225,7 @@ class ddhbBodyguard(ddhbVillager):
                         self.to_be_guarded = others_medium_co[0]
                     else:
                         self.to_be_guarded = self.get_guard_agent(guard_candidates)
-            alive_comingout_map = {a.agent_idx: r.value for a, r in self.comingout_map.items() if self.is_alive(a)}
-            Util.debug_print("alive_comingout_map:\t", alive_comingout_map)
+            Util.debug_print("alive_comingout_map:\t", self.alive_comingout_map_str)
             Util.debug_print(f"seer:{seer_co_cnt}, medium:{medium_co_cnt}")
         Util.debug_print("to_be_guarded:\t", self.to_be_guarded)
         self.guard_success_agent = self.to_be_guarded
