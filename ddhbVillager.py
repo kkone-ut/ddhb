@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import random
 from collections import defaultdict
 from typing import Dict, List, DefaultDict
@@ -60,7 +61,6 @@ class ddhbVillager(AbstractPlayer):
     talk_list_all: List[Talk] # 全talkリスト
     talk_turn: int # talkのターン
     role_predictor: RolePredictor # role_predictor
-    
 
 
     def __init__(self) -> None:
@@ -141,23 +141,7 @@ class ddhbVillager(AbstractPlayer):
         return random.choice(agent_list) if agent_list else AGENT_NONE
 
 
-    # 最も処刑されそうなエージェントを返す
-    # todo: 情報が足りない時は、AGENT_NONEを返す
-    # todo: thresholdの追加
-    # todo: リストにいるエージェントを除いた中で、最も処刑されそうなエージェントに変更する
-    def chooseMostlikelyExecuted_miss(self, exclude_list: List[Agent]=None) -> Agent:
-        count: DefaultDict[Agent, float] = defaultdict(float)
-        for talker, target in self.will_vote_reports.items():
-            if exclude_list is not None and target in exclude_list:
-                continue
-            if self.is_alive(talker) and self.is_alive(target):
-                count[target] += 1
-        if self.vote_candidate != AGENT_NONE:
-            count[self.vote_candidate] += 1
-        
-        return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
-
-
+    # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
     def chooseMostlikelyExecuted(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
@@ -183,7 +167,6 @@ class ddhbVillager(AbstractPlayer):
 
 
     # HPが低いかどうか
-    # todo: EstimateBlack,Whiteにも対応させる
     def is_Low_HP(self) -> bool:
         is_low_hp: bool = False
         # will_vote：投票が20%以上で、自分が最も処刑されそうな場合
@@ -200,47 +183,11 @@ class ddhbVillager(AbstractPlayer):
                 vote_cnt += 1
         if len(vote_list) != 0 and vote_cnt/len(vote_list) >= 0.2:
             is_low_hp = True
-        # latest_vote_cnt = 0
-        # latest_vote_list = self.game_info.latest_vote_list
-        # for vote in latest_vote_list:
-        #     if vote.target == self.me:
-        #         latest_vote_cnt += 1
-        # if len(latest_vote_list) != 0 and latest_vote_cnt/len(latest_vote_list) >= 0.2:
-        #     is_low_hp = True
         if is_low_hp:
             Util.debug_print("Low_HP")
         return is_low_hp
 
 
-    # 5人村用
-    # todo: 15人村にも対応する
-    # def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
-    #     vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-    #     count: DefaultDict[Agent, float] = defaultdict(float)
-    #     count_num: DefaultDict[str, float] = defaultdict(float)
-    #     my_target: Agent = AGENT_NONE
-    #     new_target: Agent = AGENT_NONE
-    #     for vote in vote_list:
-    #         agent = vote.agent
-    #         target = vote.target
-    #         no = str(target.agent_idx)
-    #         if agent == self.me:
-    #             my_target = target
-    #         count[target] += 1
-    #         count_num[no] += 1
-    #     Util.debug_print('count_num:\t', count_num)
-    #     vote_candidates = list(count.keys())
-    #     if count[my_target] == 1.0:
-    #         vote_candidates.remove(my_target)
-    #         if mostlikely:
-    #             new_target = self.role_predictor.chooseMostLikely(role, vote_candidates)
-    #         else:
-    #             new_target = self.role_predictor.chooseLeastLikely(role, vote_candidates)   
-    #     if new_target == AGENT_NONE:
-    #         new_target = my_target
-    #     Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
-    #     return new_target if new_target != AGENT_NONE else self.me
-    
     # 同数投票の時に自分の捨て票を変更する：最大投票以外のエージェントに投票している場合、投票先を変更する
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
         count: DefaultDict[Agent, float] = defaultdict(float)
@@ -261,9 +208,6 @@ class ddhbVillager(AbstractPlayer):
         max_voted_agents: List[Agent] = []
         for agent, num in count.items():
             if num == max_vote and agent != self.me:
-                # if agent == my_target:
-                #     return my_target
-                # else:
                 max_voted_agents.append(agent)
         # 最大投票数のエージェントが複数人の場合
         if len(max_voted_agents) > 1:
