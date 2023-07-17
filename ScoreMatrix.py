@@ -31,7 +31,6 @@ class ScoreMatrix:
         self.rtoi = defaultdict(lambda: -1)
         for r, i in {Role.VILLAGER: 0, Role.SEER: 1, Role.POSSESSED: 2, Role.WEREWOLF: 3, Role.MEDIUM: 4, Role.BODYGUARD: 5}.items():
             self.rtoi[r] = i
-        Util.debug_print(self.rtoi[Role.UNC])
         self.seer_co_count = 0
         self.medium_co_count = 0
         self.bodyguard_co_count = 0

@@ -10,7 +10,6 @@ from Assignment import Assignment
 from ScoreMatrix import ScoreMatrix
 from aiwolf.constant import AGENT_NONE
 
-import library.timeout_decorator as timeout_decorator
 from library.SortedSet import SortedSet
 
 class RolePredictor:
@@ -77,11 +76,8 @@ class RolePredictor:
             for p in Util.unique_permutations(assignment):
                 self.assignments.add(Assignment(game_info, game_setting, _player, np.copy(p)))
         else:
-            try: 
-                self.addAssignments(game_info, game_setting, timeout=20)
-                Util.debug_print("len(assignments):\t", len(self.assignments))
-            except timeout_decorator.TimeoutError:
-                Util.error_print("TimeoutError:\t", "RolePredictor.__init__")
+            self.addAssignments(game_info, game_setting, timeout=20)
+            Util.debug_print("len(assignments):\t", len(self.assignments))
 
     
     # すべての割り当ての評価値を計算する
@@ -104,7 +100,6 @@ class RolePredictor:
             if assignment.score != -float('inf'):
                 self.assignments.add(assignment)
             if Util.timeout("RolePredictor.update", timeout):
-                # raise timeout_decorator.TimeoutError
                 break
 
         # Util.debug_print("len(self.assignments)2:\t", len(self.assignments))

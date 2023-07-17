@@ -291,6 +291,8 @@ class ddhbVillager(AbstractPlayer):
     def update(self, game_info: GameInfo) -> None:
         self.game_info = game_info  # Update game information.
         self.score_matrix.update(game_info)
+        Util.start_timer("Villager.update")
+        timeout = 20
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
             tk: Talk = game_info.talk_list[i]  # The talk to be analyzed.
             day: int = tk.day
@@ -354,7 +356,10 @@ class ddhbVillager(AbstractPlayer):
             score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
 
-        self.talk_list_head = len(game_info.talk_list)  # All done.
+            self.talk_list_head += 1
+
+            if Util.timeout("Villager.update", timeout):
+                break
 
     # CO、投票宣言
     def talk(self) -> Content:
