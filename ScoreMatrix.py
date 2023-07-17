@@ -82,7 +82,12 @@ class ScoreMatrix:
             self.score_matrix[i, :, j, :] = -float('inf')
             self.score_matrix[i, ri, j, rj] = 0
         else:
-            self.score_matrix[i, ri, j, rj] = score
+            if score > 100:
+                self.score_matrix[i, ri, j, rj] = 100
+            elif score < -100:
+                self.score_matrix[i, ri, j, rj] = -100
+            else:
+                self.score_matrix[i, ri, j, rj] = score
 
 
     # スコアの加算
@@ -734,32 +739,6 @@ class ScoreMatrix:
     # # --------------- 他の人の発言から推測する ---------------
 
 
-    # 1日目の終わりに推測する (主に5人村の場合)
-
-    # 5人村の場合、1日目の終わりに推測する→使う必要なさそう
-    # todo: 5人村用に最適化する and 15人村でも、占い師や霊媒師の確定に利用する
-    def first_turn_end(self, game_info: GameInfo, game_setting: GameSetting) -> None:
-        # 5人村の場合、1日目の終わりに推測する
-        N = self.N
-        my_role = self.my_role
-        # if N == 5:
-        #     for i in range(N):
-        #         # 占いCOをしていない人の確率を操作する
-        #         if i not in self.seer_co_id:
-        #             # 占い師、人狼、狂人である確率を下げる
-        #             self.add_scores(i, {Role.SEER: -10, Role.WEREWOLF: -5, Role.POSSESSED: -10})
-        #         # 占いCOをしている人の確率を操作する
-        #         elif i in self.seer_co_id:
-        #             # 自分のCOは無視
-        #             if i == self.me:
-        #                 continue
-        #             # 自分が占い師の場合
-        #             if my_role == Role.SEER:
-        #                 self.add_scores(i, {Role.SEER: -100, Role.WEREWOLF: +5, Role.POSSESSED: +10})
-        #             else:
-        #                 self.add_scores(i, {Role.SEER: +10, Role.WEREWOLF: +1, Role.POSSESSED: +10})
-
-
     # N日目の始めに推測する
     # COしているのに、噛まれていない違和感を反映する
     def Nth_day_start(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -781,7 +760,6 @@ class ScoreMatrix:
 
     # --------------- 新プロトコルでの発言に対応する ---------------
     # 護衛成功発言を反映→OK
-    # todo: 人狼視点では、確定情報になりうるから、後で実装する：襲撃先と護衛成功発言先が一致していたら真狩人
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         N = self.N
         day = self.game_info.day

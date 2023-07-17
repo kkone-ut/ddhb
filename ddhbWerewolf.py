@@ -314,6 +314,8 @@ class ddhbWerewolf(ddhbPossessed):
                     return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
             # ----- VOTE and REQUEST -----
             if 2<= turn <= 9:
+                if self.PP_flag:
+                    self.new_target = self.role_predictor.chooseLeastLikely(Role.POSSESSED, self.get_alive_others(self.game_info.agent_list))
                 if turn % 2 == 0:
                     return Content(VoteContentBuilder(self.new_target))
                 else:
@@ -400,6 +402,10 @@ class ddhbWerewolf(ddhbPossessed):
             vote_candidates.remove(self.agent_possessed)
         vote_candidates_no = [a.agent_idx for a in vote_candidates]
         # Util.debug_print(f"投票候補:\t{vote_candidates_no}")
+        latest_vote_list = self.game_info.latest_vote_list
+        if day == 1 and latest_vote_list:
+            self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         # ---------- 5人村15人村共通 ----------
         if self.PP_flag:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
@@ -408,9 +414,6 @@ class ddhbWerewolf(ddhbPossessed):
         latest_vote_list = self.game_info.latest_vote_list
         # ---------- 5人村 ----------
         if self.N == 5:
-            if day == 1 and latest_vote_list:
-                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
-                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 確定狂人がいる場合→狂人の結果に合わせる
             if self.alive_possessed:
                 # breakしないことで、最新の狂人の結果を反映する
@@ -442,9 +445,6 @@ class ddhbWerewolf(ddhbPossessed):
                     # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
-            if latest_vote_list:
-                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
-                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
             # 投票候補の優先順位
             # 仲間の投票先→自分の黒先→占い→処刑されそうなエージェント
             allies_will_vote_reports = [target for agent, target in self.will_vote_reports.items() if agent in self.allies]

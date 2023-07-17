@@ -138,8 +138,8 @@ class ddhbSeer(ddhbVillager):
                         elif judge.result == Species.HUMAN:
                             self.new_result = Species.WEREWOLF
                             if others_co_num == 0:
-                                # todo: 勝率を反映する
-                                self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.5)
+                                # 対象：人狼確率＋勝率が高いエージェント
+                                self.new_target = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.5)
                                 # self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
                             else:
                                 self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.others_seer_co)
@@ -266,7 +266,7 @@ class ddhbSeer(ddhbVillager):
         divine_candidate: Agent = AGENT_NONE
         # 占い候補：占っていないエージェント
         divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
-        # todo: 人狼確率と勝率を組み合わせる
+        # 占い対象：人狼確率＋勝率が高いエージェント
         divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
         # divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
         # ---------- 5人村15人村共通 ----------
