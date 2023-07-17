@@ -378,12 +378,12 @@ class ddhbVillager(AbstractPlayer):
                 self.score_matrix.talk_co(self.game_info, self.game_setting, talker, content.role, day, turn)
                 Util.debug_print("CO:\t", talker, content.role)
             elif content.topic == Topic.DIVINED:
-                self.divination_reports.append(Judge(talker, day, content.target, content.result))
                 self.score_matrix.talk_divined(self.game_info, self.game_setting, talker, content.target, content.result, day, turn)
+                self.divination_reports.append(Judge(talker, day, content.target, content.result))
                 Util.debug_print("DIVINED:\t", talker, content.target, content.result)
             elif content.topic == Topic.IDENTIFIED:
-                self.identification_reports.append(Judge(talker, day, content.target, content.result))
                 self.score_matrix.talk_identified(self.game_info, self.game_setting, talker, content.target, content.result, day, turn)
+                self.identification_reports.append(Judge(talker, day, content.target, content.result))
                 Util.debug_print("IDENTIFIED:\t", talker, content.target, content.result)
             elif content.topic == Topic.VOTE:
                 # 古い投票先が上書きされる前にスコアを更新 (2回以上投票宣言している場合に信頼度を下げるため)
@@ -590,16 +590,16 @@ class ddhbVillager(AbstractPlayer):
         # if actual_assignment not in self.role_predictor.assignments:
         #     actual_assignment.evaluate(self.score_matrix)
         
-        # # 予測の割り当てのスコアを表示 (デバッグモード)
-        # predicted_assignment.evaluate(self.score_matrix, debug=True)
-        # Util.debug_print("")
-        # Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
-        # Util.debug_print("")
+        # 予測の割り当てのスコアを表示 (デバッグモード)
+        predicted_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
+        Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
+        Util.debug_print("")
 
-        # # 実際の割り当てのスコアを表示 (デバッグモード)
-        # actual_assignment.evaluate(self.score_matrix, debug=True)
-        # Util.debug_print("")
-        # Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
+        # 実際の割り当てのスコアを表示 (デバッグモード)
+        actual_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
+        Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
 
         # # 最下位の割り当てのスコアを表示
         # Util.debug_print("")
