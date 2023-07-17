@@ -82,7 +82,12 @@ class ScoreMatrix:
             self.score_matrix[i, :, j, :] = -float('inf')
             self.score_matrix[i, ri, j, rj] = 0
         else:
-            self.score_matrix[i, ri, j, rj] = score
+            if score > 100:
+                self.score_matrix[i, ri, j, rj] = 100
+            elif score < -100:
+                self.score_matrix[i, ri, j, rj] = -100
+            else:
+                self.score_matrix[i, ri, j, rj] = score
 
 
     # スコアの加算
@@ -113,12 +118,8 @@ class ScoreMatrix:
             role2 = [role2]
         for r1 in role1:
             for r2 in role2:
-                # modified_score = self.get_score(agent1, r1, agent2, r2) + score
-                # self.set_score(agent1, r1, agent2, r2, modified_score)
-                tmp_score = self.get_score(agent1, r1, agent2, r2)
-                if tmp_score < 500:
-                    modified_score = tmp_score + score
-                    self.set_score(agent1, r1, agent2, r2, modified_score)
+                modified_score = self.get_score(agent1, r1, agent2, r2) + score
+                self.set_score(agent1, r1, agent2, r2, modified_score)
 
 
     # スコアの加算をまとめて行う
