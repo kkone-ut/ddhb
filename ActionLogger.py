@@ -18,6 +18,7 @@ class Action(Enum):
     CO_SEER = "CO_SEER"
     CO_MEDIUM = "CO_MEDIUM"
     CO_BODYGUARD = "CO_BODYGUARD"
+    CO_VILLAGER = "CO_VILLAGER"
     REQUEST_VOTE = "REQUEST_VOTE"
     ESTIMATE_WEREWOLF = "ESTIMATE_WEREWOLF"
     ESTIMATE_POSSESSED = "ESTIMATE_POSSESSED"
@@ -147,6 +148,8 @@ class ActionLogger:
                 return Action.CO_MEDIUM
             elif content.role == Role.BODYGUARD:
                 return Action.CO_BODYGUARD
+            elif content.role == Role.VILLAGER:
+                return Action.CO_VILLAGER
         elif content.topic == Topic.OPERATOR:
             if content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
                 return Action.REQUEST_VOTE
