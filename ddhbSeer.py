@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import random
 from collections import deque
 from typing import Deque, List, Optional
@@ -28,7 +29,6 @@ from aiwolf.constant import AGENT_NONE, AGENT_ANY
 from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
-
 
 
 # 占い
@@ -269,8 +269,8 @@ class ddhbSeer(ddhbVillager):
         divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
         # divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
         # ---------- 5人村15人村共通 ----------
-        # # 初日：勝率が高いエージェント
-        # if day == 0:
-        #     divine_candidate = Util.get_strong_agent(divine_candidates)
+        # 初日：勝率が高いエージェント
+        if day == 0:
+            divine_candidate = Util.get_strong_agent(divine_candidates)
         Util.debug_print(f"占い対象：{divine_candidate}")
         return divine_candidate if divine_candidate != AGENT_NONE else self.me

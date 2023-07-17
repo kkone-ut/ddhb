@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import random
 from collections import deque
 from typing import Deque, List, Optional
@@ -27,7 +28,6 @@ from aiwolf.constant import AGENT_NONE, AGENT_ANY
 from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
-
 
 
 # 霊媒
