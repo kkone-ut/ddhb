@@ -29,8 +29,6 @@ from ddhbWerewolf import ddhbWerewolf
 from Util import Util
 from TeamPredictor import TeamPredictor
 
-import library.timeout_decorator as timeout_decorator
-import time
 import traceback
 
 # ddhbプレイヤー
@@ -118,7 +116,7 @@ class ddhbPlayer(AbstractPlayer):
             Util.end_timer("ddhbPlayer.guard", 70)
         except:
             Util.end_timer("ddhbPlayer.guard")
-            Util.error_print("TimeoutError:\t", "guard")
+            Util.error_print("Trace:\t", traceback.format_exc())
         return agent
 
     # 役職の初期化
@@ -168,20 +166,13 @@ class ddhbPlayer(AbstractPlayer):
             Util.error_print("Trace:\t", traceback.format_exc())
         return content
 
-    @timeout_decorator.timeout(0.02)
-    def _update(self, game_info: GameInfo) -> None:
-        self.game_info = game_info
-        TeamPredictor.update(game_info)
-        self.player.update(game_info)
-
     def update(self, game_info: GameInfo) -> None:
         Util.start_timer("ddhbPlayer.update")
         try:
-            self._update(game_info)
+            self.game_info = game_info
+            TeamPredictor.update(game_info)
+            self.player.update(game_info)
             Util.end_timer("ddhbPlayer.update", 10)
-        except timeout_decorator.TimeoutError:
-            Util.end_timer("ddhbPlayer.update")
-            Util.error_print("TimeoutError:\t", "update")
         except:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("Trace:\t", traceback.format_exc())
