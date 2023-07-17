@@ -1,15 +1,16 @@
-from aiwolf import Agent, GameInfo, GameSetting, Role, Talk, Content, Topic, Species, Operator
+from aiwolf import Agent, GameInfo, GameSetting, Role, Talk, Content, Topic, Species, Operator, Judge
 
 from enum import Enum
 from typing import List, DefaultDict, Dict, Deque
 from collections import defaultdict, deque
 from Util import Util
-
+from ddhbVillager import *
 
 class Action(Enum):
     DIVINED_BLACK = "DIVINED_BLACK"
     DIVINED_WHITE = "DIVINED_WHITE"
     DIVINED_WITHOUT_CO = "DIVINED_WITHOUT_CO"
+    DIVINED_CONTRADICT = "DIVINED_CONTRADICT" # 同じ日に対抗と被っていて、かつ、対抗と逆の結果を主張した場合
     IDENTIFIED_BLACK = "IDENTIFIED_BLACK"
     IDENTIFIED_WHITE = "IDENTIFIED_WHITE"
     IDENTIFIED_WITHOUT_CO = "IDENTIFIED_WITHOUT_CO"
@@ -69,12 +70,12 @@ class ActionLogger:
 
 
     @staticmethod
-    def update(game_info: GameInfo, talk: Talk, content: Content) -> Action:
+    def update(game_info: GameInfo, talk: Talk, content: Content, player) -> Action:
         ActionLogger.game_info = game_info
         talker: Agent = talk.agent
         day: int = talk.day
         turn: int = talk.turn
-        action: Action = ActionLogger.get_action(content)
+        action: Action = ActionLogger.get_action(content, talker, day, turn, player)
         if action is not None:
             # ActionLogger.action_count[(day, turn, talker, action)] += 1
             ActionLogger.action_log.append(ActionLog(Util.game_count, day, turn, talker, action))
@@ -126,14 +127,25 @@ class ActionLogger:
 
 
     @staticmethod
-    def get_action(content: Content) -> Action:
+    def get_action(content: Content, talker: Agent, day: int, turn: int, player) -> Action:
+        player: ddhbVillager = player # 循環参照エラー回避
+        divination_reports: List[Judge] = player.divination_reports
+        comingout_map: DefaultDict[Agent, Role] = player.comingout_map
         if content.topic == Topic.DIVINED:
-            if content.result == Species.WEREWOLF:
+            for report in divination_reports:
+                # 同じ日の対抗の結果に被せて別の結果を報告した場合
+                if report.agent != talker and report.target == content.target and report.day == content.day and report.result != content.result:
+                    return Action.DIVINED_CONTRADICT
+            if comingout_map[talker] != Role.SEER:
+                return Action.DIVINED_WITHOUT_CO
+            elif content.result == Species.WEREWOLF:
                 return Action.DIVINED_BLACK
             elif content.result == Species.HUMAN:
                 return Action.DIVINED_WHITE
         elif content.topic == Topic.IDENTIFIED:
-            if content.result == Species.WEREWOLF:
+            if comingout_map[talker] != Role.MEDIUM:
+                return Action.IDENTIFIED_WITHOUT_CO
+            elif content.result == Species.WEREWOLF:
                 return Action.IDENTIFIED_BLACK
             elif content.result == Species.HUMAN:
                 return Action.IDENTIFIED_WHITE
