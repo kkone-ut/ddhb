@@ -131,6 +131,7 @@ class ScoreMatrix:
     # --------------- 公開情報から推測する ---------------
     # 襲撃結果を反映→OK
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
+        self.update(game_info)
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
 
@@ -139,6 +140,7 @@ class ScoreMatrix:
     # todo: will vote の順番を見て、その人の投票で結果が変わらないならその投票の重みは軽くする
     # todo:     実際には吊られなそうなタイミングで黒に投票していたような場合はライン切りの可能性を考慮する
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent, day: int) -> None:
+        self.update(game_info)
         N = self.N
         my_role = self.my_role
         day = self.game_info.day
@@ -169,6 +171,7 @@ class ScoreMatrix:
     # 自分の占い結果を反映→OK
     # 結果騙りは考慮しない
     def my_divined(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
+        self.update(game_info)
         # 黒結果
         if species == Species.WEREWOLF:
             # 人狼であることが確定しているので、人狼のスコアを+inf(実際には他の役職のスコアを-inf(相対確率0)にする)
@@ -185,6 +188,7 @@ class ScoreMatrix:
     # 自分の霊媒結果を反映→OK
     # 結果騙りは考慮しない
     def my_identified(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
+        self.update(game_info)
         # 黒結果
         if species == Species.WEREWOLF:
             self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, +float('inf'))
@@ -198,6 +202,7 @@ class ScoreMatrix:
     # 自分の護衛結果を反映→OK
     # 人狼の自噛みはルール上なし
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
+        self.update(game_info)
         # 護衛が成功したエージェントは人狼ではない
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
     # --------------- 自身の能力の結果から推測する ---------------
@@ -207,6 +212,7 @@ class ScoreMatrix:
     # 他者のCOを反映 
     # Basketでは、人外は3CO目のCOはしないので、3CO目は真占いである確率が極めて高い？
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role) -> None:
+        self.update(game_info)
         N = self.N
         day = self.game_info.day
         turn = self.player.talk_turn
@@ -459,6 +465,7 @@ class ScoreMatrix:
     # 投票意思を反映→OK
     # それほど重要ではないため、スコアの更新は少しにする
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
+        self.update(game_info)
         N = self.N
         day = self.game_info.day
         turn = self.player.talk_turn
@@ -495,11 +502,12 @@ class ScoreMatrix:
 
     # Basketにないため、後で実装する
     def talk_estimate(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, role: Role) -> None:
-        pass
+        self.update(game_info)
 
     # 他者の占い結果を反映→OK
     # 条件分岐は、N人村→myrole→白黒結果→targetが自分かどうか
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
+        self.update(game_info)
         N = self.N
         day = self.game_info.day
         my_role = self.my_role
@@ -705,6 +713,7 @@ class ScoreMatrix:
 
     # 他者の霊媒結果を反映→OK
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species) -> None:
+        self.update(game_info)
         N = self.N
         day = self.game_info.day
         turn = self.player.talk_turn
@@ -772,6 +781,7 @@ class ScoreMatrix:
     # N日目の始めに推測する
     # COしているのに、噛まれていない違和感を反映する
     def Nth_day_start(self, game_info: GameInfo, game_setting: GameSetting) -> None:
+        self.update(game_info)
         day: int = self.game_info.day
         my_role = self.my_role
         alive_comingout_map = {a: r for a, r in self.player.comingout_map.items() if self.player.is_alive(a)}
@@ -791,6 +801,7 @@ class ScoreMatrix:
     # --------------- 新プロトコルでの発言に対応する ---------------
     # 護衛成功発言を反映→OK
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
+        self.update(game_info)
         N = self.N
         day = self.game_info.day
         turn = self.player.talk_turn
@@ -826,7 +837,7 @@ class ScoreMatrix:
     # 後で実装する→そんなに重要でない
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent) -> None:
         # latest_vote_list で参照できるので意味がないかも
-        pass
+        self.update(game_info)
 
     # --------------- 行動学習 ---------------
 

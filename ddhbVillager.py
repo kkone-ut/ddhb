@@ -346,6 +346,7 @@ class ddhbVillager(AbstractPlayer):
     # talk-listの処理
     def update(self, game_info: GameInfo) -> None:
         self.game_info = game_info  # Update game information.
+        self.score_matrix.update(game_info)
         for i in range(self.talk_list_head, len(game_info.talk_list)):  # Analyze talks that have not been analyzed yet.
             tk: Talk = game_info.talk_list[i]  # The talk to be analyzed.
             talker: Agent = tk.agent
