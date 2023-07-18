@@ -129,14 +129,14 @@ class ActionLogger:
 
             # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
             for r in role_list:
-                score[r] = 5 * (score[r] - 1/len(role_list))
+                score[r] = score[r] - 1/len(role_list)
 
             # 係数調整
             for r in role_list:
                 if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO]:
                     score[r] *= 25
                 else:
-                    score[r] *= 5
+                    score[r] *= 2
 
         return score
 

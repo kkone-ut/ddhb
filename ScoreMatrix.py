@@ -800,9 +800,13 @@ class ScoreMatrix:
         day: int = self.game_info.day
         my_role = self.my_role
 
+        if day <= 2 or len(game_info.last_dead_agent_list) == 0:
+            return
+
         if my_role != Role.WEREWOLF:
             for agent, role in self.player.alive_comingout_map.items():
-                self.add_scores(agent, {Role.POSSESSED: +day/2, Role.WEREWOLF: +day})
+                if role in [Role.SEER, Role.MEDIUM, Role.BODYGUARD]:
+                    self.add_scores(agent, {Role.POSSESSED: +5, Role.WEREWOLF: +10})
 
 
     # --------------- 新プロトコルでの発言に対応する ---------------
