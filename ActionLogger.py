@@ -83,7 +83,13 @@ class ActionLogger:
         # 前ゲームのログを action_count_all に反映
         # 現在のターンまでのもののみを処理することで負担を減らす
         oldest_log: ActionLog = ActionLogger.action_log[0] if len(ActionLogger.action_log) > 0 else None
-        while oldest_log is not None and oldest_log.game < Util.game_count and (oldest_log.day <= day or (oldest_log.day == day and oldest_log.turn == turn)):
+        while oldest_log is not None:
+            proceeds = False
+            proceeds |= oldest_log.game <= Util.game_count - 2
+            proceeds |= oldest_log.game == Util.game_count - 1 and oldest_log.day <= day 
+            proceeds |= oldest_log.game == Util.game_count - 1 and oldest_log.day == day and oldest_log.turn <= turn
+            if not proceeds:
+                break
             role: Role = ActionLogger.old_role_map[oldest_log.game-1][oldest_log.agent]
             # Util.debug_print("ActionLogger.update", f"game={oldest_log.game}, day={oldest_log.day}, turn={oldest_log.turn}, agent={oldest_log.agent}, role={role}, action={oldest_log.action}")
             ActionLogger.action_count_all[(oldest_log.day, oldest_log.turn, oldest_log.agent, role, oldest_log.action)] += 1
@@ -99,6 +105,7 @@ class ActionLogger:
         count: DefaultDict[Role, float] = defaultdict(float)
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0
+        role_list = ActionLogger.game_info.existing_role_list
 
         if Util.game_count <= 10:
             return score
@@ -106,7 +113,8 @@ class ActionLogger:
         if t >= 4:
             return score
 
-        for r in ActionLogger.game_info.existing_role_list:
+        # 相対確率を計算
+        for r in role_list:
             if Util.agent_role_count[talker][r] == 0:
                 count[r] = 0
             else:
@@ -115,8 +123,23 @@ class ActionLogger:
             sum += count[r]
         
         if sum > 0:
-            for r in ActionLogger.game_info.existing_role_list:
+            # 絶対確率に変換
+            for r in role_list:
                 score[r] = count[r] / sum
+
+            if len(ActionLogger.game_info.agent_list) == 5:
+                score[r] *= 5
+            else:
+                # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
+                for r in role_list:
+                    score[r] = score[r] - 1/len(role_list)
+
+                # 係数調整
+                for r in role_list:
+                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO]:
+                        score[r] *= 25
+                    else:
+                        score[r] *= 2
 
         return score
 

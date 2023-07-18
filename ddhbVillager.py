@@ -292,9 +292,7 @@ class ddhbVillager(AbstractPlayer):
         for v in self.game_info.vote_list:
             self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
         # 噛まれていない違和感を反映
-        day: int = self.game_info.day
-        if day >= 3:
-            self.score_matrix.Nth_day_start(self.game_info, self.game_setting)
+        self.score_matrix.Nth_day_start(self.game_info, self.game_setting)
 
 
     # ゲーム情報の更新
