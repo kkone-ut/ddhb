@@ -257,25 +257,11 @@ class ddhbPossessed(ddhbVillager):
                     # ----- 結果報告 -----
                     if self.has_co and not self.has_report:
                         self.has_report = True
-                        # ----- 戦略G：対抗の占いっぽいエージェントに黒結果 -----
-                        if self.strategyG:
-                            self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
-                            self.new_result = Species.WEREWOLF
-                        # ----- 戦略D：人狼っぽいエージェントに黒結果 -----
-                        if self.strategyD:
-                            self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
-                            self.new_result = Species.WEREWOLF
-                        # ----- 戦略E：村人っぽいエージェントに黒結果 -----
-                        if self.strategyE:
-                            # self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
+                        if day == 1:
+                            # 人狼っぽくないエージェントに黒結果
                             self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
                             self.new_result = Species.WEREWOLF
-                        # ----- 戦略F：人狼っぽいエージェントに白結果 -----
-                        if self.strategyF:
-                            self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
-                            self.new_result = Species.HUMAN
-                        # ----- 戦略I：占いっぽい結果 -----
-                        if self.strategyI:
+                        else:
                             r = random.random()
                             # 80%で人狼っぽいエージェントに白結果、20%で村人っぽいエージェントに黒結果
                             if r < 0.8:
