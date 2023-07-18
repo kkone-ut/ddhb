@@ -71,7 +71,7 @@ class ddhbBodyguard(ddhbVillager):
         self.guard_success_agent = AGENT_NONE
         self.guard_success_agents.clear()
         self.has_report = False
-        self.strategies = [False, False, False, False, False, True]
+        self.strategies = [False, False, False, False, False, False]
         # self.strategyA = self.strategies[0] # 戦略A: 護衛スコア
         # self.strategyB = self.strategies[1] # 戦略B: 占い重視
         # self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
