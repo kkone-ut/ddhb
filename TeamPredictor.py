@@ -45,7 +45,7 @@ class TeamPredictor:
 
     @staticmethod
     def should_skip(player, talk: Talk) -> bool:
-        if TeamPredictor.team_map[talk.agent] == Team.daphne:
+        if TeamPredictor.team_map[talk.agent] in [Team.daphne, Team.t222364m]:
             return True
         return False
 
