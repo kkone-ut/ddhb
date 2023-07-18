@@ -218,8 +218,10 @@ class ddhbVillager(AbstractPlayer):
         for agent, num in count.items():
             if num == max_vote and agent != self.me:
                 max_voted_agents.append(agent)
+        max_voted_agents_num = [a.agent_idx for a in max_voted_agents]
+        Util.debug_print('max_voted_agents:\t', max_voted_agents_num)
         # 最大投票数のエージェントが複数人の場合
-        if len(max_voted_agents) > 1:
+        if max_voted_agents:
             if mostlikely:
                 new_target = self.role_predictor.chooseMostLikely(role, max_voted_agents)
             else:
