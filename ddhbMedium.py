@@ -78,10 +78,10 @@ class ddhbMedium(ddhbVillager):
         self.strategyB = self.strategies[1] # 戦略B: COする日にちの変更（1日目CO）
         # 戦略A: 2日目CO
         if self.strategyA:
-            self.co_date = 2 # 79%, 71%
+            self.co_date = 2
         # 戦略B: 1日目CO
         if self.strategyB:
-            self.co_date = 1 # 73%, 70%
+            self.co_date = 1
 
 
     # 昼スタート→OK
@@ -100,7 +100,7 @@ class ddhbMedium(ddhbVillager):
             Util.debug_print("latest_result:\t", self.latest_result)
             for vote in vote_list:
                 # 前日に追放されたエージェントに投票したエージェントを追加する
-                if vote.target == judge.target:
+                if vote.target == judge.target and vote.agent != self.me:
                     self.votefor_executed_agent.append(vote.agent)
             votefor_executed_agent_no = [a.agent_idx for a in self.votefor_executed_agent]
             Util.debug_print("votefor_executed_agent:\t", len(self.votefor_executed_agent), votefor_executed_agent_no)
