@@ -67,6 +67,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.attack")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if agent == None:
+            agent = AGENT_NONE
         return agent
 
     def day_start(self) -> None:
@@ -93,6 +95,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.divine")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if agent == None:
+            agent = AGENT_NONE
         return agent
 
     def finish(self) -> None:
@@ -117,6 +121,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.guard")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if agent == None:
+            agent = AGENT_NONE
         return agent
 
     # 役職の初期化
@@ -164,6 +170,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.talk")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if content == None:
+            content = CONTENT_SKIP
         return content
 
     def update(self, game_info: GameInfo) -> None:
@@ -190,6 +198,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.vote")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if agent == None:
+            agent = AGENT_NONE
         return agent
 
     def whisper(self) -> Content:
@@ -203,4 +213,6 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.whisper")
             Util.error_print("Trace:\t", traceback.format_exc())
+        if content == None:
+            content = CONTENT_SKIP
         return content
