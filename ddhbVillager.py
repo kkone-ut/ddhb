@@ -354,12 +354,8 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.ESTIMATE:
                 self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role, day, turn)
                 self.will_vote_reports[talker] = content.target
-                # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
-                # Util.debug_print("will_vote_estimate:\t", will_vote)
             elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
                 self.will_vote_reports[talker] = content.content_list[0].target
-                # will_vote = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
-                # Util.debug_print("will_vote_request:\t", will_vote)
             
             action: Action = ActionLogger.update(game_info, tk, content, self)
             score = ActionLogger.get_score(day, turn, talker, action)
@@ -445,7 +441,6 @@ class ddhbVillager(AbstractPlayer):
                 return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         # ---------- 15人村 ----------
         elif self.N == 15:
-            # todo: MostLikelyExecutedに変更する？
             latest_vote_list = self.game_info.latest_vote_list
             if latest_vote_list:
                 self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
