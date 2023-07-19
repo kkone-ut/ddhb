@@ -412,6 +412,8 @@ class ddhbWerewolf(ddhbPossessed):
             # 投票候補の優先順位：仲間の投票先→自分の黒先→占い→処刑されそうなエージェント
             allies_will_vote_reports: List[Agent] = [target for agent, target in self.will_vote_reports.items() if agent in self.allies]
             if self.me in allies_will_vote_reports:
+                if turn >= 12:
+                    Util.debug_print("仲間の投票先に自分が含まれる:\t", self.me.agent_idx)
                 allies_will_vote_reports.remove(self.me)
             allies_will_vote_reports_num = [target.agent_idx for agent, target in self.will_vote_reports.items() if agent in self.allies]
             humans_seer_co: List[Agent] = [a for a in self.comingout_map if a in vote_candidates and  self.comingout_map[a] == Role.SEER]
