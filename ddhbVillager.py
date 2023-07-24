@@ -352,8 +352,10 @@ class ddhbVillager(AbstractPlayer):
                 self.score_matrix.talk_guarded(self.game_info, self.game_setting, talker, content.target, day, turn)
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
-                self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role, day, turn)
-                self.will_vote_reports[talker] = content.target
+                if content.role == Role.WEREWOLF:
+                    self.will_vote_reports[talker] = content.target
+                elif content.role == Role.VILLAGER:
+                    self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role, day, turn)
             elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
                 self.will_vote_reports[talker] = content.content_list[0].target
             
@@ -429,34 +431,26 @@ class ddhbVillager(AbstractPlayer):
 
     # 投票対象
     def vote(self) -> Agent:
-        day: int = self.game_info.day
-        
+        # 同数投票の処理
+        latest_vote_list = self.game_info.latest_vote_list
+        if latest_vote_list:
+            self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
+            return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+        # 投票候補
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         # ---------- 5人村 ----------
         if self.N == 5:
-            latest_vote_list = self.game_info.latest_vote_list
-            if day == 1 and latest_vote_list:
-                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
-                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
-            latest_vote_list = self.game_info.latest_vote_list
-            if latest_vote_list:
-                self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
-                return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-            # 投票候補：偽占い
+            # 投票対象の優先順位：偽占い→人狼っぽいエージェント
+            # 「偽占い以外の黒結果」は微妙だからやめる
             fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
-            vote_candidates = self.get_alive(fake_seers)
-            # 候補なし → 偽占い以外の黒結果
-            if not vote_candidates:
-                reported_wolves: List[Agent] = [j.target for j in self.divination_reports if j.agent not in fake_seers and j.result == Species.WEREWOLF]
-                vote_candidates = self.get_alive_others(reported_wolves)
-            # 候補なし → 生存者
-            if not vote_candidates:
-                vote_candidates = self.get_alive_others(self.game_info.agent_list)
-        
-        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+            alive_fake_seers: List[Agent] = self.get_alive_others(fake_seers)
+            if alive_fake_seers:
+                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_fake_seers)
+            else:
+                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
@@ -548,16 +542,16 @@ class ddhbVillager(AbstractPlayer):
         # if actual_assignment not in self.role_predictor.assignments:
         #     actual_assignment.evaluate(self.score_matrix)
         
-        # 予測の割り当てのスコアを表示 (デバッグモード)
-        predicted_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("")
-        Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
-        Util.debug_print("")
+        # # 予測の割り当てのスコアを表示 (デバッグモード)
+        # predicted_assignment.evaluate(self.score_matrix, debug=True)
+        # Util.debug_print("")
+        # Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
+        # Util.debug_print("")
 
-        # 実際の割り当てのスコアを表示 (デバッグモード)
-        actual_assignment.evaluate(self.score_matrix, debug=True)
-        Util.debug_print("")
-        Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
+        # # 実際の割り当てのスコアを表示 (デバッグモード)
+        # actual_assignment.evaluate(self.score_matrix, debug=True)
+        # Util.debug_print("")
+        # Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
 
         # # 最下位の割り当てのスコアを表示
         # Util.debug_print("")
