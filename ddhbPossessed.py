@@ -60,6 +60,8 @@ class ddhbPossessed(ddhbVillager):
     # ----- 占い騙り -----
     new_target: Agent # 偽の占い対象
     new_result: Species # 偽の占い結果
+    
+    agent_werewolf: Agent # 人狼っぽいエージェント
 
 
 
@@ -80,6 +82,7 @@ class ddhbPossessed(ddhbVillager):
         self.black_count = 0 # 霊媒師が黒判定した数
         self.new_target = AGENT_NONE
         self.new_result = Species.UNC
+        self.agent_werewolf = AGENT_NONE
         self.strategies = []
 
 
@@ -98,6 +101,7 @@ class ddhbPossessed(ddhbVillager):
         self.black_count = 0
         self.new_target = AGENT_NONE
         self.new_result = Species.WEREWOLF
+        self.agent_werewolf = AGENT_NONE
         
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
@@ -135,11 +139,25 @@ class ddhbPossessed(ddhbVillager):
             self.fake_role = Role.VILLAGER
 
 
+    def estimate_werewolf(self) -> None:
+        self.agent_werewolf = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.game_info.agent_list), threshold=0.7)
+
+
     def day_start(self) -> None:
         super().day_start()
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
             return
+        
+        day: int = self.game_info.day
+        if day == 2:
+            vote_list = self.game_info.vote_list
+            vote_list_ = {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
+            latest_vote_list = self.game_info.latest_vote_list
+            latest_vote_list_ = {v.agent.agent_idx: v.target.agent_idx for v in latest_vote_list}
+            Util.debug_print("----- day_start -----")
+            Util.debug_print("vote_list:\t", vote_list_)
+            Util.debug_print("latest_vote_list:\t", latest_vote_list_)
         
         self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
         self.new_result = Species.WEREWOLF
@@ -161,22 +179,21 @@ class ddhbPossessed(ddhbVillager):
 
     # CO、結果報告
     def talk(self) -> Content:
+        day: int = self.game_info.day
+        turn: int = self.talk_turn
+        self.estimate_werewolf()
+        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        # todo: not_judged_agentsを利用する
+        self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
+        others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
+        others_seer_co_num = len(others_seer_co)
+        self.vote_candidate = self.vote()
         # ---------- PP ----------
         if self.PP_flag and not self.has_PP:
             Util.debug_print('PP: Possessed')
             self.has_PP = True
             # return Content(ComingoutContentBuilder(self.me, Role.POSSESSED))
             return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
-        
-        day: int = self.game_info.day
-        turn: int = self.talk_turn
-        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        # todo: not_judged_agentsを利用する
-        self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
-        others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
-        others_seer_co_num = len(others_seer_co)
-        
-        self.vote_candidate = self.vote()
         # ---------- 5人村 ----------
         if self.N == 5:
             if day == 1:
@@ -339,15 +356,20 @@ class ddhbPossessed(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
+        day: int = self.game_info.day
+        game: int = Util.game_count
+        self.estimate_werewolf()
+        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+        self.vote_candidate = AGENT_NONE
+        
         # 同数投票の処理
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)
+            # 最多投票者が、自分と人狼っぽいエージェントの場合、変更しない方がいい
+            if self.role_predictor.getMostLikelyRole(self.vote_candidate) == Role.WEREWOLF:
+                self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-        
-        day: int = self.game_info.day
-        alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
-        self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
         # ---------- PP ----------
         if self.PP_flag:
             # 投票対象：人狼っぽくないエージェント
@@ -356,8 +378,18 @@ class ddhbPossessed(ddhbVillager):
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
         # ---------- 5人村 ----------
         if self.N == 5:
-            # 投票対象：人狼っぽくないエージェント
-            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+            # 人狼が判別できていて、game数が50以上の時→人狼の投票先に合わせる
+            if self.agent_werewolf != AGENT_NONE and game >= 50 and day == 1:
+                self.vote_candidate = self.will_vote_reports.get(self.agent_werewolf, AGENT_NONE)
+                will_vote_reports_num = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+                turn = self.talk_turn
+                if turn >= 12:
+                    Util.debug_print('------------------人狼っぽい-------------------\t', self.agent_werewolf)
+                    Util.debug_print('投票先\t', will_vote_reports_num)
+                    Util.debug_print('投票合わせる\t', self.vote_candidate)
+            if self.vote_candidate == AGENT_NONE or self.vote_candidate == self.me:
+                # 投票対象：人狼っぽくないエージェント
+                self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
             # # 投票対象：自分の黒先→処刑されそうなエージェント
             # if self.new_target != AGENT_NONE:
             #     self.vote_candidate = self.new_target
