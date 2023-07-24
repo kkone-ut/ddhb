@@ -72,12 +72,15 @@ class ddhbBodyguard(ddhbVillager):
         self.guard_success_agents.clear()
         self.has_report = False
         self.strategies = [False, False, False, False, False, False]
-        # self.strategyA = self.strategies[0] # 戦略A: 護衛スコア
+        self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（基本的にCOしない）
         # self.strategyB = self.strategies[1] # 戦略B: 占い重視
         # self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
         self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
         self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
         self.strategyF = self.strategies[5] # 戦略F: (CO予定日-1)日目からの2GJ成功でCO
+        # 戦略A: 7日目CO
+        if self.strategyA:
+            self.co_date = 7
         # 戦略D: 3日目CO
         if self.strategyD:
             self.co_date = 3
