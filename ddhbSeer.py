@@ -113,6 +113,7 @@ class ddhbSeer(ddhbVillager):
     def talk(self) -> Content:
         day: int = self.game_info.day
         turn: int = self.talk_turn
+        game: int = Util.game_count
         others_seer_co = [a for a in self.comingout_map if self.comingout_map[a] == Role.SEER]
         others_co_num: int = len(others_seer_co)
         self.vote_candidate = self.vote()
@@ -138,11 +139,15 @@ class ddhbSeer(ddhbVillager):
                             self.new_result = Species.WEREWOLF
                             # 対抗なし→人狼確率＋勝率が高いエージェント
                             if others_co_num == 0:
-                                self.new_target = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.5)
+                                self.new_target = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.1)
                                 # self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
                             # 対抗あり→対抗で人狼っぽいエージェント
+                            # 変更：対抗がいる場合でも、game>=50では人狼っぽいエージェント
                             else:
-                                self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_seer_co)
+                                if game < 50:
+                                    self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_seer_co)
+                                else:
+                                    self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents))
                             if self.new_target == AGENT_NONE:
                                 self.new_target = judge.target
                                 self.new_result = judge.result
