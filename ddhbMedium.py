@@ -144,7 +144,12 @@ class ddhbMedium(ddhbVillager):
             # 黒結果
             # 前日、黒に投票したエージェントを村人っぽいとESTIMATE
             if self.latest_result == Species.WEREWOLF:
-                white_candidate = self.random_select(self.votefor_executed_agent)
+                # white_candidate = self.random_select(self.votefor_executed_agent)
+                l = len(self.votefor_executed_agent)
+                if l != 0:
+                    white_candidate = self.votefor_executed_agent[turn % len(self.votefor_executed_agent)]
+                else:
+                    white_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
                 return Content(EstimateContentBuilder(white_candidate, Role.VILLAGER))
             # 白結果 or 結果なし
             else:
@@ -166,23 +171,30 @@ class ddhbMedium(ddhbVillager):
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # 投票候補：結果によって変える
+        vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # 白結果：投票したエージェント
-        if self.latest_result == Species.HUMAN:
-            vote_candidates = self.votefor_executed_agent
+        # 修正：人狼が白結果に投票していない場合もあるから危険→全エージェントにする
         # 黒結果：投票したエージェントを除く
-        elif self.latest_result == Species.WEREWOLF:
+        if self.latest_result == Species.WEREWOLF:
             for agent in self.votefor_executed_agent:
                 if agent in vote_candidates:
                     vote_candidates.remove(agent)
         # 投票対象の優先順位：偽占い→偽霊媒→人狼っぽいエージェント
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
+        alive_fake_seers: List[Agent] = self.get_alive_others(fake_seers)
         others_medium_co: List[Agent] = [a for a in self.comingout_map if self.comingout_map[a] == Role.MEDIUM]
-        if fake_seers:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, fake_seers)
-        elif others_medium_co:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_medium_co)
+        alive_others_medium_co: List[Agent] = self.get_alive_others(others_medium_co)
+        if alive_fake_seers:
+            alive_fake_seers_num = [a.agent_idx for a in alive_fake_seers]
+            Util.debug_print("alive_fake_seers:\t", alive_fake_seers_num)
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_fake_seers)
+        elif alive_others_medium_co:
+            alive_others_medium_co_num = [a.agent_idx for a in alive_others_medium_co]
+            Util.debug_print("alive_others_medium_co:\t", alive_others_medium_co_num)
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others_medium_co)
         else:
+            vote_candidates_num = [a.agent_idx for a in vote_candidates]
+            Util.debug_print("vote_candidates:\t", vote_candidates_num)
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
