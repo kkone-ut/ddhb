@@ -151,6 +151,8 @@ class ddhbVillager(AbstractPlayer):
 
 
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
+    # デフォルトのinclude_listは自分を除いている
+    # 注意：is_Low_HPで判定する時は、include_listを指定して自分を含める
     def chooseMostlikelyExecuted(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
@@ -177,24 +179,39 @@ class ddhbVillager(AbstractPlayer):
 
     # HPが低いかどうか
     def is_Low_HP(self) -> bool:
+        will_vote_reports_num = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
         is_low_hp: bool = False
-        # will_vote：投票が20%以上で、自分が最も処刑されそうな場合
+        # 投票意思：投票が生存者の50%以上で、自分が最も処刑されそうな場合
         alive_cnt = len(self.game_info.alive_agent_list)
+        if alive_cnt == 0:
+            return False
         will_vote_cnt = len(self.will_vote_reports)
-        if alive_cnt != 0 and will_vote_cnt/alive_cnt >= 0.2 and self.chooseMostlikelyExecuted() == self.me:
-            is_low_hp = True
-        # latest_vote：前日投票の20%以上がが自分に入っている場合
+        rate = will_vote_cnt/alive_cnt
+        alive_agents: List[Agent] = self.get_alive(self.game_info.agent_list)
+        # Util.debug_print("will_vote_reports:\t", will_vote_reports_num)
+        # Util.debug_print("alive_cnt:\t", alive_cnt, "will_vote_cnt:\t", will_vote_cnt, "rate:\t", will_vote_cnt/alive_cnt)
+        # Util.debug_print("chooseMostlikelyExecuted:\t", self.chooseMostlikelyExecuted(include_list=alive_agents).agent_idx)
+        if rate >= 0.5 and self.chooseMostlikelyExecuted(include_list=alive_agents) == self.me:
+            Util.debug_print("is_Low_HP: will_vote")
+            return True
+        # 前日投票：前日投票の20%以上がが自分に入っている場合
         # latest_vote_listは、day_startで[]となっているため、前日の投票はvote_listに入っている
         vote_cnt = 0
         vote_list = self.game_info.vote_list
+        vote_len = len(vote_list)
+        if vote_len == 0:
+            return False
         for vote in vote_list:
             if vote.target == self.me:
                 vote_cnt += 1
-        if len(vote_list) != 0 and vote_cnt/len(vote_list) >= 0.2:
-            is_low_hp = True
-        if is_low_hp:
-            Util.debug_print("Low_HP")
-        return is_low_hp
+        vote_list_num = {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
+        # Util.debug_print("vote_list:\t", vote_list_num)
+        # Util.debug_print("vote_cnt:\t", vote_cnt, "vote_len:\t", vote_len, "rate:\t", vote_cnt/vote_len)
+        rate = vote_cnt/vote_len
+        if rate >= 0.2:
+            Util.debug_print("is_Low_HP: latest_vote")
+            return True
+        return False
 
 
     # 同数投票の時に自分の捨て票を変更する：最大投票以外のエージェントに投票している場合、投票先を変更する
