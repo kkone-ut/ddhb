@@ -19,7 +19,7 @@
 import numpy as np
 import random
 from collections import deque, defaultdict
-from typing import List, Deque, DefaultDict
+from typing import List, Deque, DefaultDict, Optional
 
 from aiwolf import (Agent, AttackContentBuilder, ComingoutContentBuilder,
                     Content, GameInfo, GameSetting, Judge, Role, Species,
@@ -55,6 +55,7 @@ class ddhbWerewolf(ddhbPossessed):
     not_judged_humans: List[Agent] # 占っていない村陣営
     # ----- 狩人騙り -----
     guard_success: bool # 護衛成功したか
+    guard_success_agent: Agent # 護衛成功したエージェント
 
 
     def __init__(self) -> None:
@@ -74,6 +75,7 @@ class ddhbWerewolf(ddhbPossessed):
         self.kakoi = False
         self.not_judged_humans = []
         self.guard_success = False
+        self.guard_success_agent = AGENT_NONE
 
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -95,6 +97,7 @@ class ddhbWerewolf(ddhbPossessed):
         self.threat = []
         self.not_judged_humans = self.humans.copy()
         self.guard_success = False
+        self.guard_success_agent = AGENT_NONE
         # ---------- 5人村 ----------
         if self.N == 5:
             self.fake_role = Role.SEER
@@ -105,14 +108,14 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.N == 15:
             # 騙り役職：割合調整
             fake_roles = [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
-            weights = [0.2, 0.6, 0.1, 0.1]
+            weights = [0.3, 0.7, 0.0, 0.0]
             self.fake_role = np.random.choice(fake_roles, p=weights)
             Util.debug_print(f"騙り役職:\t{self.fake_role}")
             # COする日にち：1日目
             self.co_date = 1
             self.kakoi = True
         
-        self.strategies = [False, False, True, False, False]
+        self.strategies = [False, False, False, False, False]
         self.strategyA = self.strategies[0] # 戦略A: 占い重視
         self.strategyB = self.strategies[1] # 戦略B: 霊媒重視
         self.strategyC = self.strategies[2] # 戦略C: 狩人重視
@@ -142,22 +145,20 @@ class ddhbWerewolf(ddhbPossessed):
                     judge_candidate = Util.get_strong_agent(judge_candidates)
                     result = Species.HUMAN
                 else:
-                    # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果 and 黒判定<3回 で黒結果
+                    # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果 で黒結果
+                    # 修正：black_count意味なし
                     # 勝率の高いエージェントに白結果、勝率の低いエージェントに黒結果を出す
-                    if len(self.werewolves) < self.num_wolves and random.random() < 0.3 and self.black_count < 3:
+                    if len(self.werewolves) < self.num_wolves and random.random() < 0.3:
                         judge_candidate = Util.get_weak_agent(judge_candidates)
                         result = Species.WEREWOLF
-                        self.black_count += 1
                     if judge_candidate in self.not_judged_agents:
                         self.not_judged_agents.remove(judge_candidate)
             # ----- 霊媒騙り -----
             elif self.fake_role == Role.MEDIUM:
                 judge_candidate = self.game_info.executed_agent if self.game_info.executed_agent is not None else AGENT_NONE
-                # 結果：村陣営 and 発見人狼数が人狼総数より少ない and 30% and 黒判定<2回 で黒結果
-                if judge_candidate in self.humans and len(self.werewolves) < self.num_wolves \
-                    and random.random() < 0.3 and self.black_count < 2:
+                # 結果：村陣営 and 発見人狼数が人狼総数-1より少ない and 30% で黒結果
+                if judge_candidate in self.humans and len(self.werewolves) < self.num_wolves and random.random() < 0.3:
                     result = Species.WEREWOLF
-                    self.black_count += 1
         if judge_candidate == AGENT_NONE:
             return JUDGE_EMPTY
         return Judge(self.me, self.game_info.day, judge_candidate, result)
@@ -202,6 +203,16 @@ class ddhbWerewolf(ddhbPossessed):
             Util.debug_print(f"真占い推定:\t{self.agent_seer}\t 生存:\t{self.alive_seer}")
 
 
+    # 確定狂人の占い結果
+    def get_possessed_divination(self) -> Judge:
+        ret_judge: Optional[Judge] = JUDGE_EMPTY
+        # breakしないことで、最新の狂人の結果を反映する
+        for judge in self.divination_reports:
+            if judge.agent == self.agent_possessed:
+                ret_judge = judge
+        return ret_judge
+
+
     # 昼スタート
     def day_start(self) -> None:
         super().day_start()
@@ -234,9 +245,12 @@ class ddhbWerewolf(ddhbPossessed):
         # 襲撃失敗（護衛成功）
         if self.game_info.attacked_agent != None and len(self.game_info.last_dead_agent_list) == 0:
             self.guard_success = True
+            self.guard_success_agent = self.game_info.attacked_agent
+            Util.debug_print("襲撃失敗：attacked agent:\t", self.game_info.attacked_agent)
         # 襲撃成功（護衛失敗）
         if self.game_info.attacked_agent != None and len(self.game_info.last_dead_agent_list) == 1:
             self.guard_success = False
+            self.guard_success_agent = AGENT_NONE
 
 
     # CO、結果報告
@@ -276,22 +290,28 @@ class ddhbWerewolf(ddhbPossessed):
                 if self.has_co and self.my_judge_queue:
                     judge: Judge = self.my_judge_queue.popleft()
                     # 基本は get_fake_judge を利用する
-                    # 最も占いっぽいエージェントに黒結果
+                    # 黒結果
+                    # 対象：確定占い→狂人に合わせる→占いっぽいエージェント
                     if self.alive_seer:
                         self.new_target = self.agent_seer
-                        self.new_result = judge.result
+                    elif self.alive_possessed:
+                        self.new_target = self.vote_candidate
                     else:
                         self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, self.get_alive_others(self.game_info.agent_list))
                     if self.new_target == AGENT_NONE:
                         self.new_target = judge.target
-                    return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
+                    return Content(DivinedResultContentBuilder(self.new_target, Species.WEREWOLF))
             elif day == 2:
                 # PP盤面でない場合、適当に白結果を出して、占いっぽく見せる
                 if turn == 1:
-                    # 勝率の高いエージェントに白結果
-                    self.new_target = Util.get_strong_agent(self.get_alive_others(self.game_info.agent_list))
+                    # 勝率の低いエージェントに白結果を出して、占いっぽく見せる
+                    alive_others: List[Agent] = self.get_alive_others(self.game_info.agent_list)
+                    weak_agent: Agent = Util.get_weak_agent(alive_others)
+                    if weak_agent in alive_others:
+                        alive_others.remove(weak_agent)
+                    self.new_target = self.role_predictor.chooseLeastLikely(Role.POSSESSED, alive_others)
                     self.new_result = Species.HUMAN
-                    return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
+                    return Content(DivinedResultContentBuilder(weak_agent, Species.HUMAN))
             # ----- VOTE and REQUEST -----
             if 2<= turn <= 9:
                 if self.PP_flag:
@@ -306,7 +326,8 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.N == 15:
             # 人狼仲間のCO状況を確認して、COするかを決める
             allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
-            if len(allies_co) >= 1 and not self.has_co:
+            if len(allies_co) >= 1 and not self.has_co and day == 1:
+                Util.debug_print("騙り変更")
                 self.fake_role = Role.VILLAGER
             # ---------- 占い騙り ----------
             if self.fake_role == Role.SEER:
@@ -405,22 +426,21 @@ class ddhbWerewolf(ddhbPossessed):
         if self.N == 5:
             # 確定狂人がいる場合→狂人の結果に合わせる
             if self.alive_possessed:
-                # breakしないことで、最新の狂人の結果を反映する
-                for judge in self.divination_reports:
-                    agent = judge.agent
-                    target = judge.target
-                    result = judge.result
-                    if agent == self.agent_possessed:
-                        # 自分への白結果の場合：自分の黒先→村人っぽいエージェント
-                        if result == Species.HUMAN:
-                            if self.new_target != AGENT_NONE:
-                                self.vote_candidate = self.new_target
-                            else:
-                                self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
-                        # 自分以外への黒結果の場合：狂人の黒先
-                        elif result == Species.WEREWOLF:
-                            if self.is_alive(target):
-                                self.vote_candidate = target
+                possessed_judge: Optional[Judge] = self.get_possessed_divination()
+                target = possessed_judge.target
+                result = possessed_judge.result
+                # 自分への白結果の場合：自分の黒先→処刑されそうなエージェント
+                if result == Species.HUMAN:
+                    if self.new_target != AGENT_NONE:
+                        self.vote_candidate = self.new_target
+                    else:
+                        self.vote_candidate = self.chooseMostlikelyExecuted(exclude_list=[self.agent_possessed])
+                # 自分以外への黒結果の場合：狂人の黒先
+                elif result == Species.WEREWOLF:
+                    if self.is_alive(target):
+                        self.vote_candidate = target
+                    else:
+                        self.vote_candidate = self.chooseMostlikelyExecuted(exclude_list=[self.agent_possessed])
             else:
                 # 自分の黒先→最も処刑されそうなエージェント（自分が死ぬよりはマシ）
                 if self.new_target != AGENT_NONE:
@@ -430,27 +450,29 @@ class ddhbWerewolf(ddhbPossessed):
         # ---------- 15人村 ----------
         elif self.N == 15:
             # 投票候補の優先順位：仲間の投票先→自分の黒先→占い→処刑されそうなエージェント
-            allies_will_vote_reports: List[Agent] = [target for agent, target in self.will_vote_reports.items() if agent in self.allies]
-            if self.me in allies_will_vote_reports:
-                if turn >= 12:
-                    Util.debug_print("仲間の投票先に自分が含まれる:\t", self.me.agent_idx)
-                allies_will_vote_reports.remove(self.me)
+            # * in vote_candidates で、人狼仲間と確定狂人を除く
+            allies_will_vote_reports: List[Agent] = [target for agent, target in self.will_vote_reports.items() if agent in self.allies and target in vote_candidates]
             allies_will_vote_reports_num = [target.agent_idx for agent, target in self.will_vote_reports.items() if agent in self.allies]
             humans_seer_co: List[Agent] = [a for a in self.comingout_map if a in vote_candidates and  self.comingout_map[a] == Role.SEER]
             if allies_will_vote_reports:
                 self.vote_candidate = self.chooseMostlikelyExecuted(include_list=allies_will_vote_reports)
-                if turn >= 12:
-                    Util.debug_print("仲間の投票先:\t", allies_will_vote_reports_num)
-                    Util.debug_print("仲間の投票先投票:\t", self.vote_candidate.agent_idx)
+                Util.debug_print("仲間の投票先:\t", allies_will_vote_reports_num)
+                Util.debug_print("仲間の投票先投票:\t", self.vote_candidate.agent_idx)
+                # if turn >= 12 - day:
+                #     Util.debug_print("仲間の投票先:\t", allies_will_vote_reports_num)
+                #     Util.debug_print("仲間の投票先投票:\t", self.vote_candidate.agent_idx)
             elif self.get_alive_others(self.werewolves):
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.werewolves))
+                Util.debug_print("黒先投票:\t", [a.agent_idx for a in self.get_alive_others(self.werewolves)])
             # 初日に真偽がわからない占いに投票するのはおかしいから、2日目以降にする
             elif humans_seer_co and day >= 2:
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, humans_seer_co)
+                Util.debug_print("占い先投票:\t", [a.agent_idx for a in humans_seer_co])
             else:
                 self.vote_candidate = self.chooseMostlikelyExecuted(exclude_list=self.allies)
-                if turn >= 12:
-                    Util.debug_print("処刑されそうなエージェント投票:\t", self.vote_candidate.agent_idx)
+                Util.debug_print("処刑されそうなエージェント投票:\t", self.vote_candidate.agent_idx)
+                # if turn >= 12:
+                #     Util.debug_print("処刑されそうなエージェント投票:\t", self.vote_candidate.agent_idx)
         if self.vote_candidate == AGENT_NONE:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
@@ -485,9 +507,9 @@ class ddhbWerewolf(ddhbPossessed):
         # 確定狂人は除外
         if self.agent_possessed in attack_vote_candidates:
             attack_vote_candidates.remove(self.agent_possessed)
-        # 襲撃候補から護衛成功したエージェントを除外
-        if self.game_info.attacked_agent in attack_vote_candidates:
-            attack_vote_candidates.remove(self.game_info.attacked_agent)
+        # 護衛成功したエージェントを除外
+        if self.guard_success_agent in attack_vote_candidates:
+            attack_vote_candidates.remove(self.guard_success_agent)
         if day == 0:
             # ----- 騙り役職宣言 -----
             if turn == 1:
@@ -498,16 +520,20 @@ class ddhbWerewolf(ddhbPossessed):
                 return Content(AttackContentBuilder(self.attack_vote_candidate))
             else:
                 return CONTENT_SKIP
-        # 襲撃候補の優先順位：狩人→確定占い→霊媒→襲撃スコア
+        # 襲撃候補の優先順位：狩人→確定占い→占い→霊媒→襲撃スコア
         others_bodygurad_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
-        others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]
+        others_seer_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.SEER]
+        others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]            
         if others_bodygurad_co:
             self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, others_bodygurad_co)
-        # 確定占い師がいて、護衛成功していない場合
-        elif self.alive_seer and not self.guard_success:
+        elif self.alive_seer:
             self.attack_vote_candidate = self.agent_seer
-        elif others_medium_co and not self.guard_success:
+        elif others_seer_co:
+            self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
+        elif others_medium_co:
             self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, others_medium_co)
+        elif self.threat:
+            self.attack_vote_candidate = self.get_attack_agent(self.threat)
         else:
             self.attack_vote_candidate = self.get_attack_agent(attack_vote_candidates)
         # ----- 襲撃宣言、狂人推定、占い推定 -----
@@ -530,15 +556,16 @@ class ddhbWerewolf(ddhbPossessed):
         # 確定狂人は除外
         if self.agent_possessed in attack_vote_candidates:
             attack_vote_candidates.remove(self.agent_possessed)
-        vote_list = self.game_info.vote_list
-        vote_list_ = {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
+        # 護衛成功したエージェントを除外
+        if self.guard_success_agent in attack_vote_candidates:
+            attack_vote_candidates.remove(self.guard_success_agent)
+        # 重要：これ以降、襲撃対象に、処刑者・確定狂人・護衛成功者は除きたいから、v.agent in attack_vote_candidates で確認する
         latest_vote_list = self.game_info.latest_vote_list
         latest_vote_list_ = {v.agent.agent_idx: v.target.agent_idx for v in latest_vote_list}
         Util.debug_print("----- attack -----")
-        Util.debug_print("vote_list:\t", vote_list_)
         Util.debug_print("latest_vote_list:\t", latest_vote_list_)
         # 脅威：人狼に投票したエージェント
-        self.threat = [v.agent for v in latest_vote_list if v.target in self.allies]
+        self.threat = [v.agent for v in latest_vote_list if v.target in self.allies and v.agent in attack_vote_candidates]
         threat_num = [a.agent_idx for a in self.threat]
         Util.debug_print("脅威:\t", threat_num)
         # ---------- 5人村 ----------
@@ -561,17 +588,20 @@ class ddhbWerewolf(ddhbPossessed):
         # ---------- 15人村 ----------
         # 注意：15人村でも人狼が1人になったらwhisperが呼ばれないので、attack関数で襲撃対象を決める：whisperのコピペ
         elif self.N == 15:
-            # 襲撃候補の優先順位：狩人→占い→霊媒→襲撃スコア
+            # 襲撃候補の優先順位：狩人→確定占い→占い→霊媒→襲撃スコア
             others_bodygurad_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
+            others_seer_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.SEER]
             others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]            
             if others_bodygurad_co:
                 Util.debug_print('狩人襲撃')
                 self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, others_bodygurad_co)
-            # 確定占い師がいて、護衛成功していない場合
-            elif self.alive_seer and not self.guard_success:
-                Util.debug_print('占い襲撃')
+            elif self.alive_seer:
+                Util.debug_print('確定占い襲撃')
                 self.attack_vote_candidate = self.agent_seer
-            elif others_medium_co and not self.guard_success:
+            elif others_seer_co:
+                Util.debug_print('占い襲撃')
+                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
+            elif others_medium_co:
                 Util.debug_print('霊媒襲撃')
                 self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, others_medium_co)
             elif self.threat:
@@ -580,6 +610,6 @@ class ddhbWerewolf(ddhbPossessed):
             else:
                 Util.debug_print('スコア襲撃')
                 self.attack_vote_candidate = self.get_attack_agent(attack_vote_candidates)
-        Util.debug_print("襲撃候補:\t", [a.agent_idx for a in attack_vote_candidates])
+        # Util.debug_print("襲撃候補:\t", [a.agent_idx for a in attack_vote_candidates])
         Util.debug_print(f"襲撃対象:\t{self.attack_vote_candidate}")
         return self.attack_vote_candidate if self.attack_vote_candidate != AGENT_NONE else self.me
