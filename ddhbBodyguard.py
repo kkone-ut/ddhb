@@ -150,7 +150,7 @@ class ddhbBodyguard(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
-        # 同数投票の処理
+        # ----------  同数投票の処理 ---------- 
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
@@ -165,8 +165,7 @@ class ddhbBodyguard(ddhbVillager):
         fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.agent in vote_candidates and j.target == self.me and j.result == Species.WEREWOLF]
         alive_fake_seers: List[Agent] = self.get_alive_others(fake_seers)
         if alive_fake_seers:
-            alive_fake_seers_num = [a.agent_idx for a in alive_fake_seers]
-            Util.debug_print("alive_fake_seers:\t", alive_fake_seers_num)
+            Util.debug_print("alive_fake_seers:\t", self.agent_to_index(alive_fake_seers))
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_fake_seers)
         else:
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
