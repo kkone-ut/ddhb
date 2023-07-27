@@ -150,6 +150,27 @@ class ddhbVillager(AbstractPlayer):
         return {a.agent_idx: r.value for a, r in self.alive_comingout_map.items() if self.is_alive(a) and r != Role.UNC}
 
 
+    @property
+    def will_vote_reports_str(self) -> Dict[str, str]:
+        return {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+
+
+    def agent_to_index(self, agent_list: List[Agent]) -> List[int]:
+        return [a.agent_idx for a in agent_list]
+
+
+    def vote_to_dict(self, vote_list: List[Vote]) -> Dict[int, int]:
+        return {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
+
+
+    def vote_count(self, vote_list: List[Vote]) -> Dict[Agent, int]:
+        count: DefaultDict[Agent, int] = defaultdict(int)
+        vote_dict = self.vote_to_dict(vote_list)
+        for talker, target in vote_dict.items():
+            count[target] += 1
+        return count
+
+
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
     # デフォルトのinclude_listは自分を除いている
     # 注意：is_Low_HPで判定する時は、include_listを指定して自分を含める
@@ -158,15 +179,13 @@ class ddhbVillager(AbstractPlayer):
             include_list = self.get_alive_others(self.game_info.agent_list)
         count: DefaultDict[Agent, float] = defaultdict(float)
         count_num: DefaultDict[str, float] = defaultdict(float)
-        will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+        # will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
         # Util.debug_print("will_vote_reports:\t", will_vote_reports)
         for talker, target in self.will_vote_reports.items():
-            # Util.debug_print("target:\t", target, "include_list:\t", include_list)
             if target not in include_list:
                 continue
             if exclude_list is not None and target in exclude_list:
                 continue
-            # Util.debug_print("talker:\t", talker, "target:\t", target)
             if self.is_alive(talker) and self.is_alive(target):
                 count[target] += 1
                 no = str(target.agent_idx)
@@ -188,9 +207,6 @@ class ddhbVillager(AbstractPlayer):
         will_vote_cnt = len(self.will_vote_reports)
         rate = will_vote_cnt/alive_cnt
         alive_agents: List[Agent] = self.get_alive(self.game_info.agent_list)
-        # Util.debug_print("will_vote_reports:\t", will_vote_reports_num)
-        # Util.debug_print("alive_cnt:\t", alive_cnt, "will_vote_cnt:\t", will_vote_cnt, "rate:\t", will_vote_cnt/alive_cnt)
-        # Util.debug_print("chooseMostlikelyExecuted:\t", self.chooseMostlikelyExecuted(include_list=alive_agents).agent_idx)
         if rate >= 0.5 and self.chooseMostlikelyExecuted(include_list=alive_agents) == self.me:
             Util.debug_print("is_Low_HP: will_vote")
             return True
@@ -204,9 +220,6 @@ class ddhbVillager(AbstractPlayer):
         for vote in vote_list:
             if vote.target == self.me:
                 vote_cnt += 1
-        vote_list_num = {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
-        # Util.debug_print("vote_list:\t", vote_list_num)
-        # Util.debug_print("vote_cnt:\t", vote_cnt, "vote_len:\t", vote_len, "rate:\t", vote_cnt/vote_len)
         rate = vote_cnt/vote_len
         if rate >= 0.2:
             Util.debug_print("is_Low_HP: latest_vote")
@@ -448,7 +461,7 @@ class ddhbVillager(AbstractPlayer):
 
     # 投票対象
     def vote(self) -> Agent:
-        # 同数投票の処理
+        #  ---------- 同数投票の処理 ---------- 
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
