@@ -172,15 +172,18 @@ class ddhbVillager(AbstractPlayer):
 
 
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
+    # 注意：include_listのエージェントが、投票対象に含まれていない場合、自分を返す
     # デフォルトのinclude_listは自分を除いている
     # 注意：is_Low_HPで判定する時は、include_listを指定して自分を含める
     def chooseMostlikelyExecuted(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
-        count: DefaultDict[Agent, float] = defaultdict(float)
-        count_num: DefaultDict[str, float] = defaultdict(float)
-        # will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
+        # count: DefaultDict[Agent, float] = defaultdict(float)
+        count: DefaultDict[Agent, int] = defaultdict(int)
+        will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
         # Util.debug_print("will_vote_reports:\t", will_vote_reports)
+        # Util.debug_print("include_list:\t", self.agent_to_index(include_list))
+        # Util.debug_print("vote_candidate:\t", self.vote_candidate.agent_idx)
         for talker, target in self.will_vote_reports.items():
             if target not in include_list:
                 continue
@@ -189,11 +192,12 @@ class ddhbVillager(AbstractPlayer):
             if self.is_alive(talker) and self.is_alive(target):
                 count[target] += 1
                 no = str(target.agent_idx)
-                count_num[no] += 1
-        if self.vote_candidate != AGENT_NONE:
+        if self.vote_candidate != AGENT_NONE and self.vote_candidate in include_list:
             count[self.vote_candidate] += 1
-        # Util.debug_print("count2:\t", count_num)
-        return max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
+        count_num = {a.agent_idx: t for a, t in count.items()}
+        Util.debug_print("count2:\t", count_num)
+        ret_agent: Agent = max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
+        return ret_agent
 
 
     # HPが低いかどうか
@@ -478,9 +482,15 @@ class ddhbVillager(AbstractPlayer):
             fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
             alive_fake_seers: List[Agent] = self.get_alive_others(fake_seers)
             if alive_fake_seers:
+                Util.debug_print("alive_fake_seers:\t", self.agent_to_index(alive_fake_seers))
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_fake_seers)
             else:
+                Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        # ----- 投票ミスを防ぐ -----
+        if self.vote_candidate == AGENT_NONE or self.vote_candidate == self.me:
+            Util.debug_print("vote_candidates: AGENT_NONE or self.me")
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
@@ -572,16 +582,16 @@ class ddhbVillager(AbstractPlayer):
         # if actual_assignment not in self.role_predictor.assignments:
         #     actual_assignment.evaluate(self.score_matrix)
         
-        # # 予測の割り当てのスコアを表示 (デバッグモード)
-        # predicted_assignment.evaluate(self.score_matrix, debug=True)
-        # Util.debug_print("")
-        # Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
-        # Util.debug_print("")
+        # 予測の割り当てのスコアを表示 (デバッグモード)
+        predicted_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
+        Util.debug_print("best score:\t", round(predicted_assignment.score, 4))
+        Util.debug_print("")
 
-        # # 実際の割り当てのスコアを表示 (デバッグモード)
-        # actual_assignment.evaluate(self.score_matrix, debug=True)
-        # Util.debug_print("")
-        # Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
+        # 実際の割り当てのスコアを表示 (デバッグモード)
+        actual_assignment.evaluate(self.score_matrix, debug=True)
+        Util.debug_print("")
+        Util.debug_print("actual score:\t", round(actual_assignment.score, 4))
 
         # # 最下位の割り当てのスコアを表示
         # Util.debug_print("")
