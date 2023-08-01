@@ -168,6 +168,11 @@ class ddhbBodyguard(ddhbVillager):
             Util.debug_print("alive_fake_seers:\t", self.agent_to_index(alive_fake_seers))
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_fake_seers)
         else:
+            Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        # ----- 投票ミスを防ぐ -----
+        if self.vote_candidate == AGENT_NONE or self.vote_candidate == self.me:
+            Util.debug_print("vote_candidates: AGENT_NONE or self.me")
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 

@@ -263,6 +263,10 @@ class ddhbSeer(ddhbVillager):
             else:
                 Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
+        # ----- 投票ミスを防ぐ -----
+        if self.vote_candidate == AGENT_NONE or self.vote_candidate == self.me:
+            Util.debug_print("vote_candidates: AGENT_NONE or self.me")
+            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
@@ -273,13 +277,19 @@ class ddhbSeer(ddhbVillager):
         divine_candidate: Agent = AGENT_NONE
         # 占い候補：占っていないエージェント
         divine_candidates: List[Agent] = self.get_alive_others(self.not_divined_agents)
+        others_co: List[Agent] = [a for a in self.comingout_map if a in divine_candidates and (self.comingout_map[a] == Role.SEER or self.comingout_map[a] == Role.MEDIUM)]
+        # 占い候補：占っていないエージェント＋(占いor霊媒)COしていないエージェント
+        divine_no_co_candidates: List[Agent] = [a for a in divine_candidates if a not in others_co]
+        
         # 占い対象：人狼確率＋勝率が高いエージェント
         # 対抗あり：game<50では人狼確率＋勝率が高いエージェント、game>=50では人狼っぽいエージェント
         # game後半は、推論精度が高いため、人狼っぽいエージェントを占う
         if game < 50:
-            divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
+            # divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
+            divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_no_co_candidates, coef=0.5)
         else:
-            divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+            # divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_candidates)
+            divine_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, divine_no_co_candidates)
         # ---------- 5人村15人村共通 ----------
         # 初日：勝率が高いエージェント（情報がほぼないため）
         # 白結果：味方になる、黒結果：早めに処理できる

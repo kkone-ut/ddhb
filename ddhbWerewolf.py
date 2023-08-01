@@ -108,7 +108,7 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.N == 15:
             # 騙り役職：割合調整
             fake_roles = [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
-            weights = [0.3, 0.7, 0.0, 0.0]
+            weights = [0.4, 0.6, 0.0, 0.0]
             self.fake_role = np.random.choice(fake_roles, p=weights)
             Util.debug_print("騙り役職:\t", self.fake_role)
             # COする日にち：1日目
@@ -318,7 +318,7 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.N == 15:
             # 人狼仲間のCO状況を確認して、COするかを決める
             allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
-            if len(allies_co) >= 1 and not self.has_co and day == 1:
+            if len(allies_co) >= 1 and not self.has_co and day == 1 and self.fake_role != Role.VILLAGER:
                 Util.debug_print("騙り変更")
                 self.fake_role = Role.VILLAGER
             # ---------- 占い騙り ----------
@@ -462,8 +462,10 @@ class ddhbWerewolf(ddhbPossessed):
                 Util.debug_print("処刑されそうなエージェント投票:\t", self.vote_candidate.agent_idx)
                 # if turn >= 12:
                 #     Util.debug_print("処刑されそうなエージェント投票:\t", self.vote_candidate.agent_idx)
-        if self.vote_candidate == AGENT_NONE:
-            self.vote_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, vote_candidates)
+        # ----- 投票ミスを防ぐ -----
+        if self.vote_candidate == AGENT_NONE or self.vote_candidate in self.allies:
+            Util.debug_print("vote_candidates: AGENT_NONE or self.allies")
+            self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.POSSESSED, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
