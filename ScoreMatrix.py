@@ -366,6 +366,12 @@ class ScoreMatrix:
                     # 初COの場合
                     self.medium_co_count += 1
                     self.medium_co.append(talker)
+                    # 霊媒1COの場合、とりあえず真とする
+                    # 霊媒2COとなった時に、スコアを取り消す
+                    if self.medium_co_count == 1:
+                        self.add_scores(talker, {Role.MEDIUM: +10})
+                    elif self.medium_co_count == 2:
+                        self.add_scores(self.medium_co[0], {Role.MEDIUM: -10})
                     # --- 人狼 ---
                     if my_role == Role.WEREWOLF:
                         # 霊媒と狂人どちらもありうるので、主には結果でスコアを変更する
