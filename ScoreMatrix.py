@@ -738,8 +738,9 @@ class ScoreMatrix:
             self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
         # 生きている人に対する霊媒報告は嘘
-        if self.player.is_alive(target):
-            self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+        # review: 行動学習で対処でもいいかどうか
+        # if self.player.is_alive(target):
+        #     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
         # CO の時点で霊媒師以外の村人陣営の可能性を0にしているが、COせずに霊媒結果を出した場合のためにここでも同じ処理を行う
         self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})

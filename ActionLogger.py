@@ -14,6 +14,8 @@ class Action(Enum):
     IDENTIFIED_BLACK = "IDENTIFIED_BLACK"
     IDENTIFIED_WHITE = "IDENTIFIED_WHITE"
     IDENTIFIED_WITHOUT_CO = "IDENTIFIED_WITHOUT_CO"
+    IDENTIFIED_WITHOUT_CO_TO_COUNTERPART = "IDENTIFIED_WITHOUT_CO_TO_COUNTERPART" # 霊媒CO以外のCOをしていて、対抗に霊媒黒出しした場合
+    IDENTIFIED_TO_ALIVE = "IDENTIFIED_TO_ALIVE"
     GUARDED = "GUARDED"
     VOTE = "VOTE"
     CO_SEER = "CO_SEER"
@@ -136,7 +138,7 @@ class ActionLogger:
 
                 # 係数調整
                 for r in role_list:
-                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO]:
+                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE]:
                         score[r] *= 25
                     else:
                         score[r] *= 2
@@ -167,7 +169,12 @@ class ActionLogger:
                 return Action.DIVINED_WHITE
         elif content.topic == Topic.IDENTIFIED:
             if comingout_map[talker] != Role.MEDIUM:
-                return Action.IDENTIFIED_WITHOUT_CO
+                if comingout_map[content.target] == comingout_map[talker] != Role.UNC:
+                    return Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART
+                else:
+                    return Action.IDENTIFIED_WITHOUT_CO
+            elif player.is_alive(content.target):
+                return Action.IDENTIFIED_TO_ALIVE
             elif content.result == Species.WEREWOLF:
                 return Action.IDENTIFIED_BLACK
             elif content.result == Species.HUMAN:
