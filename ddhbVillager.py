@@ -141,6 +141,36 @@ class ddhbVillager(AbstractPlayer):
         return random.choice(agent_list) if agent_list else AGENT_NONE
     
     
+    def get_co_players(self, agent_list: List[Agent], role: Role = Role.ANY) -> List[Agent]:
+        """Return a list of agents who have claimed the given role.
+        Args:
+            agent_list: The list of agents.
+            role: The role. If Role.ANY, return all agents who have claimed any role.
+        Returns:
+            A list of agents who have claimed the given role.
+        """
+        return [a for a in agent_list if (role == Role.ANY and self.comingout_map[a] != Role.UNC) or self.comingout_map[a] == role]
+    
+
+    def get_counterparts(self, agent_list: List[Agent], agent: Agent) -> List[Agent]:
+        """Return a list of agents who have claimed the same role as the given agent.
+        Args:
+            agent_list: The list of agents.
+            agent: The agent.
+        Returns:
+            A list of agents who have claimed the same role as the given agent.
+            The given agent is not included in the returned list.
+        """
+        role: Role = self.comingout_map[agent]
+        if agent == AGENT_NONE or role == Role.UNC:
+            return []
+        return self.get_co_players([a for a in agent_list if a != agent], role)
+    
+
+    def convert_to_agentids(self, agent_list: List[Agent]) -> List[int]:
+        return [f"Agent[{a.agent_idx}]" for a in agent_list]
+    
+
     @property
     def alive_comingout_map(self) -> DefaultDict[Agent, Role]:
         return {a: r for a, r in self.comingout_map.items() if self.is_alive(a) and r != Role.UNC}
@@ -397,7 +427,7 @@ class ddhbVillager(AbstractPlayer):
             score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
 
-            if action in [Action.DIVINED_CONTRADICT, Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO]:
+            if action in [Action.DIVINED_CONTRADICT, Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE]:
                 Util.debug_print("Action:\t", talker, action)
 
             self.talk_list_head += 1
@@ -603,5 +633,8 @@ class ddhbVillager(AbstractPlayer):
             if predicted_assignment[a] in [Role.SEER, Role.MEDIUM, Role.BODYGUARD] and predicted_assignment[a] != self.comingout_map[a]:
                 Util.debug_print(a, "CO", self.comingout_map[a] if a in self.comingout_map else Role.UNC, "but assigned", predicted_assignment[a])
         Util.debug_print("")
+
+        # for a in self.get_co_players(self.game_info.agent_list):
+        #     Util.debug_print(a, self.comingout_map[a], self.convert_to_agentids(self.get_counterparts(self.game_info.agent_list, a)))
 
         pass
