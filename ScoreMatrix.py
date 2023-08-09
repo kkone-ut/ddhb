@@ -229,7 +229,11 @@ class ScoreMatrix:
                 # --- 占い ---
                 if my_role == Role.SEER:
                     # 結果に関わらず、人狼と狂人の確率を上げる（村陣営の役職騙りを考慮しない）
-                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                    # これだと、対抗にしか黒結果が出ない
+                    # 対抗は狂人のことが多いので、少し微妙
+                    # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                    # +5, +3を上回る行動学習結果なら、行動学習を優先する
+                    self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: +5, Role.WEREWOLF: +3})
                 # --- それ以外 ---
                 else:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
@@ -237,7 +241,6 @@ class ScoreMatrix:
                         return
                     # 複数占いCOがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
                     # (両方とも偽という割り当ての確率を0%にする)
-                    # todo: これがどういう意図なのか確認する
                     for seer in self.seer_co:
                         self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
                         self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
@@ -537,7 +540,8 @@ class ScoreMatrix:
             # ----- 占い -----
             if my_role == Role.SEER:
                 # 結果に関わらず、人狼と狂人の確率を上げる（村陣営の役職騙りを考慮しない）
-                self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: +5, Role.WEREWOLF: +3})
 
                 # 黒結果
                 if species == Species.WEREWOLF:
@@ -570,12 +574,14 @@ class ScoreMatrix:
                         # talkerの狂人である確率を上げる (ほぼ100%と仮定)
                         if self.player.comingout_map[target] == Role.SEER:
                             self.add_scores(talker, {Role.POSSESSED: +10})
+                            Util.debug_print('狂人:\t', talker)
                 # 白結果
                 elif species == Species.HUMAN:
                     # 対象：自分
                     if target == self.me:
                         # talkerの占い師である確率を下げる、狂人である確率を上げる（結果の矛盾が起こっているから、値を大きくしている）
                         self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100})
+                        Util.debug_print('狂人:\t', talker)
                     # 対象：自分以外
                     else:
                         # 狂人は基本的に黒結果を出すことが多いので、talkerの占い師である確率を上げる
