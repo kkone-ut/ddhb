@@ -202,30 +202,15 @@ class ddhbPossessed(ddhbVillager):
         # ---------- 5人村 ----------
         if self.N == 5:
             if day == 1:
-                # 今はFalseにしている
-                if self.strategyJ:
-                    talk_start: int = 2
-                    # ----- CO -----
-                    # if turn == talk_start:
-                    #     if not self.has_co:
-                    #         self.has_co = True
-                    #         return CONTENT_SKIP
-                    #         # return Content(ComingoutContentBuilder(self.me, Role.SEER))
-                    # # ----- 結果報告 -----
-                    # elif turn == talk_start + 1:
-                    #     if self.has_co and not self.has_report:
-                    #         self.has_report = True
-                    #         # 候補：対抗の占いっぽいエージェント
-                    #         self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
-                    #         # 候補なし → 村人っぽいエージェント or 人狼っぽくないエージェント
-                    #         if self.new_target == AGENT_NONE:
-                    #             # self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, alive_others)
-                    #             self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
-                    #         self.new_result = Species.WEREWOLF
-                    #         return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
-                # ----- 結果報告 -----
+                # ----- CO -----
                 if turn == 1:
-                    if not self.has_report:
+                    if not self.has_co:
+                        self.has_co = True
+                        # return CONTENT_SKIP
+                        return Content(ComingoutContentBuilder(self.me, Role.SEER))
+                # ----- 結果報告 -----
+                elif turn == 2:
+                    if self.has_co and not self.has_report:
                         self.has_report = True
                         self.new_result = Species.WEREWOLF
                         # 候補の優先順位：対抗の占いっぽいエージェント→人狼っぽくないエージェント
@@ -234,6 +219,17 @@ class ddhbPossessed(ddhbVillager):
                         else:
                             self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
                         return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
+                # # ----- 結果報告 -----
+                # if turn == 1:
+                #     if not self.has_report:
+                #         self.has_report = True
+                #         self.new_result = Species.WEREWOLF
+                #         # 候補の優先順位：対抗の占いっぽいエージェント→人狼っぽくないエージェント
+                #         if others_seer_co:
+                #             self.new_target = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
+                #         else:
+                #             self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+                #         return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
                 # ----- VOTE and REQUEST -----
                 elif 2 <= turn <= 9:
                     if turn % 2 == 0:
@@ -247,11 +243,10 @@ class ddhbPossessed(ddhbVillager):
                     # ----- PP -----
                     # 上のPPでreturnされているから、特に必要ない
                     return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
-                elif turn == 2:
+                # ----- VOTE and REQUEST -----
+                elif 2 <= turn <= 9:
                     # 候補：人狼っぽくないエージェント
                     self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
-                # ----- VOTE and REQUEST -----
-                elif 3 <= turn <= 9:
                     if turn % 2 == 0:
                         return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.new_target))))
                     else:
