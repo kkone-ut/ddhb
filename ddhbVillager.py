@@ -208,7 +208,6 @@ class ddhbVillager(AbstractPlayer):
     def chooseMostlikelyExecuted(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
-        # count: DefaultDict[Agent, float] = defaultdict(float)
         count: DefaultDict[Agent, int] = defaultdict(int)
         will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
         # Util.debug_print("will_vote_reports:\t", will_vote_reports)
@@ -263,8 +262,8 @@ class ddhbVillager(AbstractPlayer):
 
     # 同数投票の時に自分の捨て票を変更する：最大投票以外のエージェントに投票している場合、投票先を変更する
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
-        count: DefaultDict[Agent, float] = defaultdict(float)
-        count_num: DefaultDict[str, float] = defaultdict(float)
+        count: DefaultDict[Agent, int] = defaultdict(int)
+        count_num: DefaultDict[str, int] = defaultdict(int)
         my_target: Agent = AGENT_NONE
         new_target: Agent = AGENT_NONE
         for vote in vote_list:
