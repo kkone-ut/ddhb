@@ -3,7 +3,7 @@ import numpy as np
 import time
 from collections import defaultdict
 import queue
-from typing import List, Dict, Set, DefaultDict, Tuple
+from typing import List, Dict, Set, DefaultDict, Tuple, Union
 
 from Util import Util
 from Assignment import Assignment
@@ -231,37 +231,32 @@ class RolePredictor:
         p = self.getProbCache()
         return p[agent][role]
 
+
     # 指定された役職である確率が最も高いプレイヤーを返す
     # 確率が threshold 未満の場合は AGENT_NONE を返す
-    def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Agent:
+    # returns_prob が True の場合は、プレイヤーと確率を返す
+    def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0, returns_prob: bool = False) -> Union[Agent, Tuple[Agent, float]]:
         if len(agent_list) == 0:
             return AGENT_NONE
         
         p = self.getProbCache()
         ret_agent = agent_list[0]
-        for a in agent_list:
-            if p[a][role] > p[ret_agent][role]:
-                ret_agent = a
-        
-        if p[ret_agent][role] < threshold:
-            return AGENT_NONE
-        else:
-            return ret_agent
-
-
-    # 指定された役職である確率が最も高いプレイヤーと確率を返す
-    def chooseMostLikely_demo(self, role: Role, agent_list: List[Agent], threshold: float = 0.0) -> Tuple[int, float]:
-        if len(agent_list) == 0:
-            return AGENT_NONE
-        p = self.getProbCache()
         mx_score = 0
-        ret_agent = AGENT_NONE
         for a in agent_list:
             score = p[a][role]
             if score > mx_score:
-                mx_score = score
                 ret_agent = a
-        return ret_agent.agent_idx, mx_score
+                mx_score = score
+        if returns_prob:
+            if mx_score < threshold:
+                return AGENT_NONE, mx_score
+            else:
+                return ret_agent, mx_score
+        else:
+            if mx_score < threshold:
+                return AGENT_NONE
+            else:
+                return ret_agent
 
 
     # 指定された役職である確率が最も低いプレイヤーを返す
