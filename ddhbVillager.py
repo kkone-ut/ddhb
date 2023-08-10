@@ -140,7 +140,7 @@ class ddhbVillager(AbstractPlayer):
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
     
-    
+
     def get_co_players(self, agent_list: List[Agent], role: Role = Role.ANY) -> List[Agent]:
         """Return a list of agents who have claimed the given role.
         Args:
@@ -548,6 +548,7 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("")
 
         ActionLogger.finish(self.game_info)
+        self.score_matrix.finish(self.game_info)
 
         if (len(self.role_predictor.assignments) == 0):
             Util.debug_print("No assignments")

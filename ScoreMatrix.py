@@ -5,7 +5,7 @@ from aiwolf.constant import AGENT_NONE
 import numpy as np
 from Util import Util
 import ddhbVillager
-from typing import Dict, List
+from typing import Dict, List, Set
 from Side import Side
 from ddhbVillager import *
 
@@ -15,6 +15,7 @@ class ScoreMatrix:
     medium_co: List[Agent]
     bodyguard_co: List[Agent]
     rtoi: DefaultDict[Role, int]
+    hidden_seers: Set[Agent] = set() # クラス変数。1セット内で共有される。
 
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player) -> None:
@@ -241,7 +242,7 @@ class ScoreMatrix:
                         return
                     # 複数占いCOがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
                     # (両方とも偽という割り当ての確率を0%にする)
-                    for seer in self.seer_co:
+                    for seer in set(self.seer_co) | self.hidden_seers:
                         self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
                         self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
@@ -853,8 +854,6 @@ class ScoreMatrix:
                 self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
             
             
-
-
     # 投票した発言を反映
     # 後で実装する→そんなに重要でない
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, day: int, turn: int) -> None:
@@ -867,3 +866,20 @@ class ScoreMatrix:
         for r, s in score.items():
             # Util.debug_print(f"apply_action_learning: {talker} {r} {s}")
             self.add_score(talker, r, talker, r, s)
+
+    # --------------- リア狂判定 --------------
+
+    def finish(self, game_info: GameInfo) -> None:
+        seer: Agent = AGENT_NONE
+        for agent, role in game_info.role_map.items():
+            if role == Role.SEER:
+                seer = agent
+                break
+        if seer == AGENT_NONE:
+            Util.error_print("finish: seer not found")
+            return
+        
+        if seer != self.me and self.player.comingout_map[seer] != Role.SEER:
+            self.hidden_seers.add(seer)
+        
+        Util.debug_print("hidden seers:\t", self.player.convert_to_agentids(list(ScoreMatrix.hidden_seers)), "\n")
