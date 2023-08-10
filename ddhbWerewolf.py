@@ -86,7 +86,6 @@ class ddhbWerewolf(ddhbPossessed):
         allies_no = [a.agent_idx for a in self.allies]
         humans_no = [a.agent_idx for a in self.humans]
         Util.debug_print("仲間:\t", allies_no)
-        # Util.debug_print("村陣営:\t", humans_no)
         self.attack_vote_candidate = AGENT_NONE
         self.agent_possessed = AGENT_NONE
         self.alive_possessed = False
@@ -146,7 +145,6 @@ class ddhbWerewolf(ddhbPossessed):
                     result = Species.HUMAN
                 else:
                     # 結果：発見人狼数が人狼総数より少ない and 30% で黒結果 で黒結果
-                    # 修正：black_count意味なし
                     # 勝率の高いエージェントに白結果、勝率の低いエージェントに黒結果を出す
                     if len(self.werewolves) < self.num_wolves and random.random() < 0.3:
                         judge_candidate = Util.get_weak_agent(judge_candidates)
@@ -182,6 +180,7 @@ class ddhbWerewolf(ddhbPossessed):
 
 
     # 結果から真占い推定
+    # 狂人の誤爆は考えないことにする
     def estimate_seer(self) -> None:
         # self.agent_seer = self.role_predictor.chooseMostLikely(Role.SEER, self.get_others(self.game_info.agent_list), threshold=0.9)
         self.agent_seer = AGENT_NONE
@@ -190,7 +189,6 @@ class ddhbWerewolf(ddhbPossessed):
             agent = judge.agent
             target = judge.target
             result = judge.result
-            # 狂人の誤爆は考えないことにする
             # if agent == self.agent_seer and target == self.me and result == Species.WEREWOLF:
             if target in self.allies and result == Species.WEREWOLF:
                 self.agent_seer = agent
@@ -263,8 +261,8 @@ class ddhbWerewolf(ddhbPossessed):
         if self.N == 5:
             if day == 1:
                 # 村人と揃える
-                # if turn == 1:
-                #     return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
+                if turn == 1:
+                    return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
                 # ----- CO -----
                 # 1: 真占いの黒結果
                 if not self.has_co and self.found_me:
