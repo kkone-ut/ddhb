@@ -68,7 +68,7 @@ class ddhbSeer(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        self.co_date = 3
+        self.co_date = 1
         self.has_co = False
         self.my_judge_queue.clear()
         self.not_divined_agents = self.get_others(self.game_info.agent_list)
@@ -78,13 +78,8 @@ class ddhbSeer(ddhbVillager):
         
         self.strategies = [True, False, False, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（初日CO）
-        self.strategyB = self.strategies[1] # 戦略B:
         # 戦略A: 初日CO
         if self.strategyA:
-            self.co_date = 1
-        # ---------- 5人村 ----------
-        if self.N == 5:
-            # 初日CO
             self.co_date = 1
 
 
@@ -94,7 +89,6 @@ class ddhbSeer(ddhbVillager):
         
         self.new_target = AGENT_NONE
         self.new_result = Species.WEREWOLF
-        # Process a divination result.
         # 占い結果
         judge: Optional[Judge] = self.game_info.divine_result
         if judge is not None:
@@ -141,14 +135,12 @@ class ddhbSeer(ddhbVillager):
                             # 対抗なし：人狼確率＋勝率が高いエージェント
                             if others_co_num == 0:
                                 self.new_target = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents), coef=0.1)
-                                # self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.not_divined_agents)
                             # 対抗あり：game<50では対抗で人狼っぽいエージェント、game>=50では人狼っぽいエージェント
                             else:
                                 if game < 50:
                                     self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_seer_co)
                                 else:
                                     self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.not_divined_agents))
-                            # 不要かも
                             if self.new_target == AGENT_NONE:
                                 self.new_target = judge.target
                                 self.new_result = judge.result
@@ -244,10 +236,13 @@ class ddhbSeer(ddhbVillager):
         if self.N == 5:
             # 投票対象の優先順位：黒結果→偽の黒先→人狼っぽいエージェント
             if alive_werewolves:
+                Util.debug_print("alive_werewolves:\t", self.agent_to_index(alive_werewolves))
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_werewolves)
-            elif self.new_target != AGENT_NONE:
-                self.vote_candidate = self.new_target
+            # 2ターン目の推論だとミスしている可能性があるので、行動学習で推定した結果を使う
+            # elif self.new_target != AGENT_NONE:
+            #     self.vote_candidate = self.new_target
             else:
+                Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
                 self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         # ---------- 15人村 ----------
         elif self.N == 15:
@@ -280,9 +275,7 @@ class ddhbSeer(ddhbVillager):
         others_co: List[Agent] = [a for a in self.comingout_map if a in divine_candidates and (self.comingout_map[a] == Role.SEER or self.comingout_map[a] == Role.MEDIUM)]
         # 占い候補：占っていないエージェント＋(占いor霊媒)COしていないエージェント
         divine_no_co_candidates: List[Agent] = [a for a in divine_candidates if a not in others_co]
-        
-        # 占い対象：人狼確率＋勝率が高いエージェント
-        # 対抗あり：game<50では人狼確率＋勝率が高いエージェント、game>=50では人狼っぽいエージェント
+        # 占い対象：game<50では人狼確率＋勝率が高いエージェント、game>=50では人狼っぽいエージェント
         # game後半は、推論精度が高いため、人狼っぽいエージェントを占う
         if game < 50:
             # divine_candidate = self.role_predictor.chooseStrongLikely(Role.WEREWOLF, divine_candidates, coef=0.5)
