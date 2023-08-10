@@ -242,9 +242,9 @@ class ScoreMatrix:
                         return
                     # 複数占いCOがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
                     # (両方とも偽という割り当ての確率を0%にする)
-                    for seer in set(self.seer_co) | self.hidden_seers:
-                        self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
-                        self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
+                    # for seer in set(self.seer_co) | self.hidden_seers:
+                    #     self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
+                    #     self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
                     self.add_scores(talker, {Role.VILLAGER: -100})
                     # 初COの場合
@@ -316,9 +316,9 @@ class ScoreMatrix:
                         return
                     # 複数占いCOがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
                     # (両方とも偽という割り当ての確率を0%にする)
-                    for seer in self.seer_co:
-                        self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
-                        self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
+                    # for seer in self.seer_co:
+                    #     self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
+                    #     self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.MEDIUM: -100, Role.BODYGUARD: -100})
                     # 初COの場合
@@ -362,9 +362,9 @@ class ScoreMatrix:
                         return
                     # 複数霊媒COがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
                     # (両方とも偽という割り当ての確率を0%にする)
-                    for medium in self.medium_co:
-                        self.add_score(medium, Role.MEDIUM, talker, Side.WEREWOLVES, +100)
-                        self.add_score(talker, Role.MEDIUM, medium, Side.WEREWOLVES, +100)
+                    # for medium in self.medium_co:
+                    #     self.add_score(medium, Role.MEDIUM, talker, Side.WEREWOLVES, +100)
+                    #     self.add_score(talker, Role.MEDIUM, medium, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
                     # 初COの場合
@@ -879,7 +879,7 @@ class ScoreMatrix:
             Util.error_print("finish: seer not found")
             return
         
-        if seer != self.me and self.player.comingout_map[seer] != Role.SEER:
+        if seer != self.me and self.player.comingout_map[seer] == Role.UNC:
             self.hidden_seers.add(seer)
         
         Util.debug_print("hidden seers:\t", self.player.convert_to_agentids(list(ScoreMatrix.hidden_seers)), "\n")
