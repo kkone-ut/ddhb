@@ -138,7 +138,7 @@ class ActionLogger:
 
                 # 係数調整
                 for r in role_list:
-                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE]:
+                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]:
                         score[r] *= 25
                     else:
                         score[r] *= 2
