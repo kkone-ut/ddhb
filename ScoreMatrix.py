@@ -729,8 +729,8 @@ class ScoreMatrix:
         if talker == self.me or (talker in role_map and role_map[talker] == Role.WEREWOLF):
             return
         # 1日目の報告は、人外
-        if day <= 1:
-            self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+        # if day <= 1:
+        #     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
         # 生きている人に対する霊媒報告は嘘→行動学習で対処
         # if self.player.is_alive(target):
