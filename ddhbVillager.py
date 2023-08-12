@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+import numpy as np
 import random
 from collections import defaultdict
 from typing import Dict, List, DefaultDict
@@ -193,12 +194,16 @@ class ddhbVillager(AbstractPlayer):
         return {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
 
 
-    def vote_count(self, vote_list: List[Vote]) -> Dict[Agent, int]:
+    def vote_cnt(self, vote_list: List[Vote]) -> Dict[Agent, int]:
         count: DefaultDict[Agent, int] = defaultdict(int)
         vote_dict = self.vote_to_dict(vote_list)
         for talker, target in vote_dict.items():
             count[target] += 1
         return count
+
+
+    def vote_print(self, agent_int: DefaultDict[Agent, int]) -> None:
+        return {a.agent_idx: i for a, i in agent_int.items()}
 
 
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
@@ -220,7 +225,6 @@ class ddhbVillager(AbstractPlayer):
                 continue
             if self.is_alive(talker) and self.is_alive(target):
                 count[target] += 1
-                no = str(target.agent_idx)
         if self.vote_candidate != AGENT_NONE and self.vote_candidate in include_list:
             count[self.vote_candidate] += 1
         count_num = {a.agent_idx: t for a, t in count.items()}
@@ -229,10 +233,31 @@ class ddhbVillager(AbstractPlayer):
         return ret_agent
 
 
+    # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
+    # 投票宣言と投票先の一致率を反映する
+    def chooseMostlikelyExecuted2(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
+        if include_list is None:
+            include_list = self.get_alive_others(self.game_info.agent_list)
+        count: DefaultDict[Agent, float] = defaultdict(float)
+        for talker, target in self.will_vote_reports.items():
+            if target not in include_list:
+                continue
+            if exclude_list is not None and target in exclude_list:
+                continue
+            if self.is_alive(talker) and self.is_alive(target):
+                vote_count = Util.vote_count[talker]
+                vote_match_count = Util.vote_match_count[talker]
+                if vote_count > 0:
+                    count[target] += vote_match_count/vote_count
+        if self.vote_candidate != AGENT_NONE and self.vote_candidate in include_list:
+            count[self.vote_candidate] += 1.0
+        ret_agent: Agent = max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
+        Util.debug_print("executed2:\t", {a.agent_idx: np.round(t, 3) for a, t in count.items()})
+        return ret_agent
+
+
     # HPが低いかどうか
     def is_Low_HP(self) -> bool:
-        will_vote_reports_num = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
-        is_low_hp: bool = False
         # 投票意思：投票が生存者の50%以上で、自分が最も処刑されそうな場合
         alive_cnt = len(self.game_info.alive_agent_list)
         if alive_cnt == 0:
@@ -240,7 +265,7 @@ class ddhbVillager(AbstractPlayer):
         will_vote_cnt = len(self.will_vote_reports)
         rate = will_vote_cnt/alive_cnt
         alive_agents: List[Agent] = self.get_alive(self.game_info.agent_list)
-        if rate >= 0.5 and self.chooseMostlikelyExecuted(include_list=alive_agents) == self.me:
+        if rate >= 0.5 and self.chooseMostlikelyExecuted2(include_list=alive_agents) == self.me:
             Util.debug_print("is_Low_HP: will_vote")
             return True
         # 前日投票：前日投票の20%以上がが自分に入っている場合
@@ -329,6 +354,21 @@ class ddhbVillager(AbstractPlayer):
     def day_start(self) -> None:
         self.talk_list_head = 0
         self.vote_candidate = AGENT_NONE
+        day: int = self.game_info.day
+        if day >= 2:
+            vote_list: List[Vote] = self.game_info.vote_list
+            Util.debug_print('vote_list:', self.vote_to_dict(vote_list))
+            Util.debug_print('will_vote_reports:', self.will_vote_reports_str)
+            for v in vote_list:
+                self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
+                va = v.agent
+                vt = v.target
+                if va in self.will_vote_reports:
+                    Util.vote_count[va] += 1
+                    if vt == self.will_vote_reports[va]:
+                        Util.vote_match_count[va] += 1
+            Util.debug_print("vote_count:\t", self.vote_print(Util.vote_count))
+            Util.debug_print("vote_match_count:\t", self.vote_print(Util.vote_match_count))
         self.will_vote_reports.clear()
         
         Util.debug_print("")
@@ -351,9 +391,6 @@ class ddhbVillager(AbstractPlayer):
                 Util.error_print("Killed:\t", *self.game_info.last_dead_agent_list)
         else:
             Util.debug_print("Killed:\t", AGENT_NONE)
-        
-        for v in self.game_info.vote_list:
-            self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
         # 噛まれていない違和感を反映
         self.score_matrix.Nth_day_start(self.game_info, self.game_setting)
 
@@ -416,10 +453,12 @@ class ddhbVillager(AbstractPlayer):
                 Util.debug_print("GUARDED:\t", talker, content.target)
             elif content.topic == Topic.ESTIMATE:
                 if content.role == Role.WEREWOLF:
+                    self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.target, day, turn)
                     self.will_vote_reports[talker] = content.target
                 elif content.role == Role.VILLAGER:
                     self.score_matrix.talk_estimate(self.game_info, self.game_setting, talker, content.target, content.role, day, turn)
             elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
+                self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.content_list[0].target, day, turn)
                 self.will_vote_reports[talker] = content.content_list[0].target
             
             action: Action = ActionLogger.update(game_info, tk, content, self)
@@ -536,6 +575,19 @@ class ddhbVillager(AbstractPlayer):
         raise NotImplementedError()
 
     def finish(self) -> None:
+        vote_list: List[Vote] = self.game_info.vote_list
+        Util.debug_print('vote_list:', self.vote_to_dict(vote_list))
+        Util.debug_print('will_vote_reports:', self.will_vote_reports_str)
+        for v in vote_list:
+            self.score_matrix.vote(self.game_info, self.game_setting, v.agent, v.target, v.day)
+            va = v.agent
+            vt = v.target
+            if va in self.will_vote_reports:
+                Util.vote_count[va] += 1
+                if vt == self.will_vote_reports[va]:
+                    Util.vote_match_count[va] += 1
+        Util.debug_print("vote_count:\t", self.vote_print(Util.vote_count))
+        Util.debug_print("vote_match_count:\t", self.vote_print(Util.vote_match_count))
         # 自分が人狼陣営で人狼が生存しているか、自分が村人陣営で人狼が生存していない場合に勝利
         alive_wolves = [a for a in self.game_info.alive_agent_list if self.game_info.role_map[a] == Role.WEREWOLF]
         villagers_win = (len(alive_wolves) == 0)
