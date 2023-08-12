@@ -249,11 +249,11 @@ class ddhbSeer(ddhbVillager):
             # 投票対象の優先順位：黒結果→偽占い→人狼っぽいエージェント
             if alive_werewolves:
                 Util.debug_print("alive_werewolves:\t", self.agent_to_index(alive_werewolves))
-                self.vote_candidate = self.chooseMostlikelyExecuted(include_list=alive_werewolves)
+                self.vote_candidate = self.chooseMostlikelyExecuted2(include_list=alive_werewolves)
                 # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_werewolves)
             elif others_seer_co:
                 Util.debug_print("others_seer_co:\t", self.agent_to_index(others_seer_co))
-                self.vote_candidate = self.chooseMostlikelyExecuted(include_list=others_seer_co)
+                self.vote_candidate = self.chooseMostlikelyExecuted2(include_list=others_seer_co)
                 # self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, others_seer_co)
             else:
                 Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
