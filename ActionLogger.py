@@ -116,7 +116,7 @@ class ActionLogger:
         role_list = ActionLogger.game_info.existing_role_list
         is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]
 
-        if Util.game_count <= 10:
+        if not is_important and Util.game_count <= 10:
             return score
 
         # if t >= 4:
