@@ -119,8 +119,8 @@ class ActionLogger:
         if Util.game_count <= 10:
             return score
 
-        if t >= 4:
-            return score
+        # if t >= 4:
+        #     return score
 
         # 相対確率を計算
         for r in role_list:
