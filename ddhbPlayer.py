@@ -27,7 +27,7 @@ from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
 
 from Util import Util
-from TeamPredictor import TeamPredictor
+from RealPossessedDetector import RealPossessedDetector
 
 import traceback
 
@@ -54,7 +54,7 @@ class ddhbPlayer(AbstractPlayer):
         self.game_setting: GameSetting = None
         self.game_info: GameInfo = None
 
-        TeamPredictor.init()
+        RealPossessedDetector.init()
 
     # オーバーライドしていく
     def attack(self) -> Agent:
@@ -103,7 +103,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.finish")
         try:
             self.player.finish()
-            TeamPredictor.finish(self.player)
+            RealPossessedDetector.finish(self.player)
             Util.end_timer("ddhbPlayer.finish", 20)
         except:
             Util.error_print(traceback.format_exc())
@@ -178,7 +178,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.start_timer("ddhbPlayer.update")
         try:
             self.game_info = game_info
-            TeamPredictor.update(game_info)
+            RealPossessedDetector.update(game_info)
             self.player.update(game_info)
             Util.end_timer("ddhbPlayer.update", 10)
         except:

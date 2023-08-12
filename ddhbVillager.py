@@ -32,7 +32,7 @@ from Util import Util
 from ScoreMatrix import ScoreMatrix
 from RolePredictor import RolePredictor
 from Assignment import Assignment
-from TeamPredictor import TeamPredictor
+from RealPossessedDetector import RealPossessedDetector
 from ActionLogger import ActionLogger, Action
 
 
@@ -373,7 +373,7 @@ class ddhbVillager(AbstractPlayer):
             self.talk_list_all.append(tk)
             if talker == self.me:  # Skip my talk.
                 continue
-            if TeamPredictor.should_skip(self, tk):
+            if RealPossessedDetector.should_skip(self, tk):
                 continue
             # 内容に応じて更新していく
             content: Content = Content.compile(tk.text)
