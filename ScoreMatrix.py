@@ -63,7 +63,7 @@ class ScoreMatrix:
         ri = self.rtoi[role1] if type(role1) is Role else role1
         j = agent2.agent_idx-1 if type(agent2) is Agent else agent2
         rj = self.rtoi[role2] if type(role2) is Role else role2
-
+        
         if ri >= self.M or rj >= self.M or ri < 0 or rj < 0: # 存在しない役職の場合はスコアを-infにする (5人村の場合)
             return -float('inf')
         
@@ -141,8 +141,6 @@ class ScoreMatrix:
 
 
     # 投票行動を反映→OK
-    # todo: will vote の順番を見て、その人の投票で結果が変わらないならその投票の重みは軽くする
-    # todo:     実際には吊られなそうなタイミングで黒に投票していたような場合はライン切りの可能性を考慮する
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent, day: int) -> None:
         self.update(game_info)
         N = self.N
@@ -159,14 +157,14 @@ class ScoreMatrix:
         # ---------- 15人村 ----------
         elif N == 15:
             # 日が進むほど判断材料が多くなるので、日にちで重み付けする
-            weight = day * 0.1
+            weight = day * 0.5
             # 投票者が村陣営で、投票対象が人狼である確率を上げる
             self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, weight)
             self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight*3)
             self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight*1.5)
             self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
             # 人狼が仲間の人狼に投票する確率は低い
-            self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -weight*5)
+            self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
     # --------------- 公開情報から推測する ---------------
 
 
@@ -213,7 +211,6 @@ class ScoreMatrix:
 
     # --------------- 他の人の発言から推測する：確定情報ではないので有限の値を加減算する ---------------
     # 他者のCOを反映 
-    # Basketでは、人外は3CO目のCOはしないので、3CO目は真占いである確率が極めて高い？
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role, day: int, turn: int) -> None:
         self.update(game_info)
         N = self.N
@@ -229,10 +226,7 @@ class ScoreMatrix:
             if role == Role.SEER:
                 # --- 占い ---
                 if my_role == Role.SEER:
-                    # 結果に関わらず、人狼と狂人の確率を上げる（村陣営の役職騙りを考慮しない）
-                    # これだと、対抗にしか黒結果が出ない
-                    # 対抗は狂人のことが多いので、少し微妙
-                    # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+                    # 人狼と狂人の確率を上げる（対抗にしか黒結果が出ない）のではなく、村人と占いの確率を下げる
                     # +5, +3を上回る行動学習結果なら、行動学習を優先する
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: +5, Role.WEREWOLF: +3})
                 # --- それ以外 ---
@@ -257,7 +251,7 @@ class ScoreMatrix:
                     # --- 狂人 ---
                     elif my_role == Role.POSSESSED:
                         # 占いと人狼どちらもありうるので、CO段階では少しの変更にする
-                        # 気持ち、1CO目は占い っぽい
+                        # 気持ち、1CO目は占いっぽい
                         if self.seer_co_count == 1:
                             self.add_scores(talker, {Role.SEER: +1})
                         # 2CO目以降は無視
@@ -266,23 +260,22 @@ class ScoreMatrix:
                     # --- 村人 ---
                     else:
                         # 村人視点では、COを重視する：結果では正確に判断できないから
-                        # todo: 本来は行動学習するべき
-                        # 気持ち、1,2CO目は占いor狂人、3CO目は占いor人狼 っぽい
+                        # 気持ち、1,2CO目は占いor狂人、3CO目は占いor人狼っぽい
                         if self.seer_co_count == 1:
-                            self.add_scores(talker, {Role.SEER: +3, Role.POSSESSED: +3, Role.WEREWOLF: +1})
+                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +2, Role.WEREWOLF: +1})
                         elif self.seer_co_count == 2:
-                            self.add_scores(talker, {Role.SEER: +3, Role.POSSESSED: +3, Role.WEREWOLF: +2})
+                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +2, Role.WEREWOLF: +2})
                         else:
-                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +1, Role.WEREWOLF: +3})
+                            self.add_scores(talker, {Role.SEER: +1, Role.POSSESSED: +1, Role.WEREWOLF: +2})
             # ----- 狂人CO -----
-            # 村人の狂人COはないと仮定する
+            # 村人の狂人COはないと仮定する→PP阻止のために村人が狂人COすることがある→少しの変更にする
             elif role == Role.POSSESSED:
                 # --- 人狼 ---
                 if my_role == Role.WEREWOLF:
-                    self.add_scores(talker, {Role.POSSESSED: +10})
+                    self.add_scores(talker, {Role.POSSESSED: +5})
                 # --- 狂人 ---
                 elif my_role == Role.POSSESSED:
-                    self.add_scores(talker, {Role.WEREWOLF: +10})
+                    self.add_scores(talker, {Role.WEREWOLF: +5})
                 # --- 村人 or 占い ---
                 else:
                     self.add_scores(talker, {Role.POSSESSED: +5, Role.WEREWOLF: +1})
@@ -421,7 +414,7 @@ class ScoreMatrix:
                         return
                     # --- 狂人 ---
                     elif my_role == Role.POSSESSED:
-                        # 1CO目は、ほぼ狩人 っぽい
+                        # 1CO目は、ほぼ狩人っぽい
                         if self.bodyguard_co_count == 1:
                             self.add_scores(talker, {Role.BODYGUARD: +2})
                         # 2CO目以降は、人狼っぽい
@@ -430,7 +423,7 @@ class ScoreMatrix:
                     # --- 村陣営 ---
                     else:
                         # todo: 狩人はCOせずに死ぬことが多い。他の役職についても同様だが、特に日付によって重み付けすべき。
-                        # 1CO目は、狩人 っぽい
+                        # 1CO目は、狩人っぽい
                         if self.bodyguard_co_count == 1:
                             self.add_scores(talker, {Role.BODYGUARD: +2, Role.WEREWOLF: +1})
                         # 2CO目は、人狼っぽい
@@ -498,14 +491,15 @@ class ScoreMatrix:
         # ---------- 15人村 ----------
         elif N == 15:
             # 発言者の役職ごとに、対象が人狼である確率を上げる
-            self.add_score(talker, Role.VILLAGER, target, Role.WEREWOLF, +0.005)
-            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +0.02)
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +0.01)
-            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, +0.01)
+            weight = day * 0.1
+            self.add_score(talker, Role.VILLAGER, target, Role.WEREWOLF, weight)
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, weight*3)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, weight*1.5)
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
             # 人狼のライン切りを反映する
-            self.add_score(talker, Role.WEREWOLF, target, Role.WEREWOLF, -0.1)
+            self.add_score(talker, Role.WEREWOLF, target, Role.WEREWOLF, -3)
             # 人狼は投票意思を示しがちだから、人狼である確率を上げる
-            self.add_scores(talker, {Role.WEREWOLF: +0.01})
+            self.add_scores(talker, {Role.WEREWOLF: +1})
 
 
     # Basketにないため、後で実装する
@@ -522,10 +516,8 @@ class ScoreMatrix:
         # 自分と仲間の人狼の結果は無視
         if talker == self.me or (talker in role_map and role_map[talker] == Role.WEREWOLF):
             return
-
         # CO の時点で占い師以外の村人陣営の可能性を0にしているが、COせずに占い結果を出した場合のためにここでも同じ処理を行う
         self.add_scores(talker, {Role.VILLAGER: -100, Role.MEDIUM: -100, Role.BODYGUARD: -100})
-
         # すでに同じ相手に対する占い結果がある場合は無視
         # ただし、結果が異なる場合は、人狼・狂人の確率を上げる
         for report in self.player.divination_reports:
@@ -535,7 +527,6 @@ class ScoreMatrix:
                 else:
                     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                     return
-
         # ---------- 5人村 ----------
         if N == 5:
             # ----- 占い -----
@@ -543,7 +534,6 @@ class ScoreMatrix:
                 # 結果に関わらず、人狼と狂人の確率を上げる（村陣営の役職騙りを考慮しない）
                 # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: +5, Role.WEREWOLF: +3})
-
                 # 黒結果
                 if species == Species.WEREWOLF:
                     # 対象：自分
@@ -630,8 +620,6 @@ class ScoreMatrix:
                     else:
                         # talkerが占い師で、targetが人狼である確率を上げる
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +3)
-                        # # talkerが狂人と人狼である確率を少し下げる→むしろ上げるべき
-                        # self.add_scores(talker, {Role.POSSESSED: -1, Role.WEREWOLF: -1})
                         # talkerが狂人と人狼である確率を少し上げる
                         self.add_scores(talker, {Role.POSSESSED: +3, Role.WEREWOLF: +1})
                 # 白結果
@@ -744,13 +732,13 @@ class ScoreMatrix:
         if day <= 1:
             self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
-        # 生きている人に対する霊媒報告は嘘
-        # review: 行動学習で対処でもいいかどうか
+        # 生きている人に対する霊媒報告は嘘→行動学習で対処
         # if self.player.is_alive(target):
         #     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
         # CO の時点で霊媒師以外の村人陣営の可能性を0にしているが、COせずに霊媒結果を出した場合のためにここでも同じ処理を行う
-        self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
+        # 行動学習に任せる
+        # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
 
         # すでに同じ相手に対する霊媒結果がある場合は無視
         # ただし、結果が異なる場合は、人狼・狂人の確率を上げる
