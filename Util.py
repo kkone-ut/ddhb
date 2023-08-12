@@ -30,6 +30,9 @@ class Util:
     # 役職ごとの勝率
     win_role_rate: DefaultDict[Agent, DefaultDict[Role, float]] = defaultdict(lambda: defaultdict(float))
     sum_score: float = 0.0
+    # 投票宣言と投票先の一致回数
+    vote_count: DefaultDict[Agent, int] = defaultdict(int)
+    vote_match_count: DefaultDict[Agent, int] = defaultdict(int)
 
     @staticmethod
     def init():
