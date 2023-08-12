@@ -23,9 +23,11 @@ class Action(Enum):
     CO_BODYGUARD = "CO_BODYGUARD"
     CO_VILLAGER = "CO_VILLAGER"
     REQUEST_VOTE = "REQUEST_VOTE"
+    REQUEST_COMINGOUT = "REQUEST_COMINGOUT"
     ESTIMATE_WEREWOLF = "ESTIMATE_WEREWOLF"
     ESTIMATE_POSSESSED = "ESTIMATE_POSSESSED"
     ESTIMATE_VILLAGER = "ESTIMATE_VILLAGER"
+    SHOW_HOSTILITY = "SHOW_HOSTILITY"
     OTHER = "OTHER"
 
 class ActionLog:
@@ -52,6 +54,7 @@ class ActionLogger:
     MAX_TURN: int
     action_log: Deque[ActionLog]
     action_count_all: "DefaultDict[(int, int, Agent, Role, Action), int]"
+    action_count_sum: "DefaultDict[(Agent, Role, Action), int]"
     old_role_map: List[Dict[Agent, Role]]
 
     @staticmethod
@@ -59,6 +62,8 @@ class ActionLogger:
         ActionLogger.action_log: Deque[ActionLog] = deque()
         # day, turn, agent, role, action
         ActionLogger.action_count_all: "DefaultDict[(int, int, Agent, Role, Action), int]" = defaultdict(int)
+        # agent, role, action
+        ActionLogger.action_count_sum: "DefaultDict[(Agent, Role, Action), int]" = defaultdict(int)
         ActionLogger.old_role_map: List[Dict[Agent, Role]] = []
     
     @staticmethod
@@ -95,6 +100,7 @@ class ActionLogger:
             role: Role = ActionLogger.old_role_map[oldest_log.game-1][oldest_log.agent]
             # Util.debug_print("ActionLogger.update", f"game={oldest_log.game}, day={oldest_log.day}, turn={oldest_log.turn}, agent={oldest_log.agent}, role={role}, action={oldest_log.action}")
             ActionLogger.action_count_all[(oldest_log.day, oldest_log.turn, oldest_log.agent, role, oldest_log.action)] += 1
+            ActionLogger.action_count_sum[(oldest_log.agent, role, oldest_log.action)] += 1
             ActionLogger.action_log.popleft()
             if len(ActionLogger.action_log) > 0:
                 oldest_log = ActionLogger.action_log[0]
@@ -108,20 +114,23 @@ class ActionLogger:
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0
         role_list = ActionLogger.game_info.existing_role_list
+        is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]
 
-        if Util.game_count <= 10:
+        if not is_important and Util.game_count <= 10:
             return score
 
-        if t >= 4:
-            return score
+        # if t >= 4:
+        #     return score
 
         # 相対確率を計算
         for r in role_list:
             if Util.agent_role_count[talker][r] == 0:
                 count[r] = 0
             else:
-                # count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)]
-                count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)] / Util.agent_role_count[talker][r]
+                if is_important:
+                    count[r] = ActionLogger.action_count_sum[(talker, r, action)]
+                else:
+                    count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)] / Util.agent_role_count[talker][r]
             sum += count[r]
         
         if sum > 0:
@@ -132,15 +141,17 @@ class ActionLogger:
             if len(ActionLogger.game_info.agent_list) == 5:
                 score[r] *= 5
             else:
-                # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
-                for r in role_list:
-                    score[r] = score[r] - 1/len(role_list)
 
                 # 係数調整
                 for r in role_list:
-                    if action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]:
+                    if is_important and score[r] > 0.99:
+                        # is_important かつ他の役職で同じ行動をしていないならスコアを上げる
+                        Util.debug_print("ActionLogger.get_score\t", f"game={Util.game_count}, day={d}, turn={t}, agent={talker}, role={r}, action={action}, score={score[r]}")
                         score[r] *= 25
                     else:
+                        # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
+                        score[r] = score[r] - 1/len(role_list)
+                        # 係数調整
                         score[r] *= 2
 
         return score
@@ -182,7 +193,8 @@ class ActionLogger:
         elif content.topic == Topic.GUARDED:
             return Action.GUARDED
         elif content.topic == Topic.VOTE:
-            return Action.VOTE
+            # return Action.VOTE
+            return Action.SHOW_HOSTILITY
         elif content.topic == Topic.COMINGOUT:
             if content.role == Role.SEER:
                 return Action.CO_SEER
@@ -193,11 +205,16 @@ class ActionLogger:
             elif content.role == Role.VILLAGER:
                 return Action.CO_VILLAGER
         elif content.topic == Topic.OPERATOR:
-            if content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
-                return Action.REQUEST_VOTE
+            if content.operator == Operator.REQUEST:
+                if content.content_list[0].topic == Topic.VOTE:
+                    # return Action.REQUEST_VOTE
+                    return Action.SHOW_HOSTILITY
+                elif content.content_list[0].topic == Topic.COMINGOUT:
+                    return Action.REQUEST_COMINGOUT
         elif content.topic == Topic.ESTIMATE:
             if content.role == Role.WEREWOLF:
-                return Action.ESTIMATE_WEREWOLF
+                # return Action.ESTIMATE_WEREWOLF
+                return Action.SHOW_HOSTILITY
             elif content.role == Role.POSSESSED:
                 return Action.ESTIMATE_POSSESSED
             elif content.role == Role.VILLAGER:
