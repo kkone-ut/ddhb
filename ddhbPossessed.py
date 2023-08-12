@@ -155,7 +155,6 @@ class ddhbPossessed(ddhbVillager):
         elif self.N == 15:
             th = 0.4
         self.agent_werewolf, W_prob = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.game_info.agent_list), threshold=th, returns_prob=True)
-        Util.debug_print("----- estimate_werewolf -----")
         Util.debug_print("agent_werewolf, W_prob:\t", self.agent_werewolf, W_prob)
 
 
@@ -170,7 +169,7 @@ class ddhbPossessed(ddhbVillager):
             vote_list = self.game_info.vote_list
             Util.debug_print("----- day_start -----")
             Util.debug_print("vote_list:\t", self.vote_to_dict(vote_list))
-            Util.debug_print("vote_count:\t", self.vote_count(vote_list))
+            Util.debug_print("vote_cnt:\t", self.vote_cnt(vote_list))
             
         self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
         self.new_result = Species.WEREWOLF
@@ -401,8 +400,8 @@ class ddhbPossessed(ddhbVillager):
                 Util.debug_print(f'人狼っぽい:{self.agent_werewolf}\t投票を合わせる:{self.vote_candidate}')
                 # 投票対象が自分 or 投票対象が死んでいる：処刑されそうなエージェントに投票
                 if self.vote_candidate == self.me or self.vote_candidate == AGENT_NONE or not self.is_alive(self.vote_candidate):
-                    self.vote_candidate = self.chooseMostlikelyExecuted(include_list=vote_candidates)
-                    Util.debug_print('処刑されそうなエージェントに投票:', self.vote_candidate)
+                    self.vote_candidate = self.chooseMostlikelyExecuted2(include_list=vote_candidates)
+                    Util.debug_print('処刑されそうなエージェント2:', self.vote_candidate)
             # 人狼を判別できていない or 投票対象が自分 or 投票対象が死んでいる：人狼っぽくないエージェントに投票
             elif self.agent_werewolf == AGENT_NONE or self.vote_candidate == AGENT_NONE:
                 Util.debug_print("vote_candidates:\t", self.agent_to_index(vote_candidates))
