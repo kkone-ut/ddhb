@@ -116,9 +116,13 @@ class ActionLogger:
         role_list = ActionLogger.game_info.existing_role_list
         is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]
 
-        if not is_important and Util.game_count <= 10:
-            return score
+        # if not is_important and Util.game_count <= 10:
+        #     return score
 
+        if ActionLogger.N == 5 and t>=20:
+            return score
+        elif ActionLogger.N == 15 and t >= 10:
+            return score
         # if t >= 4:
         #     return score
 
@@ -137,23 +141,30 @@ class ActionLogger:
             # 絶対確率に変換
             for r in role_list:
                 score[r] = count[r] / sum
+            # print('sum', sum)
+            # print('count', count)
+            # print('score', score)
 
-            if len(ActionLogger.game_info.agent_list) == 5:
-                score[r] *= 5
+            if ActionLogger.N == 5:
+                for r in role_list:
+                    score[r] *= 5
             else:
-
                 # 係数調整
                 for r in role_list:
-                    if is_important and score[r] > 0.99:
+                    # if is_important and score[r] > 0.99:
+                    if is_important:
                         # is_important かつ他の役職で同じ行動をしていないならスコアを上げる
                         Util.debug_print("ActionLogger.get_score\t", f"game={Util.game_count}, day={d}, turn={t}, agent={talker}, role={r}, action={action}, score={score[r]}")
                         score[r] *= 25
+                        score_ = {str(r)[5]: np.round(s, 3) for r, s in score.items()}
+                        print('score', score_)
                     else:
                         # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
                         score[r] = score[r] - 1/len(role_list)
                         # 係数調整
-                        score[r] *= 2
-
+                        score[r] *= 1
+            # score_ = {str(r)[5]: np.round(s, 3) for r, s in score.items()}
+            # print('score', score_)
         return score
 
 

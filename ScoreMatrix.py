@@ -301,7 +301,7 @@ class ScoreMatrix:
                 if my_role == Role.SEER:
                     # talkerが占いの確率はありえない→-inf
                     # 村陣営の役職騙りは考慮しない→村陣営確率を限りなく0にする 後で変更するかも
-                    # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -float('inf'), Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})
+                    # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -float('inf'), Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})                    
                     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 else:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
@@ -525,6 +525,7 @@ class ScoreMatrix:
                 if report.result == species:
                     return
                 else:
+                    Util.debug_print('同じ相手に対して異なる占い結果を出した時')
                     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                     return
         # ---------- 5人村 ----------
@@ -753,7 +754,9 @@ class ScoreMatrix:
 
         # ----- 霊媒 -----
         if my_role == Role.MEDIUM:
-            self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+            # talk_coと行動学習に任せる
+            # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
+            pass
         # ----- 人狼 -----
         elif my_role == Role.WEREWOLF:
             allies: List[Agent] = role_map.keys()
