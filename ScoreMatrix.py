@@ -714,7 +714,8 @@ class ScoreMatrix:
                     else:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
                         self.add_score(talker, Role.SEER, target, Species.HUMAN, +5)
-                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+                        # self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +10)
                         # 人狼陣営でも本物の白出しをする場合があるので、この可能性は排除しない (黒出しと白出しで異なる部分)
                         # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
 
@@ -728,7 +729,7 @@ class ScoreMatrix:
         # 自分と仲間の人狼の結果は無視
         if talker == self.me or (talker in role_map and role_map[talker] == Role.WEREWOLF):
             return
-        # 1日目の報告は、人外
+        # 1日目の報告は、人外→行動学習で対処
         # if day <= 1:
         #     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
