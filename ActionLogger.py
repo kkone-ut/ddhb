@@ -133,7 +133,7 @@ class ActionLogger:
                 count[r] = 0
             else:
                 if is_important:
-                    count[r] = ActionLogger.action_count_sum[(talker, r, action)]
+                    count[r] = ActionLogger.action_count_sum[(talker, r, action)] / Util.agent_role_count[talker][r]
                 else:
                     count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)] / Util.agent_role_count[talker][r]
             sum += count[r]
