@@ -114,14 +114,15 @@ class ActionLogger:
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0
         role_list = ActionLogger.game_info.existing_role_list
-        is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]
+        # is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO, Action.IDENTIFIED_WITHOUT_CO_TO_COUNTERPART, Action.IDENTIFIED_TO_ALIVE, Action.CO_VILLAGER]
+        is_important: bool = action in [Action.DIVINED_WITHOUT_CO, Action.CO_VILLAGER]
 
-        # if not is_important and Util.game_count <= 10:
-        #     return score
-
-        if ActionLogger.N == 5 and t>=20:
+        if not is_important and Util.game_count <= 10:
             return score
-        elif ActionLogger.N == 15 and t >= 10:
+
+        if ActionLogger.N == 5 and t >=20:
+            return score
+        elif ActionLogger.N == 15 and (t >= 10 or d >= 4):
             return score
         # if t >= 4:
         #     return score
@@ -141,9 +142,6 @@ class ActionLogger:
             # 絶対確率に変換
             for r in role_list:
                 score[r] = count[r] / sum
-            # print('sum', sum)
-            # print('count', count)
-            # print('score', score)
 
             if ActionLogger.N == 5:
                 for r in role_list:
@@ -163,8 +161,6 @@ class ActionLogger:
                         score[r] = score[r] - 1/len(role_list)
                         # 係数調整
                         score[r] *= 1
-            # score_ = {str(r)[5]: np.round(s, 3) for r, s in score.items()}
-            # print('score', score_)
         return score
 
 
