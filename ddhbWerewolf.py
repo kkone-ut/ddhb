@@ -107,7 +107,7 @@ class ddhbWerewolf(ddhbPossessed):
         elif self.N == 15:
             # 騙り役職：割合調整
             fake_roles = [Role.VILLAGER, Role.SEER, Role.MEDIUM, Role.BODYGUARD]
-            weights = [0.5, 0.5, 0.0, 0.0]
+            weights = [0.6, 0.4, 0.0, 0.0]
             self.fake_role = np.random.choice(fake_roles, p=weights)
             Util.debug_print("騙り役職:\t", self.fake_role)
             # COする日にち：1日目
