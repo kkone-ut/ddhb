@@ -569,6 +569,7 @@ class ddhbWerewolf(ddhbPossessed):
     def attack(self) -> Agent:
         self.estimate_possessed()
         self.estimate_seer()
+        alive_werewolf_cnt = len(self.get_alive(self.allies))
         # ----- 襲撃対象 -----
         attack_vote_candidates: List[Agent] = self.get_alive_others(self.humans)
         # 確定狂人は除外
@@ -613,24 +614,33 @@ class ddhbWerewolf(ddhbPossessed):
             # 襲撃候補の優先順位：狩人→確定占い→占い→霊媒→襲撃スコア
             others_bodygurad_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
             others_seer_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.SEER]
-            others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]            
-            if others_bodygurad_co:
-                Util.debug_print('狩人襲撃')
-                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, others_bodygurad_co)
-            elif self.alive_seer:
-                Util.debug_print('確定占い襲撃')
-                self.attack_vote_candidate = self.agent_seer
-            elif others_seer_co:
-                Util.debug_print('占い襲撃')
-                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
-            elif others_medium_co:
-                Util.debug_print('霊媒襲撃')
-                self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, others_medium_co)
-            elif self.threat:
-                Util.debug_print('脅威噛み')
-                self.attack_vote_candidate = self.get_attack_agent(self.threat)
+            others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]
+            # 自分がラストウルフなら、脅威噛みを優先する
+            if alive_werewolf_cnt == 1:
+                if self.threat:
+                    Util.debug_print('脅威噛み')
+                    self.attack_vote_candidate = self.get_attack_agent(self.threat)
+                else:
+                    Util.debug_print('スコア襲撃')
+                    self.attack_vote_candidate = self.get_attack_agent(attack_vote_candidates)
             else:
-                Util.debug_print('スコア襲撃')
-                self.attack_vote_candidate = self.get_attack_agent(attack_vote_candidates)
+                if others_bodygurad_co:
+                    Util.debug_print('狩人襲撃')
+                    self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, others_bodygurad_co)
+                elif self.alive_seer:
+                    Util.debug_print('確定占い襲撃')
+                    self.attack_vote_candidate = self.agent_seer
+                elif others_seer_co:
+                    Util.debug_print('占い襲撃')
+                    self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.SEER, others_seer_co)
+                elif others_medium_co:
+                    Util.debug_print('霊媒襲撃')
+                    self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.MEDIUM, others_medium_co)
+                elif self.threat:
+                    Util.debug_print('脅威噛み')
+                    self.attack_vote_candidate = self.get_attack_agent(self.threat)
+                else:
+                    Util.debug_print('スコア襲撃')
+                    self.attack_vote_candidate = self.get_attack_agent(attack_vote_candidates)
         Util.debug_print(f"襲撃対象:\t{self.attack_vote_candidate}")
         return self.attack_vote_candidate if self.attack_vote_candidate != AGENT_NONE else self.me
