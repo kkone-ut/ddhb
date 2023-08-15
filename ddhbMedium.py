@@ -65,7 +65,7 @@ class ddhbMedium(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        self.co_date = 3
+        self.co_date = 2
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue.clear()
@@ -73,15 +73,11 @@ class ddhbMedium(ddhbVillager):
         self.werewolves.clear()
         self.latest_result = Species.UNC
         self.votefor_executed_agent.clear()
-        self.strategies = [True, False, False]
+        self.strategies = [True]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（2日目CO）
-        self.strategyB = self.strategies[1] # 戦略B: COする日にちの変更（1日目CO）
         # 戦略A: 2日目CO
         if self.strategyA:
             self.co_date = 2
-        # 戦略B: 1日目CO
-        if self.strategyB:
-            self.co_date = 1
 
 
     # 昼スタート→OK
@@ -143,7 +139,6 @@ class ddhbMedium(ddhbVillager):
             # 黒結果
             # 前日、黒に投票したエージェントを村人っぽいとESTIMATE
             if self.latest_result == Species.WEREWOLF:
-                # white_candidate = self.random_select(self.votefor_executed_agent)
                 l = len(self.votefor_executed_agent)
                 if l != 0:
                     white_candidate = self.votefor_executed_agent[turn % len(self.votefor_executed_agent)]

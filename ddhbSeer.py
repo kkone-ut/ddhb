@@ -76,7 +76,7 @@ class ddhbSeer(ddhbVillager):
         self.new_target = AGENT_NONE
         self.new_result = Species.UNC
         
-        self.strategies = [True, False, False, False, False]
+        self.strategies = [True]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（初日CO）
         # 戦略A: 初日CO
         if self.strategyA:
@@ -205,7 +205,6 @@ class ddhbSeer(ddhbVillager):
                 judge: Judge = self.my_judge_queue.popleft()
                 # 正しい結果を報告する
                 return Content(DivinedResultContentBuilder(judge.target, judge.result))
-            # ---------- 投票宣言 ----------
             # ----- ESTIMATE, VOTE, REQUEST -----
             if 2 <= turn <= 7:
                 rnd = random.randint(0, 2)

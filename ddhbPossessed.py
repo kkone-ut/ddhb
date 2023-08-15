@@ -109,37 +109,25 @@ class ddhbPossessed(ddhbVillager):
             return
         
         # 戦略を検証するためのフラグ
-        self.strategies = [False, True, True, False, False, False, False, False, True, False, True]
-        self.strategyA = self.strategies[0] # 一日で何回も占い結果を言う
-        self.strategyB = self.strategies[1] # 狩人COしない(3人目でも出る)
-        self.strategyC = self.strategies[2] # 基本的に占い師COする(これ単体だと占いしない)
-        self.strategyD = self.strategies[3] # 人狼っぽい人に、占い師でずっと黒判定を出し続ける
-        self.strategyE = self.strategies[4] # 人狼っぽくない人に、占い師でずっと黒判定を出し続ける
-        self.strategyF = self.strategies[5] # 人狼っぽい人に、占い師でずっと白判定を出し続ける
-        self.strategyG = self.strategies[6] # 対抗の占い師がいたら、対抗が黒だという
-        self.strategyH = self.strategies[7] # COせず、完全に潜伏（比較用）
-        self.strategyI = self.strategies[8] # 占い師/霊媒師っぽい動きをする
-        self.strategyJ = self.strategies[9] # 5人村：COしてから占い結果
-        self.strategyK = self.strategies[10] # 15人村：COしてから占い結果
+        self.strategies = [False, True, True]
+        self.strategyA = self.strategies[0] # 戦略A：一日で何回も占い結果を言う
+        self.strategyB = self.strategies[1] # 戦略B：100%で占いCO
+        self.strategyC = self.strategies[2] # 戦略C：15人村：COしてから占い結果
         
         # ---------- 5人村 ----------
         if self.N == 5:
             self.fake_role = Role.SEER
         # ---------- 15人村 ----------
         elif self.N == 15:
-            # ----- 戦略C：100%で占いCO -----
-            if self.strategyC:
+            # ----- 戦略B：100%で占いCO -----
+            if self.strategyB:
                 self.fake_role = Role.SEER
             else:
                 # 65%の確率で占い師、35%の確率で霊媒師
                 self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
-        # ----- 戦略H：潜伏する -----
-        if self.strategyH:
-            self.fake_role = Role.VILLAGER
 
 
     # スコアマトリックスから人狼を推測する
-    # todo: 閾値をどうするか、game数によって変えるか→printデバッグで検証
     def estimate_werewolf(self) -> None:
         th: float = 0.7
         game: int = Util.game_count
@@ -270,8 +258,8 @@ class ddhbPossessed(ddhbVillager):
                 # ----- 戦略A：占い結果を複数回言う -----
                 if self.strategyA:
                     self.has_report = False
-                # ----- 戦略K：COしてから占い結果 -----
-                if self.strategyK:
+                # ----- 戦略C：COしてから占い結果 -----
+                if self.strategyC:
                     # ----- CO -----
                     if not self.has_co and day == self.co_date:
                         self.has_co = True
@@ -304,16 +292,14 @@ class ddhbPossessed(ddhbVillager):
                     if turn == 1:
                         if not self.has_report:
                             self.has_report = True
-                            # ----- 戦略I：占いっぽい結果 -----
-                            if self.strategyI:
-                                r = random.random()
-                                # 80%で人狼っぽいエージェントに白結果、20%で村人っぽいエージェントに黒結果
-                                if r < 0.8:
-                                    self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
-                                    self.new_result = Species.HUMAN
-                                else:
-                                    self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
-                                    self.new_result = Species.WEREWOLF
+                            r = random.random()
+                            # 80%で人狼っぽいエージェントに白結果、20%で村人っぽいエージェントに黒結果
+                            if r < 0.8:
+                                self.new_target = self.role_predictor.chooseMostLikely(Role.WEREWOLF, alive_others)
+                                self.new_result = Species.HUMAN
+                            else:
+                                self.new_target = self.role_predictor.chooseLeastLikely(Role.WEREWOLF, alive_others)
+                                self.new_result = Species.WEREWOLF
                             return Content(DivinedResultContentBuilder(self.new_target, self.new_result))
             # ---------- 霊媒騙り ----------
             elif self.fake_role == Role.MEDIUM:
