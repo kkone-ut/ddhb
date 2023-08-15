@@ -160,9 +160,10 @@ class ScoreMatrix:
             weight = day * 0.5
             # 投票者が村陣営で、投票対象が人狼である確率を上げる
             self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, weight)
-            self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight*3)
-            self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight*1.5)
-            self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
+            self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight)
+            self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight)
+            self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight)
+            self.add_score(voter, Role.POSSESSED, target, Role.WEREWOLF, -weight)
             # 人狼が仲間の人狼に投票する確率は低い
             self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
     # --------------- 公開情報から推測する ---------------
@@ -493,9 +494,10 @@ class ScoreMatrix:
             # 発言者の役職ごとに、対象が人狼である確率を上げる
             weight = day * 0.1
             self.add_score(talker, Role.VILLAGER, target, Role.WEREWOLF, weight)
-            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, weight*3)
-            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, weight*1.5)
-            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
+            self.add_score(talker, Role.SEER, target, Role.WEREWOLF, weight)
+            self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, weight)
+            self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, weight)
+            self.add_score(talker, Role.POSSESSED, target, Role.WEREWOLF, -weight)
             # 人狼のライン切りを反映する
             self.add_score(talker, Role.WEREWOLF, target, Role.WEREWOLF, -3)
             # 人狼は投票意思を示しがちだから、人狼である確率を上げる
