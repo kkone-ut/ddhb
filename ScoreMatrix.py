@@ -3,6 +3,7 @@ from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
 from aiwolf.constant import AGENT_NONE
 
 import numpy as np
+import inspect
 from Util import Util
 import ddhbVillager
 from typing import Dict, List, Set
@@ -98,6 +99,12 @@ class ScoreMatrix:
     # agent1, agent2: Agent or int
     # role1, rold2: Role, int, Species, Side or List
     def add_score(self, agent1: Agent, role1: Role, agent2: Agent, role2: Role, score: float) -> None:
+        # 加算するスコアが大きい場合はどの関数から呼ばれたかを表示
+        if abs(score) >= 5:
+            caller = inspect.stack()[1]
+            if caller.function != "add_scores":
+                Util.debug_print("add_score:\t", caller.function, caller.lineno, "\t", score)
+        
         if type(role1) is Side:
             role1 = role1.get_role_list(self.N)
         if type(role2) is Side:
@@ -128,6 +135,11 @@ class ScoreMatrix:
 
     # スコアの加算をまとめて行う
     def add_scores(self, agent: Agent, score_dict: Dict[Role, float]) -> None:
+        # 加算するスコアが大きい場合はどの関数から呼ばれたかを表示
+        if min(score_dict.values()) <= -5 or max(score_dict.values()) >= 5:
+            caller = inspect.stack()[1]
+            Util.debug_print("add_scores:\t", caller.function, caller.lineno, "\t", {str(r)[5]: s for r, s in score_dict.items()})
+        
         for key, value in score_dict.items():
             self.add_score(agent, key, agent, key, value)
 
