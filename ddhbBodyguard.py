@@ -71,19 +71,13 @@ class ddhbBodyguard(ddhbVillager):
         self.guard_success_agent = AGENT_NONE
         self.guard_success_agents.clear()
         self.has_report = False
-        self.strategies = [True, False, False, False, False, False]
+        self.strategies = [True, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（基本的にCOしない）
-        # self.strategyB = self.strategies[1] # 戦略B: 占い重視
-        # self.strategyC = self.strategies[2] # 戦略C: 候補者から選ぶ
-        self.strategyD = self.strategies[3] # 戦略D: COする日にちの変更
-        self.strategyE = self.strategies[4] # 戦略E: (CO予定日-1)日目からの護衛成功でCO
-        self.strategyF = self.strategies[5] # 戦略F: (CO予定日-1)日目からの2GJ成功でCO
+        # self.strategyB = self.strategies[1] # 戦略B: (CO予定日-1)日目からの護衛成功でCO
+        # self.strategyC = self.strategies[2] # 戦略C: (CO予定日-1)日目からの2GJ成功でCO
         # 戦略A: 10日目CO(基本的にCOしない)
         if self.strategyA:
             self.co_date = 10
-        # 戦略D: 3日目CO
-        if self.strategyD:
-            self.co_date = 3
 
 
     # 昼スタート→OK
@@ -92,8 +86,6 @@ class ddhbBodyguard(ddhbVillager):
         
         self.guard_success = False
         self.has_report = False
-        # 処刑で死亡している場合
-        # 修正：guardの方で、処刑されたエージェントを護衛対象から除外するようにした
         # 護衛が成功した場合
         if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
             self.gj_cnt += 1
@@ -113,13 +105,13 @@ class ddhbBodyguard(ddhbVillager):
         turn: int = self.talk_turn
         self.vote_candidate = self.vote()
         # ---------- CO ----------
-        # 戦略E: (CO予定日-1)目からの護衛成功でCO
-        if self.strategyE:
+        # 戦略B: (CO予定日-1)目からの護衛成功でCO
+        if self.strategyB:
             if not self.has_co and (day >= self.co_date - 1 and self.guard_success):
                 self.has_co = True
                 return Content(ComingoutContentBuilder(self.me, Role.BODYGUARD))
-        # 戦略F: (CO予定日-1)目からの2GJ成功でCO
-        if self.strategyF:
+        # 戦略C: (CO予定日-1)目からの2GJ成功でCO
+        if self.strategyC:
             if not self.has_co and (day >= self.co_date - 1 and self.gj_cnt >= 2):
                 Util.debug_print("狩人CO：2GJ")
                 self.has_co = True
@@ -224,7 +216,6 @@ class ddhbBodyguard(ddhbVillager):
             elif seer_co_cnt == 1:
                 self.to_be_guarded = others_seer_co[0]
                 mostlikely_role: Role = self.role_predictor.getMostLikelyRole(self.to_be_guarded)
-                # if mostlikely_role == Role.WEREWOLF or mostlikely_role == Role.POSSESSED:
                 if day >= 3 and (mostlikely_role == Role.WEREWOLF or mostlikely_role == Role.POSSESSED):
                     if medium_co_cnt == 1:
                         self.to_be_guarded = others_medium_co[0]
