@@ -714,7 +714,7 @@ class ScoreMatrix:
                         self.add_score(talker, Role.SEER, target, Role.WEREWOLF, -5)
                         self.add_score(talker, Role.SEER, target, Species.HUMAN, +5)
                         # self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
-                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +10)
+                        self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
                         # 人狼陣営でも本物の白出しをする場合があるので、この可能性は排除しない (黒出しと白出しで異なる部分)
                         # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
 
@@ -847,10 +847,10 @@ class ScoreMatrix:
         else:
             if len(game_info.last_dead_agent_list) == 0:
                 # 護衛が成功していたら護衛対象は人狼ではない
-                self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -10)
-                self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +10)
-                self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
-                self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
+                self.add_score(talker, Role.BODYGUARD, target, Role.WEREWOLF, -2)
+                self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +2)
+                self.add_score(talker, Side.WEREWOLVES, target, Side.VILLAGERS, -1)
+                self.add_score(talker, Side.WEREWOLVES, target, Side.WEREWOLVES, +2)
             
             
     # 投票した発言を反映
