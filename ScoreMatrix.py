@@ -157,14 +157,15 @@ class ScoreMatrix:
         # ---------- 15人村 ----------
         elif N == 15:
             # 日が進むほど判断材料が多くなるので、日にちで重み付けする
-            weight = day * 0.5
+            weight = day * 0.3
             # 投票者が村陣営で、投票対象が人狼である確率を上げる
             self.add_score(voter, Role.VILLAGER, target, Role.WEREWOLF, weight)
             self.add_score(voter, Role.SEER, target, Role.WEREWOLF, weight*3)
             self.add_score(voter, Role.MEDIUM, target, Role.WEREWOLF, weight*1.5)
             self.add_score(voter, Role.BODYGUARD, target, Role.WEREWOLF, weight*1.5)
             # 人狼が仲間の人狼に投票する確率は低い
-            self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
+            # todo: 値が大きすぎる気がする
+            self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -3)
     # --------------- 公開情報から推測する ---------------
 
 
@@ -307,11 +308,6 @@ class ScoreMatrix:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
                     if talker in self.seer_co:
                         return
-                    # 複数占いCOがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
-                    # (両方とも偽という割り当ての確率を0%にする)
-                    # for seer in self.seer_co:
-                    #     self.add_score(seer, Role.SEER, talker, Side.WEREWOLVES, +100)
-                    #     self.add_score(talker, Role.SEER, seer, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.MEDIUM: -100, Role.BODYGUARD: -100})
                     # 初COの場合
@@ -333,13 +329,14 @@ class ScoreMatrix:
                             self.add_scores(talker, {Role.WEREWOLF: +2})
                     # --- 村陣営 ---
                     else:
-                        # 気持ち、1,2CO目は占いor狂人、3CO目は占いor人狼、4CO目以降は狂人or人狼 っぽい
+                        # 気持ち、1,2CO目は占いor狂人、3CO目は占いor人狼、4CO目以降は狂人or人狼っぽい
+                        # todo: 値を上げすぎかも
                         if self.seer_co_count == 1:
-                            self.add_scores(talker, {Role.SEER: +3, Role.POSSESSED: +3, Role.WEREWOLF: +1})
+                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +2, Role.WEREWOLF: +1})
                         elif self.seer_co_count == 2:
-                            self.add_scores(talker, {Role.SEER: +3, Role.POSSESSED: +3, Role.WEREWOLF: +2})
+                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +2, Role.WEREWOLF: +2})
                         elif self.seer_co_count == 3:
-                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +1, Role.WEREWOLF: +3})
+                            self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +1, Role.WEREWOLF: +2})
                         else:
                             self.add_scores(talker, {Role.SEER: +0, Role.POSSESSED: +3, Role.WEREWOLF: +5})
             # ----- 霊媒CO -----
@@ -789,7 +786,8 @@ class ScoreMatrix:
                 self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, +5)
                 # todo: 逆・裏・対偶を一つにまとめた関数を作る
                 self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, -5)
-                self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+                # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
+                self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +3)
                 self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
             # 白結果
             elif species == Species.HUMAN:
@@ -806,13 +804,21 @@ class ScoreMatrix:
         day: int = self.game_info.day
         my_role = self.my_role
 
-        if day <= 2 or len(game_info.last_dead_agent_list) == 0:
+        # if day <= 2 or len(game_info.last_dead_agent_list) == 0:
+        #     return
+        if day <= 2:
             return
 
-        if my_role != Role.WEREWOLF:
-            for agent, role in self.player.alive_comingout_map.items():
-                if role in [Role.SEER, Role.MEDIUM, Role.BODYGUARD]:
-                    self.add_scores(agent, {Role.POSSESSED: +5, Role.WEREWOLF: +10})
+        # 生存者数の推移(GJなし)：15→13→11→9→7→5
+        # 3日目0GJ(11人)、4日目1GJ以下(14-day人以下)なら、採用
+        alive_cnt: int = len(self.game_info.alive_agent_list)
+        Util.debug_print('(day, alive_cnt) = ', day, alive_cnt)
+        if (day == 3 and alive_cnt <= 11) or (day >= 4 and alive_cnt <= 14-day):
+            Util.debug_print('Nth_day_start: 採用')
+            if my_role != Role.WEREWOLF:
+                for agent, role in self.player.alive_comingout_map.items():
+                    if role in [Role.SEER, Role.MEDIUM, Role.BODYGUARD]:
+                        self.add_scores(agent, {Role.POSSESSED: +5, Role.WEREWOLF: +10})
 
 
     # --------------- 新プロトコルでの発言に対応する ---------------
