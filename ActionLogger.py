@@ -122,7 +122,7 @@ class ActionLogger:
 
         if ActionLogger.N == 5 and t >=20:
             return score
-        elif ActionLogger.N == 15 and (t >= 10 or d >= 4):
+        elif ActionLogger.N == 15 and (t >= 4 or d >= 4):
             return score
         # if t >= 4:
         #     return score
