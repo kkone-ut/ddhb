@@ -73,8 +73,8 @@ class ddhbBodyguard(ddhbVillager):
         self.has_report = False
         self.strategies = [True, False, False]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（基本的にCOしない）
-        # self.strategyB = self.strategies[1] # 戦略B: (CO予定日-1)日目からの護衛成功でCO
-        # self.strategyC = self.strategies[2] # 戦略C: (CO予定日-1)日目からの2GJ成功でCO
+        self.strategyB = self.strategies[1] # 戦略B: (CO予定日-1)日目からの護衛成功でCO
+        self.strategyC = self.strategies[2] # 戦略C: (CO予定日-1)日目からの2GJ成功でCO
         # 戦略A: 10日目CO(基本的にCOしない)
         if self.strategyA:
             self.co_date = 10
