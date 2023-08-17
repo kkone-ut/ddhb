@@ -57,7 +57,6 @@ class ddhbVillager(AbstractPlayer):
     """Time series of identification reports."""
     talk_list_head: int # talkのインデックス
     """Index of the talk to be analysed next."""
-    
     will_vote_reports: DefaultDict[Agent, Agent] # 投票宣言
     talk_list_all: List[Talk] # 全talkリスト
     talk_turn: int # talkのターン
@@ -73,7 +72,6 @@ class ddhbVillager(AbstractPlayer):
         self.divination_reports = []
         self.identification_reports = []
         self.talk_list_head = 0
-        
         self.will_vote_reports = defaultdict(lambda: AGENT_NONE)
         self.talk_list_all = []
         self.talk_turn = 0
@@ -140,7 +138,7 @@ class ddhbVillager(AbstractPlayer):
             A agent randomly chosen from agent_list.
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
-    
+
 
     def get_co_players(self, agent_list: List[Agent], role: Role = Role.ANY) -> List[Agent]:
         """Return a list of agents who have claimed the given role.
@@ -151,7 +149,7 @@ class ddhbVillager(AbstractPlayer):
             A list of agents who have claimed the given role.
         """
         return [a for a in agent_list if (role == Role.ANY and self.comingout_map[a] != Role.UNC) or self.comingout_map[a] == role]
-    
+
 
     def get_counterparts(self, agent_list: List[Agent], agent: Agent) -> List[Agent]:
         """Return a list of agents who have claimed the same role as the given agent.
@@ -166,16 +164,17 @@ class ddhbVillager(AbstractPlayer):
         if agent == AGENT_NONE or role == Role.UNC:
             return []
         return self.get_co_players([a for a in agent_list if a != agent], role)
-    
+
 
     def convert_to_agentids(self, agent_list: List[Agent]) -> List[int]:
         return [f"Agent[{a.agent_idx}]" for a in agent_list]
-    
+
 
     @property
     def alive_comingout_map(self) -> DefaultDict[Agent, Role]:
         return {a: r for a, r in self.comingout_map.items() if self.is_alive(a) and r != Role.UNC}
-    
+
+
     @property
     def alive_comingout_map_str(self) -> DefaultDict[str, str]:
         return {a.agent_idx: r.value for a, r in self.alive_comingout_map.items() if self.is_alive(a) and r != Role.UNC}
@@ -214,10 +213,6 @@ class ddhbVillager(AbstractPlayer):
         if include_list is None:
             include_list = self.get_alive_others(self.game_info.agent_list)
         count: DefaultDict[Agent, int] = defaultdict(int)
-        will_vote_reports = {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
-        # Util.debug_print("will_vote_reports:\t", will_vote_reports)
-        # Util.debug_print("include_list:\t", self.agent_to_index(include_list))
-        # Util.debug_print("vote_candidate:\t", self.vote_candidate.agent_idx)
         for talker, target in self.will_vote_reports.items():
             if target not in include_list:
                 continue
@@ -473,6 +468,7 @@ class ddhbVillager(AbstractPlayer):
             if Util.timeout("Villager.update", timeout):
                 break
 
+
     # CO、投票宣言
     def talk(self) -> Content:
         day: int = self.game_info.day
@@ -546,7 +542,6 @@ class ddhbVillager(AbstractPlayer):
         # ---------- 15人村 ----------
         elif self.N == 15:
             # 投票対象の優先順位：偽占い→人狼っぽいエージェント
-            # 「偽占い以外の黒結果」は微妙だからやめる
             fake_seers: List[Agent] = [j.agent for j in self.divination_reports if j.target == self.me and j.result == Species.WEREWOLF]
             alive_fake_seers: List[Agent] = self.get_alive_others(fake_seers)
             if alive_fake_seers:
@@ -565,14 +560,18 @@ class ddhbVillager(AbstractPlayer):
     def attack(self) -> Agent:
         raise NotImplementedError()
 
+
     def divine(self) -> Agent:
         raise NotImplementedError()
+
 
     def guard(self) -> Agent:
         raise NotImplementedError()
 
+
     def whisper(self) -> Content:
         raise NotImplementedError()
+
 
     def finish(self) -> None:
         vote_list: List[Vote] = self.game_info.vote_list

@@ -6,6 +6,7 @@ from collections import defaultdict, deque
 from Util import Util
 from ddhbVillager import *
 
+
 class Action(Enum):
     DIVINED_BLACK = "DIVINED_BLACK"
     DIVINED_WHITE = "DIVINED_WHITE"
@@ -30,12 +31,14 @@ class Action(Enum):
     SHOW_HOSTILITY = "SHOW_HOSTILITY"
     OTHER = "OTHER"
 
+
 class ActionLog:
     game: int
     day: int
     turn: int
     agent: Agent
     action: Action
+    
     def __init__(self, game: int, day: int, turn: int, agent: Agent, action: Action):
         self.game = game
         self.day = day
@@ -45,7 +48,6 @@ class ActionLog:
 
 
 class ActionLogger:
-
     game_info: GameInfo
     game_setting: GameSetting
     N: int
@@ -57,6 +59,7 @@ class ActionLogger:
     action_count_sum: "DefaultDict[(Agent, Role, Action), int]"
     old_role_map: List[Dict[Agent, Role]]
 
+
     @staticmethod
     def init():
         ActionLogger.action_log: Deque[ActionLog] = deque()
@@ -65,7 +68,8 @@ class ActionLogger:
         # agent, role, action
         ActionLogger.action_count_sum: "DefaultDict[(Agent, Role, Action), int]" = defaultdict(int)
         ActionLogger.old_role_map: List[Dict[Agent, Role]] = []
-    
+
+
     @staticmethod
     def initialize(game_info: GameInfo, game_setting: GameSetting):
         ActionLogger.game_info = game_info

@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Topic, Status
 from const import CONTENT_SKIP
 from aiwolf.constant import AGENT_NONE
@@ -31,9 +32,9 @@ from RealPossessedDetector import RealPossessedDetector
 
 import traceback
 
+
 # ddhbプレイヤー
 class ddhbPlayer(AbstractPlayer):
-
     villager: AbstractPlayer
     bodyguard: AbstractPlayer
     medium: AbstractPlayer
@@ -41,6 +42,7 @@ class ddhbPlayer(AbstractPlayer):
     possessed: AbstractPlayer
     werewolf: AbstractPlayer
     player: AbstractPlayer
+
 
     def __init__(self) -> None:
         self.villager = ddhbVillager()
@@ -50,11 +52,10 @@ class ddhbPlayer(AbstractPlayer):
         self.possessed = ddhbPossessed()
         self.werewolf = ddhbWerewolf()
         self.player = self.villager
-
         self.game_setting: GameSetting = None
         self.game_info: GameInfo = None
-
         RealPossessedDetector.init()
+
 
     # オーバーライドしていく
     def attack(self) -> Agent:
@@ -71,6 +72,7 @@ class ddhbPlayer(AbstractPlayer):
             agent = AGENT_NONE
         return agent
 
+
     def day_start(self) -> None:
         self.player.talk_turn = 0
         try:
@@ -84,6 +86,7 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.day_start")
             Util.error_print("Trace:\t", traceback.format_exc())
+
 
     def divine(self) -> Agent:
         agent = AGENT_NONE
@@ -99,6 +102,7 @@ class ddhbPlayer(AbstractPlayer):
             agent = AGENT_NONE
         return agent
 
+
     def finish(self) -> None:
         Util.start_timer("ddhbPlayer.finish")
         try:
@@ -110,6 +114,7 @@ class ddhbPlayer(AbstractPlayer):
         Util.debug_print("finish")
         Util.debug_print("---------------------------------------")
         Util.debug_print("")
+
 
     def guard(self) -> Agent:
         agent = AGENT_NONE
@@ -124,6 +129,7 @@ class ddhbPlayer(AbstractPlayer):
         if agent == None:
             agent = AGENT_NONE
         return agent
+
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -150,7 +156,8 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.initialize")
             Util.error_print("Trace:\t", traceback.format_exc())
-        
+
+
     def talk(self) -> Content:
         content = CONTENT_SKIP
         self.player.talk_turn += 1
@@ -174,6 +181,7 @@ class ddhbPlayer(AbstractPlayer):
             content = CONTENT_SKIP
         return content
 
+
     def update(self, game_info: GameInfo) -> None:
         Util.start_timer("ddhbPlayer.update")
         try:
@@ -184,6 +192,7 @@ class ddhbPlayer(AbstractPlayer):
         except:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("Trace:\t", traceback.format_exc())
+
 
     def vote(self) -> Agent:
         Util.start_timer("ddhbPlayer.vote")
@@ -201,6 +210,7 @@ class ddhbPlayer(AbstractPlayer):
         if agent == None:
             agent = AGENT_NONE
         return agent
+
 
     def whisper(self) -> Content:
         content = CONTENT_SKIP

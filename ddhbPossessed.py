@@ -16,7 +16,6 @@
 # limitations under the License.
 
 
-
 import random
 from collections import deque
 from typing import Deque, List
@@ -32,6 +31,7 @@ from Util import Util
 from const import CONTENT_SKIP, JUDGE_EMPTY
 from ddhbVillager import ddhbVillager
 from RolePredictor import RolePredictor
+
 
 # 裏切り者
 class ddhbPossessed(ddhbVillager):
@@ -51,7 +51,6 @@ class ddhbPossessed(ddhbVillager):
     """The number of werewolves."""
     werewolves: List[Agent] # 人狼結果のエージェント
     """Fake werewolves."""
-
     PP_flag: bool # PPフラグ
     has_PP: bool # PP宣言したか
     # ----- 騙り共通 -----
@@ -60,9 +59,7 @@ class ddhbPossessed(ddhbVillager):
     # ----- 占い騙り -----
     new_target: Agent # 偽の占い対象
     new_result: Species # 偽の占い結果
-    
     agent_werewolf: Agent # 人狼っぽいエージェント
-
 
 
     def __init__(self) -> None:
@@ -75,7 +72,6 @@ class ddhbPossessed(ddhbVillager):
         self.not_judged_agents = []
         self.num_wolves = 0
         self.werewolves = []
-        
         self.PP_flag = False
         self.has_PP = False
         self.has_report = False
@@ -88,7 +84,6 @@ class ddhbPossessed(ddhbVillager):
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
-        
         # ---------- 5人村15人村共通 ----------
         self.co_date = 1
         self.has_co = False
@@ -158,7 +153,7 @@ class ddhbPossessed(ddhbVillager):
             Util.debug_print("----- day_start -----")
             Util.debug_print("vote_list:\t", self.vote_to_dict(vote_list))
             Util.debug_print("vote_cnt:\t", self.vote_cnt(vote_list))
-            
+        
         self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
         self.new_result = Species.WEREWOLF
         # ----- 狩人騙り -----
@@ -200,7 +195,6 @@ class ddhbPossessed(ddhbVillager):
                 if turn == 1:
                     if not self.has_co:
                         self.has_co = True
-                        # return CONTENT_SKIP
                         return Content(ComingoutContentBuilder(self.me, Role.SEER))
                 # ----- 結果報告 -----
                 elif turn == 2:
