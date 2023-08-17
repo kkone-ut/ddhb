@@ -288,7 +288,10 @@ class ScoreMatrix:
                     self.add_scores(talker, {Role.POSSESSED: +5})
                 # --- 狂人 ---
                 elif my_role == Role.POSSESSED:
-                    self.add_scores(talker, {Role.WEREWOLF: +5})
+                    # 人狼で狂人COするエージェントがいないので、特に不要
+                    # 今までの推論を優先するべき
+                    # self.add_scores(talker, {Role.WEREWOLF: +5})
+                    pass
                 # --- 村人 or 占い ---
                 else:
                     self.add_scores(talker, {Role.POSSESSED: +5, Role.WEREWOLF: +1})
