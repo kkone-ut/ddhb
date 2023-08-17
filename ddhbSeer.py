@@ -45,7 +45,6 @@ class ddhbSeer(ddhbVillager):
     """Agents that have not been divined."""
     werewolves: List[Agent] # 人狼結果のエージェント
     """Found werewolves."""
-    
     strategies: List[bool] # 戦略フラグのリスト
     # ----- 5人村用：結果を変更して報告する -----
     new_target: Agent # 偽の占い対象
@@ -83,7 +82,7 @@ class ddhbSeer(ddhbVillager):
             self.co_date = 1
 
 
-    # 昼スタート→OK
+    # 昼スタート
     def day_start(self) -> None:
         super().day_start()
         
@@ -103,7 +102,7 @@ class ddhbSeer(ddhbVillager):
             self.score_matrix.my_divined(self.game_info, self.game_setting, judge.target, judge.result)
 
 
-    # CO、結果報告、投票宣言→OK
+    # CO、結果報告、投票宣言
     def talk(self) -> Content:
         day: int = self.game_info.day
         turn: int = self.talk_turn
@@ -219,7 +218,7 @@ class ddhbSeer(ddhbVillager):
         return CONTENT_SKIP
 
 
-    # 投票対象→OK
+    # 投票対象
     def vote(self) -> Agent:
         # ----------  同数投票の処理 ---------- 
         latest_vote_list = self.game_info.latest_vote_list
@@ -264,7 +263,7 @@ class ddhbSeer(ddhbVillager):
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
 
-    # 占い対象→OK
+    # 占い対象
     def divine(self) -> Agent:
         day: int = self.game_info.day
         game: int = Util.game_count

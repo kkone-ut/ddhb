@@ -42,7 +42,6 @@ class ddhbMedium(ddhbVillager):
     """Whether or not comingout has done."""
     my_judge_queue: Deque[Judge] # 自身の霊媒結果キュー
     """Queue of medium results."""
-    
     werewolves: List[Agent] # 人狼結果のエージェント
     latest_result: List[Agent] # 前日の霊媒結果
     votefor_executed_agent: List[Agent] # 前日に追放されたエージェントに投票したエージェント
@@ -56,7 +55,6 @@ class ddhbMedium(ddhbVillager):
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue = deque()
-        
         self.werewolves = []
         self.latest_result = Species.UNC
         self.votefor_executed_agent = []
@@ -69,7 +67,6 @@ class ddhbMedium(ddhbVillager):
         self.found_wolf = False
         self.has_co = False
         self.my_judge_queue.clear()
-        
         self.werewolves.clear()
         self.latest_result = Species.UNC
         self.votefor_executed_agent.clear()
@@ -80,7 +77,7 @@ class ddhbMedium(ddhbVillager):
             self.co_date = 2
 
 
-    # 昼スタート→OK
+    # 昼スタート
     def day_start(self) -> None:
         super().day_start()
         Util.debug_print("alive_comingout_map:\t", self.alive_comingout_map_str)
@@ -107,7 +104,7 @@ class ddhbMedium(ddhbVillager):
             self.score_matrix.my_identified(self.game_info, self.game_setting, judge.target, judge.result)
 
 
-    # CO、結果報告、投票宣言→OK
+    # CO、結果報告、投票宣言
     def talk(self) -> Content:
         day: int = self.game_info.day
         turn: int = self.talk_turn
@@ -158,7 +155,7 @@ class ddhbMedium(ddhbVillager):
         return CONTENT_SKIP
 
 
-    # 投票対象→OK
+    # 投票対象
     def vote(self) -> Agent:
         # ----------  同数投票の処理 ---------- 
         latest_vote_list = self.game_info.latest_vote_list
@@ -168,7 +165,7 @@ class ddhbMedium(ddhbVillager):
         # 投票候補：結果によって変える
         vote_candidates: List[Agent] = self.get_alive_others(self.game_info.agent_list)
         # 白結果：投票したエージェント
-        # 修正：人狼が白結果に投票していない場合もあるから危険→全エージェントにする
+        # 修正：人狼が白結果に投票していない場合もあるから危険：全エージェントにする
         # 黒結果：投票したエージェントを除く
         if self.latest_result == Species.WEREWOLF:
             for agent in self.votefor_executed_agent:

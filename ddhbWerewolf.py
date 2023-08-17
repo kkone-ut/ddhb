@@ -42,7 +42,6 @@ class ddhbWerewolf(ddhbPossessed):
     """Humans."""
     attack_vote_candidate: Agent # 襲撃対象
     """The candidate for the attack voting."""
-    
     agent_possessed: Agent # 確定狂人
     alive_possessed: bool # 確定狂人の生存フラグ
     agent_seer: Agent # 確定占い師
@@ -565,7 +564,7 @@ class ddhbWerewolf(ddhbPossessed):
         return CONTENT_SKIP
 
 
-    # 襲撃→OK
+    # 襲撃
     def attack(self) -> Agent:
         self.estimate_possessed()
         self.estimate_seer()

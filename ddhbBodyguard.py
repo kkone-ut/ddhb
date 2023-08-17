@@ -35,7 +35,6 @@ class ddhbBodyguard(ddhbVillager):
 
     to_be_guarded: Agent # 護衛先
     """Target of guard."""
-    
     co_date: int # COする日にち
     has_co: bool # COしたか
     gj_cnt: int # 護衛成功(GJ)回数
@@ -50,7 +49,6 @@ class ddhbBodyguard(ddhbVillager):
         """Initialize a new instance of ddhbBodyguard."""
         super().__init__()
         self.to_be_guarded = AGENT_NONE
-        
         self.co_date = 0
         self.has_co = False
         self.guard_success = False
@@ -63,7 +61,6 @@ class ddhbBodyguard(ddhbVillager):
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
         self.to_be_guarded = AGENT_NONE
-        
         self.co_date = 4
         self.has_co = False
         self.gj_cnt = 0
@@ -80,10 +77,9 @@ class ddhbBodyguard(ddhbVillager):
             self.co_date = 10
 
 
-    # 昼スタート→OK
+    # 昼スタート
     def day_start(self) -> None:
         super().day_start()
-        
         self.guard_success = False
         self.has_report = False
         # 護衛が成功した場合
@@ -99,7 +95,7 @@ class ddhbBodyguard(ddhbVillager):
             Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
 
 
-    # CO、報告→OK
+    # CO、報告
     def talk(self) -> Content:
         day: int = self.game_info.day
         turn: int = self.talk_turn
@@ -183,7 +179,7 @@ class ddhbBodyguard(ddhbVillager):
         return ret_agent
 
 
-    # 護衛先選び→OK
+    # 護衛先
     def guard(self) -> Agent:
         day: int = self.game_info.day
         # 基本的には連続護衛

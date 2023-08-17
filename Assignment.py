@@ -3,6 +3,7 @@ from ScoreMatrix import ScoreMatrix
 import numpy as np
 from Util import Util
 
+
 class Assignment:
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _assignment) -> None:
@@ -81,7 +82,6 @@ class Assignment:
                 #     return self.score
                 if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 4.5:
                     Util.debug_print("score[", i+1, "\t", self.assignment[i], "\t", j+1, "\t", self.assignment[j], "\t] = ",round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]), 2))
-
         self.score = score
 
         return self.score
