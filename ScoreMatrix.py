@@ -10,8 +10,8 @@ from typing import Dict, List, Set
 from Side import Side
 from ddhbVillager import *
 
-class ScoreMatrix:
 
+class ScoreMatrix:
     seer_co: List[Agent]
     medium_co: List[Agent]
     bodyguard_co: List[Agent]
@@ -53,8 +53,9 @@ class ScoreMatrix:
     # スコア = log(相対確率)
     # スコアの付け方
     # 確定情報: +inf または -inf
-    # 非確定情報: 有限値 最大を1で統一する
+    # 非確定情報: 有限値 最大を10で統一する
     # 書くときは100を最大として、相対確率に直すときに1/10倍する
+
 
     # スコアの取得
     # agent1, agent2: Agent or int
@@ -144,19 +145,18 @@ class ScoreMatrix:
             self.add_score(agent, key, agent, key, value)
 
 
-    # --------------- 公開情報から推測する ---------------
-    # 襲撃結果を反映→OK
+# --------------- 公開情報から推測する ---------------
+    # 襲撃結果を反映
     def killed(self, game_info: GameInfo, game_setting: GameSetting, agent: Agent) -> None:
         self.update(game_info)
         # 襲撃されたエージェントは人狼ではない
         self.set_score(agent, Role.WEREWOLF, agent, Role.WEREWOLF, -float('inf'))
 
 
-    # 投票行動を反映→OK
+    # 投票行動を反映
     def vote(self, game_info: GameInfo, game_setting: GameSetting, voter: Agent, target: Agent, day: int) -> None:
         self.update(game_info)
         N = self.N
-        my_role = self.my_role
         # 自分の投票行動は無視
         if voter == self.me:
             return
@@ -178,12 +178,11 @@ class ScoreMatrix:
             # self.add_score(voter, Role.POSSESSED, target, Role.WEREWOLF, -weight)
             # 人狼が仲間の人狼に投票する確率は低い
             self.add_score(voter, Side.WEREWOLVES, target, Role.WEREWOLF, -1)
-    # --------------- 公開情報から推測する ---------------
+# --------------- 公開情報から推測する ---------------
 
 
-    # --------------- 自身の能力の結果から推測する：確定情報なのでスコアを +inf or -inf にする ---------------
-    # 自分の占い結果を反映→OK
-    # 結果騙りは考慮しない
+# --------------- 自身の能力の結果から推測する：確定情報なのでスコアを +inf or -inf にする ---------------
+    # 自分の占い結果を反映（結果騙りは考慮しない）
     def my_divined(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         self.update(game_info)
         # 黒結果
@@ -199,8 +198,7 @@ class ScoreMatrix:
             Util.error_print('my_divined: species is not Species.WEREWOLF or Species.HUMAN')
 
 
-    # 自分の霊媒結果を反映→OK
-    # 結果騙りは考慮しない
+    # 自分の霊媒結果を反映（結果騙りは考慮しない）
     def my_identified(self, game_info: GameInfo, game_setting: GameSetting, target: Agent, species: Species) -> None:
         self.update(game_info)
         # 黒結果
@@ -213,16 +211,16 @@ class ScoreMatrix:
             Util.error_print('my_identified: species is not Species.WEREWOLF or Species.HUMAN')
 
 
-    # 自分の護衛結果を反映→OK
+    # 自分の護衛結果を反映
     # 人狼の自噛みはルール上なし
     def my_guarded(self, game_info: GameInfo, game_setting: GameSetting, target: Agent) -> None:
         self.update(game_info)
         # 護衛が成功したエージェントは人狼ではない
         self.set_score(target, Role.WEREWOLF, target, Role.WEREWOLF, -float('inf'))
-    # --------------- 自身の能力の結果から推測する ---------------
+# --------------- 自身の能力の結果から推測する ---------------
 
 
-    # --------------- 他の人の発言から推測する：確定情報ではないので有限の値を加減算する ---------------
+# --------------- 他の人の発言から推測する：確定情報ではないので有限の値を加減算する ---------------
     # 他者のCOを反映 
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role, day: int, turn: int) -> None:
         self.update(game_info)
@@ -288,8 +286,7 @@ class ScoreMatrix:
                     self.add_scores(talker, {Role.POSSESSED: +5})
                 # --- 狂人 ---
                 elif my_role == Role.POSSESSED:
-                    # 人狼で狂人COするエージェントがいないので、特に不要
-                    # 今までの推論を優先するべき
+                    # 人狼で狂人COするエージェントはいないので不要→今までの推論を優先するべき
                     # self.add_scores(talker, {Role.WEREWOLF: +5})
                     pass
                 # --- 村人 or 占い ---
@@ -316,7 +313,6 @@ class ScoreMatrix:
                 # --- 占い ---
                 if my_role == Role.SEER:
                     # talkerが占いの確率はありえない→-inf
-                    # 村陣営の役職騙りは考慮しない→村陣営確率を限りなく0にする 後で変更するかも
                     # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -float('inf'), Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})                    
                     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 else:
@@ -345,7 +341,6 @@ class ScoreMatrix:
                     # --- 村陣営 ---
                     else:
                         # 気持ち、1,2CO目は占いor狂人、3CO目は占いor人狼、4CO目以降は狂人or人狼っぽい
-                        # todo: 値を上げすぎかも
                         if self.seer_co_count == 1:
                             self.add_scores(talker, {Role.SEER: +2, Role.POSSESSED: +2, Role.WEREWOLF: +1})
                         elif self.seer_co_count == 2:
@@ -358,18 +353,12 @@ class ScoreMatrix:
             elif role == Role.MEDIUM:
                 # --- 霊媒 ---
                 if my_role == Role.MEDIUM:
-                    # とりあえず村陣営の役職騙りは考慮しない
-                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                     # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -float('inf'), Role.BODYGUARD: -100})
+                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 else:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
                     if talker in self.medium_co:
                         return
-                    # 複数霊媒COがあった場合、誰か一人が真で残りは偽である確率はほぼ100%
-                    # (両方とも偽という割り当ての確率を0%にする)
-                    # for medium in self.medium_co:
-                    #     self.add_score(medium, Role.MEDIUM, talker, Side.WEREWOLVES, +100)
-                    #     self.add_score(talker, Role.MEDIUM, medium, Side.WEREWOLVES, +100)
                     # 村人である確率を下げる（村人の役職騙りを考慮しない）
                     self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
                     # 初COの場合
@@ -410,9 +399,8 @@ class ScoreMatrix:
             elif role == Role.BODYGUARD:
                 # --- 狩人 ---
                 if my_role == Role.BODYGUARD:
-                    # とりあえず村陣営の役職騙りは考慮しない
-                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                     # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -float('inf')})
+                    self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 else:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
                     if talker in self.bodyguard_co:
@@ -434,7 +422,6 @@ class ScoreMatrix:
                             self.add_scores(talker, {Role.WEREWOLF: +2})
                     # --- 村陣営 ---
                     else:
-                        # todo: 狩人はCOせずに死ぬことが多い。他の役職についても同様だが、特に日付によって重み付けすべき。
                         # 1CO目は、狩人っぽい
                         if self.bodyguard_co_count == 1:
                             self.add_scores(talker, {Role.BODYGUARD: +2, Role.WEREWOLF: +1})
@@ -477,7 +464,7 @@ class ScoreMatrix:
                     return
 
 
-    # 投票意思を反映→OK
+    # 投票意思を反映
     # それほど重要ではないため、スコアの更新は少しにする
     def talk_will_vote(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, day: int, turn: int) -> None:
         self.update(game_info)
@@ -515,11 +502,12 @@ class ScoreMatrix:
             # self.add_scores(talker, {Role.WEREWOLF: +1})
 
 
-    # Basketにないため、後で実装する
+    # Basketにないため、後で実装する→実装しない
     def talk_estimate(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, role: Role, day: int, turn: int) -> None:
         self.update(game_info)
 
-    # 他者の占い結果を反映→OK
+
+    # 他者の占い結果を反映
     # 条件分岐は、N人村→myrole→白黒結果→targetが自分かどうか
     def talk_divined(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species, day: int, turn: int) -> None:
         self.update(game_info)
@@ -545,7 +533,6 @@ class ScoreMatrix:
         if N == 5:
             # ----- 占い -----
             if my_role == Role.SEER:
-                # 結果に関わらず、人狼と狂人の確率を上げる（村陣営の役職騙りを考慮しない）
                 # self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.POSSESSED: +5, Role.WEREWOLF: +3})
                 # 黒結果
@@ -691,7 +678,6 @@ class ScoreMatrix:
                 # 白結果
                 elif species == Species.HUMAN:
                     # 対象：人狼仲間
-                    # if target in role_map and role_map[target] == Role.WEREWOLF:
                     if target in allies:
                         # 人狼に白だししている場合は狂人確定
                         self.add_scores(talker, {Role.SEER: -100, Role.POSSESSED: +100})
@@ -715,7 +701,6 @@ class ScoreMatrix:
                             self.add_scores(talker, {Role.SEER: -5, Role.POSSESSED: +5, Role.WEREWOLF: +5})
                         else:
                             self.add_score(talker, Role.SEER, target, Role.WEREWOLF, +5)
-                            # todo: 逆・裏・対偶を一つにまとめた関数を作る
                             self.add_score(talker, Role.SEER, target, Species.HUMAN, -5)
                             self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, +5)
                             self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, -5)
@@ -734,7 +719,7 @@ class ScoreMatrix:
                         # self.add_score(talker, Side.WEREWOLVES, target, Species.HUMAN, -5)
 
 
-    # 他者の霊媒結果を反映→OK
+    # 他者の霊媒結果を反映
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species, day: int, turn:int) -> None:
         self.update(game_info)
         N = self.N
@@ -751,8 +736,7 @@ class ScoreMatrix:
         # if self.player.is_alive(target):
         #     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
 
-        # CO の時点で霊媒師以外の村人陣営の可能性を0にしているが、COせずに霊媒結果を出した場合のためにここでも同じ処理を行う
-        # 行動学習に任せる
+        # CO の時点で霊媒師以外の村人陣営の可能性を0にしているが、COせずに霊媒結果を出した場合のためにここでも同じ処理を行う→行動学習で対処
         # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -100, Role.BODYGUARD: -100})
 
         # すでに同じ相手に対する霊媒結果がある場合は無視
@@ -810,7 +794,7 @@ class ScoreMatrix:
                 self.add_score(talker, Role.MEDIUM, target, Role.WEREWOLF, -5)
                 self.add_score(talker, Role.MEDIUM, target, Species.HUMAN, +5)
                 self.add_score(talker, Side.WEREWOLVES, target, Role.WEREWOLF, +5)
-    # # --------------- 他の人の発言から推測する ---------------
+# --------------- 他の人の発言から推測する ---------------
 
 
     # N日目の始めに推測する
@@ -837,8 +821,8 @@ class ScoreMatrix:
                         self.add_scores(agent, {Role.POSSESSED: +1, Role.WEREWOLF: +3})
 
 
-    # --------------- 新プロトコルでの発言に対応する ---------------
-    # 護衛成功発言を反映→OK
+# --------------- 新プロトコルでの発言に対応する ---------------
+    # 護衛成功発言を反映
     def talk_guarded(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, day: int, turn: int) -> None:
         self.update(game_info)
         N = self.N
@@ -866,23 +850,21 @@ class ScoreMatrix:
                 self.add_score(talker, Role.BODYGUARD, target, Species.HUMAN, +2)
                 self.add_score(talker, Side.WEREWOLVES, target, Side.VILLAGERS, -1)
                 self.add_score(talker, Side.WEREWOLVES, target, Side.WEREWOLVES, +2)
-            
-            
-    # 投票した発言を反映
-    # 後で実装する→そんなに重要でない
+
+
+    # 投票した発言を反映→実装しない
     def talk_voted(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, day: int, turn: int) -> None:
-        # latest_vote_list で参照できるので意味がないかも
         self.update(game_info)
+# --------------- 新プロトコルでの発言に対応する ---------------
 
-    # --------------- 行動学習 ---------------
 
+# --------------- 行動学習 ---------------
     def apply_action_learning(self, talker: Agent, score: DefaultDict[Role, float]) -> None:
         for r, s in score.items():
-            # Util.debug_print(f"apply_action_learning: {talker} {r} {s}")
             self.add_score(talker, r, talker, r, s)
 
-    # --------------- リア狂判定 --------------
 
+# --------------- リア狂判定 --------------
     def finish(self, game_info: GameInfo) -> None:
         seer: Agent = AGENT_NONE
         for agent, role in game_info.role_map.items():
