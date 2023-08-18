@@ -1,12 +1,12 @@
+import warnings
 from argparse import ArgumentParser
+
+from ActionLogger import ActionLogger
+from ddhbPlayer import ddhbPlayer
+from Util import Util
 
 from aiwolf import AbstractPlayer, TcpipClient
 
-from ddhbPlayer import ddhbPlayer
-from Util import Util
-from ActionLogger import ActionLogger
-
-import warnings
 
 if __name__ == "__main__":
     # 警告をエラーとして扱う (デバッグ用)

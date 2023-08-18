@@ -1,16 +1,16 @@
-import numpy as np
 import random
-from collections import deque, defaultdict
-from typing import List, Deque, DefaultDict, Optional
+from typing import List, Optional
+
+import numpy as np
+from const import CONTENT_SKIP, JUDGE_EMPTY
+from Util import Util
 
 from aiwolf import (Agent, AttackContentBuilder, ComingoutContentBuilder,
-                    Content, GameInfo, GameSetting, Judge, Role, Species,
-                    DivinedResultContentBuilder, IdentContentBuilder, GuardedAgentContentBuilder, VoteContentBuilder,
-                    RequestContentBuilder, EstimateContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
-from const import CONTENT_SKIP, JUDGE_EMPTY
+                    Content, DivinedResultContentBuilder,
+                    EstimateContentBuilder, GameInfo, GameSetting,
+                    GuardedAgentContentBuilder, IdentContentBuilder, Judge,
+                    RequestContentBuilder, Role, Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 from ddhbPossessed import ddhbPossessed
 
 
@@ -65,7 +65,6 @@ class ddhbWerewolf(ddhbPossessed):
         self.allies = list(self.game_info.role_map.keys())
         self.humans = [a for a in self.game_info.agent_list if a not in self.allies]
         allies_no = [a.agent_idx for a in self.allies]
-        humans_no = [a.agent_idx for a in self.humans]
         Util.debug_print("仲間:\t", allies_no)
         self.attack_vote_candidate = AGENT_NONE
         self.agent_possessed = AGENT_NONE

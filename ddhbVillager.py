@@ -1,25 +1,25 @@
-import numpy as np
 import random
 from collections import defaultdict
-from typing import Dict, List, DefaultDict
+from typing import DefaultDict, Dict, List
 
-from aiwolf import (AbstractPlayer, Agent,ComingoutContentBuilder, Content, GameInfo, GameSetting,
-                    Judge, Role, Species, Status, Talk, Topic, Operator,
-                    VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder,)
-from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
+import numpy as np
+from ActionLogger import Action, ActionLogger
+from Assignment import Assignment
+from const import CONTENT_SKIP
+from RealPossessedDetector import RealPossessedDetector
+from RolePredictor import RolePredictor
+from ScoreMatrix import ScoreMatrix
+from Util import Util
+
+from aiwolf import (AbstractPlayer, Agent, ComingoutContentBuilder, Content,
+                    EstimateContentBuilder, GameInfo, GameSetting, Judge,
+                    Operator, RequestContentBuilder, Role, Species, Status,
+                    Talk, Topic, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 from aiwolf.vote import Vote
 
-from const import CONTENT_SKIP
 
-from Util import Util
-from ScoreMatrix import ScoreMatrix
-from RolePredictor import RolePredictor
-from Assignment import Assignment
-from RealPossessedDetector import RealPossessedDetector
-from ActionLogger import ActionLogger, Action
-
-
-# 村役職
+# 村人
 class ddhbVillager(AbstractPlayer):
     """ddhb villager agent."""
 

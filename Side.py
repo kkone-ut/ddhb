@@ -1,19 +1,19 @@
 from enum import Enum
-from aiwolf import Role
+
 from Util import Util
+
+from aiwolf import Role
+
 
 class Side(Enum):
     """Enumeration type for side."""
 
     UNC = "UNC"
     """Uncertain."""
-
     VILLAGERS = "VILLAGERS"
     """Villager."""
-
     WEREWOLVES = "WEREWOLVES"
     """Werewolf."""
-
     ANY = "ANY"
     """Wildcard."""
 

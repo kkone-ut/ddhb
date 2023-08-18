@@ -2,20 +2,19 @@ import random
 from collections import deque
 from typing import Deque, List
 
-from aiwolf import (Agent, ComingoutContentBuilder, Content,
-                    DivinedResultContentBuilder, GameInfo, GameSetting,
-                    IdentContentBuilder, Judge, Role, Species,
-                    VoteContentBuilder, EstimateContentBuilder,
-                    RequestContentBuilder, GuardContentBuilder, GuardedAgentContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
-from const import CONTENT_SKIP, JUDGE_EMPTY
+from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
-from RolePredictor import RolePredictor
+from Util import Util
+
+from aiwolf import (Agent, ComingoutContentBuilder, Content,
+                    DivinedResultContentBuilder, EstimateContentBuilder,
+                    GameInfo, GameSetting, GuardContentBuilder,
+                    GuardedAgentContentBuilder, IdentContentBuilder, Judge,
+                    RequestContentBuilder, Role, Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 
 
-# 裏切り者
+# 狂人
 class ddhbPossessed(ddhbVillager):
     """ddhb possessed agent."""
 

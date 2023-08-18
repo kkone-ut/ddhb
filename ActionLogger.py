@@ -1,10 +1,13 @@
-from aiwolf import Agent, GameInfo, GameSetting, Role, Talk, Content, Topic, Species, Operator, Judge
-
-from enum import Enum
-from typing import List, DefaultDict, Dict, Deque
 from collections import defaultdict, deque
-from Util import Util
+from enum import Enum
+from typing import DefaultDict, Deque, Dict, List
+
+import numpy as np
 from ddhbVillager import *
+from Util import Util
+
+from aiwolf import (Agent, Content, GameInfo, GameSetting, Judge, Operator,
+                    Role, Species, Talk, Topic)
 
 
 class Action(Enum):

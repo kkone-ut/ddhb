@@ -1,19 +1,18 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
-import numpy as np
-import time
-from collections import defaultdict
 import queue
-from typing import List, Dict, Set, DefaultDict, Tuple, Union
+from collections import defaultdict
+from typing import DefaultDict, List, Set, Tuple, Union
 
-from Util import Util
+import numpy as np
 from Assignment import Assignment
+from library.SortedSet import SortedSet
 from ScoreMatrix import ScoreMatrix
+from Util import Util
+
+from aiwolf import Agent, GameInfo, GameSetting, Role, Status
 from aiwolf.constant import AGENT_NONE
 
-from library.SortedSet import SortedSet
 
 class RolePredictor:
-
     # 保持しておく役職の割り当ての数
     # これを超えたら評価の低いものから削除する
     ASSIGNMENT_NUM = 100
@@ -42,7 +41,7 @@ class RolePredictor:
                 num -= len(self.game_info.role_map)
             for i in range(num):
                 rest_roles.put(role)
-            
+        
         # 残りの役職を埋める
         for i in range(self.N):
             if assignment[i] == Role.UNC:
@@ -84,9 +83,7 @@ class RolePredictor:
     def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
 
         self.game_info = game_info
-
         # Util.debug_print("len(self.assignments)1:\t", len(self.assignments))
-
         Util.start_timer("RolePredictor.update")
 
         if len(self.assignments) == 0:
@@ -101,9 +98,7 @@ class RolePredictor:
                 self.assignments.add(assignment)
             if Util.timeout("RolePredictor.update", timeout):
                 break
-
         # Util.debug_print("len(self.assignments)2:\t", len(self.assignments))
-
         # ここで確率の更新をしてキャッシュする
         self.getProbAll()
 
@@ -172,11 +167,9 @@ class RolePredictor:
         probs = defaultdict(lambda: defaultdict(float))
 
         if len(self.assignments) > 0:
-
             # 各割り当ての相対確率を計算する
             relative_prob = np.zeros(len(self.assignments))
             sum_relative_prob = 0
-
             # スコアは対数尤度なので、exp して相対確率に変換する
             for i, assignment in enumerate(self.assignments):
                 try:
@@ -184,19 +177,15 @@ class RolePredictor:
                 except RuntimeWarning:
                     Util.error_print("OverflowError", assignment.score)
                 sum_relative_prob += relative_prob[i]
-            
             # 各割り当ての相対確率を確率に変換する
             assignment_prob = np.zeros(len(self.assignments))
             for i in range(len(assignment_prob)):
                 assignment_prob[i] = relative_prob[i] / sum_relative_prob
-
             # 各プレイヤーの役職の確率を計算する
             for i, assignment in enumerate(self.assignments):
                 for a in self.game_info.agent_list:
                     probs[a][assignment[a]] += assignment_prob[i]
-            
         else: # 割り当てがない場合は、個々のスコアから確率を計算する
-
             for agent in self.game_info.agent_list:
                 # 相対確率を計算する
                 relative_probs = defaultdict(lambda: defaultdict(float))
@@ -212,7 +201,7 @@ class RolePredictor:
                         probs[agent][role] = 1.0 / len(self.game_info.existing_role_list)
                     else:
                         probs[agent][role] = relative_probs[agent][role] / sum_relative_prob
-
+        
         self.prob_all = probs
         
         return probs
@@ -283,7 +272,6 @@ class RolePredictor:
 
     # 狂人が生存しているか推測する
     def estimate_alive_possessed(self, threshold=0.5) -> bool:
-        alive_possessed: bool = False
         p = self.getProbCache()
         all = 0
         alive = 0

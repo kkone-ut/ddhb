@@ -1,14 +1,14 @@
-from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
-                    Judge, Role, Species, Status, Talk, Topic)
-from aiwolf.constant import AGENT_NONE
-
-import numpy as np
 import inspect
-from Util import Util
-import ddhbVillager
 from typing import Dict, List, Set
-from Side import Side
+
+import ddhbVillager
+import numpy as np
 from ddhbVillager import *
+from Side import Side
+from Util import Util
+
+from aiwolf import Agent, GameInfo, GameSetting, Role, Species
+from aiwolf.constant import AGENT_NONE
 
 
 class ScoreMatrix:
@@ -722,7 +722,6 @@ class ScoreMatrix:
     # 他者の霊媒結果を反映
     def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species, day: int, turn:int) -> None:
         self.update(game_info)
-        N = self.N
         my_role = self.my_role
         role_map = self.game_info.role_map
         # 自分と仲間の人狼の結果は無視
