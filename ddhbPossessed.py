@@ -337,7 +337,7 @@ class ddhbPossessed(ddhbVillager):
         if self.agent_werewolf:
             if self.agent_werewolf in vote_candidates:
                 vote_candidates.remove(self.agent_werewolf)
-        # ----------  同数投票の処理 ---------- 
+        # ----------  同数投票の処理 ----------
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF, mostlikely=False)

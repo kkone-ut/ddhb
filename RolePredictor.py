@@ -294,5 +294,5 @@ class RolePredictor:
             score += coef * Util.win_rate[a]
             if score > mx_score:
                 mx_score = score
-                ret_agent = a        
+                ret_agent = a
         return ret_agent

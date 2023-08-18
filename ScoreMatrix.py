@@ -221,7 +221,7 @@ class ScoreMatrix:
 
 
 # --------------- 他の人の発言から推測する：確定情報ではないので有限の値を加減算する ---------------
-    # 他者のCOを反映 
+    # 他者のCOを反映
     def talk_co(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, role: Role, day: int, turn: int) -> None:
         self.update(game_info)
         N = self.N
@@ -313,7 +313,7 @@ class ScoreMatrix:
                 # --- 占い ---
                 if my_role == Role.SEER:
                     # talkerが占いの確率はありえない→-inf
-                    # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -float('inf'), Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})                    
+                    # self.add_scores(talker, {Role.VILLAGER: -100, Role.SEER: -float('inf'), Role.POSSESSED: 0, Role.WEREWOLF: 0, Role.MEDIUM: -100, Role.BODYGUARD: -100})
                     self.add_scores(talker, {Role.POSSESSED: +100, Role.WEREWOLF: +100})
                 else:
                     # 既にCOしている場合：複数回COすることでscoreを稼ぐのを防ぐ
@@ -720,7 +720,7 @@ class ScoreMatrix:
 
 
     # 他者の霊媒結果を反映
-    def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species, day: int, turn:int) -> None:
+    def talk_identified(self, game_info: GameInfo, game_setting: GameSetting, talker: Agent, target: Agent, species: Species, day: int, turn: int) -> None:
         self.update(game_info)
         my_role = self.my_role
         role_map = self.game_info.role_map
