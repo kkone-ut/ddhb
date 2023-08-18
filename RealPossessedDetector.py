@@ -1,15 +1,11 @@
-from aiwolf import Agent, GameInfo, GameSetting, Talk, Topic, Content
-from const import CONTENT_SKIP
-from aiwolf.constant import (AGENT_NONE, AGENT_ANY, AGENT_UNSPEC)
-
-from enum import Enum
-from aiwolf import Role
-
-from Util import Util
-
 from collections import defaultdict
 from typing import List
+
 from ddhbVillager import *
+from Util import Util
+
+from aiwolf import Agent, Content, GameInfo, GameSetting, Role, Talk, Topic
+
 
 class RealPossessedDetector:
 

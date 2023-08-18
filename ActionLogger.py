@@ -1,10 +1,12 @@
-from aiwolf import Agent, GameInfo, GameSetting, Role, Talk, Content, Topic, Species, Operator, Judge
-
-from enum import Enum
-from typing import List, DefaultDict, Dict, Deque
 from collections import defaultdict, deque
+from enum import Enum
+from typing import DefaultDict, Deque, Dict, List
+
+import numpy as np
 from Util import Util
-from ddhbVillager import *
+
+from aiwolf import (Agent, Content, GameInfo, GameSetting, Judge, Operator,
+                    Role, Species, Talk, Topic)
 
 
 class Action(Enum):
@@ -113,7 +115,7 @@ class ActionLogger:
 
 
     @staticmethod
-    def get_score(d: int, t: int, talker: Agent, action:Action) -> DefaultDict[Role, float]:
+    def get_score(d: int, t: int, talker: Agent, action: Action) -> DefaultDict[Role, float]:
         count: DefaultDict[Role, float] = defaultdict(float)
         score: DefaultDict[Role, float] = defaultdict(float)
         sum = 0

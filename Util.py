@@ -1,17 +1,14 @@
-from collections import Counter
-from heapq import merge
-from itertools import product
 import sys
-from collections import deque, defaultdict
-
-from aiwolf import Role, GameInfo, Agent, Role
-from aiwolf.constant import AGENT_NONE
 import time
 import traceback
-from typing import Dict, DefaultDict, List
+from collections import Counter, defaultdict
+from typing import DefaultDict, Dict, List
+
+from aiwolf import Agent, GameInfo, Role
+from aiwolf.constant import AGENT_NONE
+
 
 class Util:
-
     exit_on_error = False
     local = False
     need_traceback = True
@@ -34,6 +31,7 @@ class Util:
     vote_count: DefaultDict[Agent, int] = defaultdict(int)
     vote_match_count: DefaultDict[Agent, int] = defaultdict(int)
 
+
     @staticmethod
     def init():
         Util.time_start = {}
@@ -42,12 +40,14 @@ class Util:
         Util.win_rate = defaultdict(float)
         Util.sum_score = 0
 
+
     @staticmethod
     def debug_print(*args, **kwargs):
         # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
         #     return
         if Util.debug_mode:
             print(*args, **kwargs)
+
 
     @staticmethod
     def error_print(*args, **kwargs):
@@ -57,10 +57,12 @@ class Util:
                 traceback.print_stack()
             exit(1)
 
+
     @staticmethod
     def start_timer(func_name):
         Util.time_start[func_name] = time.time()
-    
+
+
     @staticmethod
     def end_timer(func_name, time_threshold=0):
         time_end = time.time()
@@ -70,14 +72,15 @@ class Util:
                 Util.debug_print("exec_time:\t", func_name, time_exec)
             else:
                 Util.error_print("exec_time:\t", func_name, time_exec)
-    
+
+
     @staticmethod
     def timeout(func_name, time_threshold):
         time_now = time.time()
         time_exec = round((time_now - Util.time_start[func_name]) * 1000, 1)
         return time_exec >= time_threshold
 
-    
+
     @staticmethod
     def update_win_rate(game_info: GameInfo, villager_win: bool):
         for agent, role in game_info.role_map.items():
@@ -106,7 +109,6 @@ class Util:
             if Util.win_rate[agent] >= rate:
                 rate = Util.win_rate[agent]
                 strong_agent = agent
-
         return strong_agent
 
 
@@ -120,7 +122,6 @@ class Util:
                 weak_agent = agent
         return weak_agent
 
-
     # 基本的には set(itertools.permutations) と同じ
     # ただし、fixed_positions で指定した位置に固定値を入れることができる
     @staticmethod
@@ -129,7 +130,6 @@ class Util:
             fixed_positions = {}
 
         counter = Counter(lst)
-        
         for pos, val in fixed_positions.items():
             counter[val] -= 1
         
@@ -141,7 +141,6 @@ class Util:
             if current_length == n:
                 yield tuple(current_perm)
                 return
-
             if current_length in fixed_positions:
                 yield from _unique_permutations(current_perm + [fixed_positions[current_length]], remaining_counts, current_length + 1)
             else:

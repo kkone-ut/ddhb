@@ -1,7 +1,8 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Status
-from ScoreMatrix import ScoreMatrix
 import numpy as np
+from ScoreMatrix import ScoreMatrix
 from Util import Util
+
+from aiwolf import Agent, GameInfo, GameSetting, Role, Status
 
 
 class Assignment:
@@ -81,7 +82,7 @@ class Assignment:
                 # if self.score == -float("inf"):
                 #     return self.score
                 if debug and abs(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j])) >= 4.5:
-                    Util.debug_print("score[", i+1, "\t", self.assignment[i], "\t", j+1, "\t", self.assignment[j], "\t] = ",round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]), 2))
+                    Util.debug_print("score[", i+1, "\t", self.assignment[i], "\t", j+1, "\t", self.assignment[j], "\t] = ", round(score_matrix.get_score(i, self.assignment[i], j, self.assignment[j]), 2))
         self.score = score
 
         return self.score

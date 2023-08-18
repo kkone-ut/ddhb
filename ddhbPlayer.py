@@ -1,18 +1,18 @@
-from aiwolf import AbstractPlayer, Agent, Content, GameInfo, GameSetting, Role, Topic, Status
-from const import CONTENT_SKIP
-from aiwolf.constant import AGENT_NONE
+import traceback
 
+from const import CONTENT_SKIP
 from ddhbBodyguard import ddhbBodyguard
 from ddhbMedium import ddhbMedium
-from ddhbPossessed import ddhbPossessed
 from ddhbSeer import ddhbSeer
 from ddhbVillager import ddhbVillager
 from ddhbWerewolf import ddhbWerewolf
-
-from Util import Util
 from RealPossessedDetector import RealPossessedDetector
+from Util import Util
 
-import traceback
+from aiwolf import (AbstractPlayer, Agent, Content, GameInfo, GameSetting,
+                    Role, Status, Topic)
+from aiwolf.constant import AGENT_NONE
+from ddhbPossessed import ddhbPossessed
 
 
 # ddhbプレイヤー

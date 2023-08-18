@@ -1,14 +1,15 @@
 import random
 from typing import List
 
-from aiwolf import Agent, GameInfo, GameSetting, Role, Species
-from aiwolf import (ComingoutContentBuilder, Content, GuardedAgentContentBuilder,
-                    EstimateContentBuilder, VoteContentBuilder, RequestContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
+from Util import Util
+
+from aiwolf import (Agent, ComingoutContentBuilder, Content,
+                    EstimateContentBuilder, GameInfo, GameSetting,
+                    GuardedAgentContentBuilder, RequestContentBuilder, Role,
+                    Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 
 
 # 狩人
@@ -120,7 +121,7 @@ class ddhbBodyguard(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
-        # ----------  同数投票の処理 ---------- 
+        # ----------  同数投票の処理 ----------
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)

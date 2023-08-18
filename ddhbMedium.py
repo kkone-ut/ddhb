@@ -2,14 +2,15 @@ import random
 from collections import deque
 from typing import Deque, List, Optional
 
-from aiwolf import (Agent, ComingoutContentBuilder, Content, GameInfo,
-                    GameSetting, IdentContentBuilder, Judge, Role, Species,
-                    VoteContentBuilder, EstimateContentBuilder, RequestContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
+from Util import Util
+
+from aiwolf import (Agent, ComingoutContentBuilder, Content,
+                    EstimateContentBuilder, GameInfo, GameSetting,
+                    IdentContentBuilder, Judge, RequestContentBuilder, Role,
+                    Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 
 
 # 霊媒
@@ -118,9 +119,9 @@ class ddhbMedium(ddhbVillager):
             # 黒結果
             # 前日、黒に投票したエージェントを村人っぽいとESTIMATE
             if self.latest_result == Species.WEREWOLF:
-                l = len(self.votefor_executed_agent)
-                if l != 0:
-                    white_candidate = self.votefor_executed_agent[turn % len(self.votefor_executed_agent)]
+                votefor_cnt = len(self.votefor_executed_agent)
+                if votefor_cnt != 0:
+                    white_candidate = self.votefor_executed_agent[turn % votefor_cnt]
                 else:
                     white_candidate = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
                 return Content(EstimateContentBuilder(white_candidate, Role.VILLAGER))
@@ -139,7 +140,7 @@ class ddhbMedium(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
-        # ----------  同数投票の処理 ---------- 
+        # ----------  同数投票の処理 ----------
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)

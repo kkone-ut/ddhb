@@ -1,16 +1,16 @@
-import numpy as np
 import random
-from collections import deque, defaultdict
-from typing import List, Deque, DefaultDict, Optional
+from typing import List, Optional
+
+import numpy as np
+from const import CONTENT_SKIP, JUDGE_EMPTY
+from Util import Util
 
 from aiwolf import (Agent, AttackContentBuilder, ComingoutContentBuilder,
-                    Content, GameInfo, GameSetting, Judge, Role, Species,
-                    DivinedResultContentBuilder, IdentContentBuilder, GuardedAgentContentBuilder, VoteContentBuilder,
-                    RequestContentBuilder, EstimateContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
-from const import CONTENT_SKIP, JUDGE_EMPTY
+                    Content, DivinedResultContentBuilder,
+                    EstimateContentBuilder, GameInfo, GameSetting,
+                    GuardedAgentContentBuilder, IdentContentBuilder, Judge,
+                    RequestContentBuilder, Role, Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 from ddhbPossessed import ddhbPossessed
 
 
@@ -65,7 +65,6 @@ class ddhbWerewolf(ddhbPossessed):
         self.allies = list(self.game_info.role_map.keys())
         self.humans = [a for a in self.game_info.agent_list if a not in self.allies]
         allies_no = [a.agent_idx for a in self.allies]
-        humans_no = [a.agent_idx for a in self.humans]
         Util.debug_print("仲間:\t", allies_no)
         self.attack_vote_candidate = AGENT_NONE
         self.agent_possessed = AGENT_NONE
@@ -312,7 +311,7 @@ class ddhbWerewolf(ddhbPossessed):
         # ---------- 15人村 ----------
         elif self.N == 15:
             # 村人と揃える
-            if day == 1 and turn == 1: 
+            if day == 1 and turn == 1:
                 return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
             # 人狼仲間のCO状況を確認して、COするかを決める
             allies_co: List[Agent] = [a for a in self.comingout_map if a in self.allies]
@@ -380,7 +379,7 @@ class ddhbWerewolf(ddhbPossessed):
 
     # 投票対象
     def vote(self) -> Agent:
-        # ----------  同数投票の処理 ---------- 
+        # ----------  同数投票の処理 ----------
         latest_vote_list = self.game_info.latest_vote_list
         tmp_vote_candidate = self.vote_candidate
         if latest_vote_list:
@@ -451,7 +450,7 @@ class ddhbWerewolf(ddhbPossessed):
             # * in vote_candidates で、人狼仲間と確定狂人を除く
             allies_will_vote_reports: List[Agent] = [target for agent, target in self.will_vote_reports.items() if agent in self.allies and target in vote_candidates]
             alive_werewolves: List[Agent] = self.get_alive_others(self.werewolves)
-            humans_seer_co: List[Agent] = [a for a in self.comingout_map if a in vote_candidates and  self.comingout_map[a] == Role.SEER]
+            humans_seer_co: List[Agent] = [a for a in self.comingout_map if a in vote_candidates and self.comingout_map[a] == Role.SEER]
             # self.vote_candidate = self.chooseMostlikelyExecuted2(exclude_list=self.allies)
             self.vote_candidate = self.chooseMostlikelyExecuted2(include_list=vote_candidates, exclude_list=self.allies)
             Util.debug_print("処刑されそうなエージェント2:\t", self.vote_candidate.agent_idx)
@@ -523,7 +522,7 @@ class ddhbWerewolf(ddhbPossessed):
         # 襲撃候補の優先順位：狩人→確定占い→占い→霊媒→襲撃スコア
         others_bodygurad_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.BODYGUARD]
         others_seer_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.SEER]
-        others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]            
+        others_medium_co: List[Agent] = [a for a in self.comingout_map if a in attack_vote_candidates and self.comingout_map[a] == Role.MEDIUM]
         if others_bodygurad_co:
             self.attack_vote_candidate = self.role_predictor.chooseMostLikely(Role.BODYGUARD, others_bodygurad_co)
         elif self.alive_seer:

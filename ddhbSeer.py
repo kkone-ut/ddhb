@@ -2,15 +2,15 @@ import random
 from collections import deque
 from typing import Deque, List, Optional
 
-from aiwolf import (Agent, ComingoutContentBuilder, Content,
-                    DivinedResultContentBuilder, GameInfo, GameSetting, Judge,
-                    Role, Species, VoteContentBuilder,
-                    RequestContentBuilder, EstimateContentBuilder)
-from aiwolf.constant import AGENT_NONE, AGENT_ANY
-
-from Util import Util
 from const import CONTENT_SKIP
 from ddhbVillager import ddhbVillager
+from Util import Util
+
+from aiwolf import (Agent, ComingoutContentBuilder, Content,
+                    DivinedResultContentBuilder, EstimateContentBuilder,
+                    GameInfo, GameSetting, Judge, RequestContentBuilder, Role,
+                    Species, VoteContentBuilder)
+from aiwolf.constant import AGENT_ANY, AGENT_NONE
 
 
 # 占い
@@ -202,7 +202,7 @@ class ddhbSeer(ddhbVillager):
 
     # 投票対象
     def vote(self) -> Agent:
-        # ----------  同数投票の処理 ---------- 
+        # ----------  同数投票の処理 ----------
         latest_vote_list = self.game_info.latest_vote_list
         if latest_vote_list:
             self.vote_candidate = self.changeVote(latest_vote_list, Role.WEREWOLF)
