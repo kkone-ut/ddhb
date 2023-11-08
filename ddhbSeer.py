@@ -32,7 +32,6 @@ class ddhbSeer(ddhbVillager):
     new_target: Agent # 偽の占い対象
     new_result: Species # 偽の占い結果
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbSeer."""
         super().__init__()
@@ -41,11 +40,10 @@ class ddhbSeer(ddhbVillager):
         self.my_judge_queue = deque()
         self.not_divined_agents = []
         self.werewolves = []
-        
+
         self.new_target = AGENT_NONE
         self.new_result = Species.UNC
         self.strategies = []
-
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -56,18 +54,17 @@ class ddhbSeer(ddhbVillager):
         self.werewolves.clear()
         self.new_target = AGENT_NONE
         self.new_result = Species.UNC
-        
+
         self.strategies = [True]
         self.strategyA = self.strategies[0] # 戦略A: COする日にちの変更（初日CO）
         # 戦略A: 初日CO
         if self.strategyA:
             self.co_date = 1
 
-
     # 昼スタート
     def day_start(self) -> None:
         super().day_start()
-        
+
         self.new_target = AGENT_NONE
         self.new_result = Species.WEREWOLF
         # 占い結果
@@ -82,7 +79,6 @@ class ddhbSeer(ddhbVillager):
                 self.werewolves.append(judge.target) # 人狼リストに追加
             # スコアの更新
             self.score_matrix.my_divined(self.game_info, self.game_setting, judge.target, judge.result)
-
 
     # CO、結果報告、投票宣言
     def talk(self) -> Content:
@@ -180,7 +176,7 @@ class ddhbSeer(ddhbVillager):
             if not self.has_co and others_seer_co:
                 Util.debug_print("占いCO：CCO")
                 self.has_co = True
-                return Content(ComingoutContentBuilder(self.me, Role.SEER)) 
+                return Content(ComingoutContentBuilder(self.me, Role.SEER))
             # ---------- 結果報告 ----------
             if self.has_co and self.my_judge_queue:
                 judge: Judge = self.my_judge_queue.popleft()
@@ -198,7 +194,6 @@ class ddhbSeer(ddhbVillager):
             else:
                 return CONTENT_SKIP
         return CONTENT_SKIP
-
 
     # 投票対象
     def vote(self) -> Agent:
@@ -243,7 +238,6 @@ class ddhbSeer(ddhbVillager):
             Util.debug_print("vote_candidates: AGENT_NONE or self.me")
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-
 
     # 占い対象
     def divine(self) -> Agent:

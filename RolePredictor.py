@@ -21,7 +21,6 @@ class RolePredictor:
     assignments_set: Set[Assignment]
     prob_all: DefaultDict[Agent, DefaultDict[Role, float]]
 
-
     def get_initail_assignment(self) -> np.ndarray:
         # 役職の割り当ての初期値を設定する
         # 5人村なら [Role.VILLAGER, Role.VILLAGER, Role.SEER, Role.POSSESSED, Role.WEREWOLF] のような感じ
@@ -30,8 +29,8 @@ class RolePredictor:
 
         # すでにわかっている役職を埋める (自分自身+人狼なら仲間の人狼)
         for agent, role in self.game_info.role_map.items():
-            assignment[agent.agent_idx-1] = role
-        
+            assignment[agent.agent_idx - 1] = role
+
         # 残りの役職を収納するキュー
         rest_roles = queue.Queue()
         for role, num in self.game_setting.role_num_map.items():
@@ -41,14 +40,13 @@ class RolePredictor:
                 num -= len(self.game_info.role_map)
             for i in range(num):
                 rest_roles.put(role)
-        
+
         # 残りの役職を埋める
         for i in range(self.N):
             if assignment[i] == Role.UNC:
                 assignment[i] = rest_roles.get()
 
         return assignment
-
 
     def __init__(self, game_info: GameInfo, game_setting: GameSetting, _player, _score_matrix: ScoreMatrix) -> None:
         self.game_setting = game_setting
@@ -65,7 +63,6 @@ class RolePredictor:
         # すでに役職がわかっているエージェント(自分と人狼仲間)は固定する
         self.fixed_positions = [agent.agent_idx - 1 for agent in self.game_info.role_map.keys()]
         self.prob_all: DefaultDict[Agent, DefaultDict[Role, float]] = None
-
         assignment = self.get_initail_assignment()
 
         # assignment のすべての並び替えを列挙する
@@ -78,10 +75,8 @@ class RolePredictor:
             self.addAssignments(game_info, game_setting, timeout=20)
             Util.debug_print("len(assignments):\t", len(self.assignments))
 
-    
     # すべての割り当ての評価値を計算する
     def update(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
-
         self.game_info = game_info
         # Util.debug_print("len(self.assignments)1:\t", len(self.assignments))
         Util.start_timer("RolePredictor.update")
@@ -102,18 +97,15 @@ class RolePredictor:
         # ここで確率の更新をしてキャッシュする
         self.getProbAll()
 
-
     def addAssignments(self, game_info: GameInfo, game_setting: GameSetting, timeout: int = 40) -> None:
         if self.N == 5: # 5人村ならすべて列挙しているので、追加する必要はない
             return
-        
         # 新しい割り当てを追加する
         Util.start_timer("RolePredictor.addAssignments")
         for _ in range(self.ADDITIONAL_ASSIGNMENT_NUM):
             self.addAssignment(game_info, game_setting)
             if Util.timeout("RolePredictor.addAssignments", timeout):
                 break
-
 
     def addAssignment(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         if len(self.assignments) < self.ASSIGNMENT_NUM or np.random.rand() < 0.1:
@@ -126,26 +118,20 @@ class RolePredictor:
             assignment_idx = np.random.randint(len(self.assignments))
             base = self.assignments[assignment_idx].assignment
             times = min(self.N, int(abs(np.random.normal(scale=0.2) * self.N)) + 1) # 基本的に1~3程度の小さな値 (正規分布を使用)
-        
         # 指定回数シャッフルする
         assignment = Assignment(game_info, game_setting, self.player, np.copy(base))
         assignment.shuffle(times, self.fixed_positions)
-
         # すでにある割り当てと同じなら追加しない
         if assignment in self.assignments_set:
             return
-        
         # 評価値を計算
         assignment.evaluate(self.score_matrix)
-
         # 確率 0 の割り当ては追加しない
         if assignment.score == -float('inf'):
             return
-
         # 割り当て数が超過していたら、スコアの低いものから削除する
         while len(self.assignments) > self.ASSIGNMENT_NUM:
             self.assignments.pop(0)
-        
         # 割り当て数が足りなかったら追加する
         # 丁度だった場合は、すでにある割り当てよりもスコアが高ければ追加する
         if len(self.assignments) < self.ASSIGNMENT_NUM:
@@ -153,16 +139,13 @@ class RolePredictor:
         elif assignment.score > self.assignments[0].score:
             self.assignments.discard(self.assignments[0])
             self.assignments.add(assignment)
-
         # 割り当て重複チェック用のセットに追加
         self.assignments_set.add(assignment)
-
 
     # 各プレイヤーの役職の確率を表す二次元配列を返す
     # (実際には defaultdict[Agent, defaultdict[Role, float]])
     # p[a][r] はエージェント a が役職 r である確率 (a: Agent, r: Role)
     def getProbAll(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
-
         # ndarray だと添字に Role を使えないので、defaultdict[Role, float] の配列を使う
         probs = defaultdict(lambda: defaultdict(float))
 
@@ -201,25 +184,20 @@ class RolePredictor:
                         probs[agent][role] = 1.0 / len(self.game_info.existing_role_list)
                     else:
                         probs[agent][role] = relative_probs[agent][role] / sum_relative_prob
-        
         self.prob_all = probs
-        
         return probs
-
 
     # キャッシュがあればそれを返し、なければ getProbAll を呼んで返す
     def getProbCache(self) -> DefaultDict[Agent, DefaultDict[Role, float]]:
         return self.prob_all if self.prob_all is not None else self.getProbAll()
 
-
     # i 番目のプレイヤーが役職 role である確率を返す
     # 毎回 getProbAll を呼ぶのは無駄なので、キャッシュしたものを使う
     def getProb(self, agent, role: Role) -> float:
-        if type(agent) == int:
+        if isinstance(agent, int):
             agent = self.game_info.agent_list[agent]
         p = self.getProbCache()
         return p[agent][role]
-
 
     # 指定された役職である確率が最も高いプレイヤーを返す
     # 確率が threshold 未満の場合は AGENT_NONE を返す
@@ -227,7 +205,7 @@ class RolePredictor:
     def chooseMostLikely(self, role: Role, agent_list: List[Agent], threshold: float = 0.0, returns_prob: bool = False) -> Union[Agent, Tuple[Agent, float]]:
         if len(agent_list) == 0:
             return AGENT_NONE
-        
+
         p = self.getProbCache()
         ret_agent = agent_list[0]
         mx_score = 0
@@ -247,19 +225,17 @@ class RolePredictor:
             else:
                 return ret_agent
 
-
     # 指定された役職である確率が最も低いプレイヤーを返す
     def chooseLeastLikely(self, role: Role, agent_list: List[Agent]) -> Agent:
         if len(agent_list) == 0:
             return AGENT_NONE
-        
+
         p = self.getProbCache()
         ret_agent = agent_list[0]
         for a in agent_list:
             if p[a][role] < p[ret_agent][role]:
                 ret_agent = a
         return ret_agent
-
 
     def getMostLikelyRole(self, agent: Agent) -> Role:
         p = self.getProbCache()
@@ -268,7 +244,6 @@ class RolePredictor:
             if p[agent][r] > p[agent][ret_role]:
                 ret_role = r
         return ret_role
-
 
     # 狂人が生存しているか推測する
     def estimate_alive_possessed(self, threshold=0.5) -> bool:
@@ -280,7 +255,6 @@ class RolePredictor:
             if self.game_info.status_map[agent] == Status.ALIVE:
                 alive += p[agent][Role.POSSESSED]
         return alive / all > threshold
-
 
     # (役職である確率＋係数＊勝率)が最も高いプレイヤーを返す
     def chooseStrongLikely(self, role: Role, agent_list: List[Agent], coef: float = 0.0) -> Agent:

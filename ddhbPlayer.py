@@ -25,7 +25,6 @@ class ddhbPlayer(AbstractPlayer):
     werewolf: AbstractPlayer
     player: AbstractPlayer
 
-
     def __init__(self) -> None:
         self.villager = ddhbVillager()
         self.bodyguard = ddhbBodyguard()
@@ -38,7 +37,6 @@ class ddhbPlayer(AbstractPlayer):
         self.game_info: GameInfo = None
         RealPossessedDetector.init()
 
-
     # オーバーライドしていく
     def attack(self) -> Agent:
         agent = AGENT_NONE
@@ -47,13 +45,12 @@ class ddhbPlayer(AbstractPlayer):
             agent = self.player.attack()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.attack", 70)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.attack")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if agent == None:
+        if agent is None:
             agent = AGENT_NONE
         return agent
-
 
     def day_start(self) -> None:
         self.player.talk_turn = 0
@@ -65,10 +62,9 @@ class ddhbPlayer(AbstractPlayer):
             if self.game_info.status_map[self.player.me] == Status.DEAD:
                 self.player.role_predictor.update(self.game_info, self.game_setting)
             Util.end_timer("ddhbPlayer.day_start", 10)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.day_start")
             Util.error_print("Trace:\t", traceback.format_exc())
-
 
     def divine(self) -> Agent:
         agent = AGENT_NONE
@@ -77,13 +73,12 @@ class ddhbPlayer(AbstractPlayer):
             agent = self.player.divine()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.divine", 70)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.divine")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if agent == None:
+        if agent is None:
             agent = AGENT_NONE
         return agent
-
 
     def finish(self) -> None:
         Util.start_timer("ddhbPlayer.finish")
@@ -91,12 +86,11 @@ class ddhbPlayer(AbstractPlayer):
             self.player.finish()
             RealPossessedDetector.finish(self.player)
             Util.end_timer("ddhbPlayer.finish", 20)
-        except:
+        except Exception:
             Util.error_print(traceback.format_exc())
         Util.debug_print("finish")
         Util.debug_print("---------------------------------------")
         Util.debug_print("")
-
 
     def guard(self) -> Agent:
         agent = AGENT_NONE
@@ -105,13 +99,12 @@ class ddhbPlayer(AbstractPlayer):
             agent = self.player.guard()
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.guard", 70)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.guard")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if agent == None:
+        if agent is None:
             agent = AGENT_NONE
         return agent
-
 
     # 役職の初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
@@ -135,10 +128,9 @@ class ddhbPlayer(AbstractPlayer):
                 self.player = self.werewolf
             self.player.initialize(game_info, game_setting)
             Util.end_timer("ddhbPlayer.initialize", 20)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.initialize")
             Util.error_print("Trace:\t", traceback.format_exc())
-
 
     def talk(self) -> Content:
         content = CONTENT_SKIP
@@ -156,13 +148,12 @@ class ddhbPlayer(AbstractPlayer):
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
             Util.end_timer("ddhbPlayer.talk.addAssignments", 40)
             Util.end_timer("ddhbPlayer.talk", 80)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.talk")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if content == None:
+        if content is None:
             content = CONTENT_SKIP
         return content
-
 
     def update(self, game_info: GameInfo) -> None:
         Util.start_timer("ddhbPlayer.update")
@@ -171,10 +162,9 @@ class ddhbPlayer(AbstractPlayer):
             RealPossessedDetector.update(game_info)
             self.player.update(game_info)
             Util.end_timer("ddhbPlayer.update", 10)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.update")
             Util.error_print("Trace:\t", traceback.format_exc())
-
 
     def vote(self) -> Agent:
         Util.start_timer("ddhbPlayer.vote")
@@ -186,13 +176,12 @@ class ddhbPlayer(AbstractPlayer):
             Util.debug_print("----------")
             self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 60)
             Util.end_timer("ddhbPlayer.vote", 80)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.vote")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if agent == None:
+        if agent is None:
             agent = AGENT_NONE
         return agent
-
 
     def whisper(self) -> Content:
         content = CONTENT_SKIP
@@ -202,9 +191,9 @@ class ddhbPlayer(AbstractPlayer):
             # 人狼陣営の場合は割り当てはそこまで探索しなくてもいい
             # self.player.role_predictor.addAssignments(self.game_info, self.game_setting, 30)
             Util.end_timer("ddhbPlayer.whisper", 20)
-        except:
+        except Exception:
             Util.end_timer("ddhbPlayer.whisper")
             Util.error_print("Trace:\t", traceback.format_exc())
-        if content == None:
+        if content is None:
             content = CONTENT_SKIP
         return content

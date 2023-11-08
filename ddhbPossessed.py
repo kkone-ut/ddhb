@@ -42,7 +42,6 @@ class ddhbPossessed(ddhbVillager):
     new_result: Species # 偽の占い結果
     agent_werewolf: Agent # 人狼っぽいエージェント
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbPossessed."""
         super().__init__()
@@ -62,7 +61,6 @@ class ddhbPossessed(ddhbVillager):
         self.agent_werewolf = AGENT_NONE
         self.strategies = []
 
-
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
         # ---------- 5人村15人村共通 ----------
@@ -79,17 +77,17 @@ class ddhbPossessed(ddhbVillager):
         self.new_target = AGENT_NONE
         self.new_result = Species.WEREWOLF
         self.agent_werewolf = AGENT_NONE
-        
+
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
             return
-        
+
         # 戦略を検証するためのフラグ
         self.strategies = [False, True, True]
         self.strategyA = self.strategies[0] # 戦略A：一日で何回も占い結果を言う
         self.strategyB = self.strategies[1] # 戦略B：100%で占いCO
         self.strategyC = self.strategies[2] # 戦略C：15人村：COしてから占い結果
-        
+
         # ---------- 5人村 ----------
         if self.N == 5:
             self.fake_role = Role.SEER
@@ -101,7 +99,6 @@ class ddhbPossessed(ddhbVillager):
             else:
                 # 65%の確率で占い師、35%の確率で霊媒師
                 self.fake_role = Role.SEER if random.random() < 0.65 else Role.MEDIUM
-
 
     # スコアマトリックスから人狼を推測する
     def estimate_werewolf(self) -> None:
@@ -121,26 +118,25 @@ class ddhbPossessed(ddhbVillager):
         self.agent_werewolf, W_prob = self.role_predictor.chooseMostLikely(Role.WEREWOLF, self.get_alive_others(self.game_info.agent_list), threshold=th, returns_prob=True)
         Util.debug_print("agent_werewolf, W_prob:\t", self.agent_werewolf, W_prob)
 
-
     def day_start(self) -> None:
         super().day_start()
         # 自分のロールがPOSSESEDでない時、以下をスキップする
         if self.game_info.my_role != Role.POSSESSED:
             return
-        
+
         day: int = self.game_info.day
         if day >= 2:
             vote_list = self.game_info.vote_list
             Util.debug_print("----- day_start -----")
             Util.debug_print("vote_list:\t", self.vote_to_dict(vote_list))
             Util.debug_print("vote_cnt:\t", self.vote_cnt(vote_list))
-        
+
         self.new_target = self.role_predictor.chooseMostLikely(Role.VILLAGER, self.get_alive_others(self.game_info.agent_list))
         self.new_result = Species.WEREWOLF
         # ----- 狩人騙り -----
         if self.fake_role == Role.BODYGUARD:
             # 護衛成功の場合
-            if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+            if self.game_info.guarded_agent is not None and len(self.game_info.last_dead_agent_list) == 0:
                 self.has_report = False
         # ----- 他の騙り -----
         # 常に報告内容あり
@@ -151,7 +147,6 @@ class ddhbPossessed(ddhbVillager):
         if alive_cnt <= 3:
             self.PP_flag = True
         self.not_judged_agents = self.get_alive_others(self.not_judged_agents)
-
 
     # CO、結果報告
     def talk(self) -> Content:
@@ -325,7 +320,6 @@ class ddhbPossessed(ddhbVillager):
             else:
                 return CONTENT_SKIP
         return CONTENT_SKIP
-
 
     # 投票対象
     def vote(self) -> Agent:

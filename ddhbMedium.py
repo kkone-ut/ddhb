@@ -30,7 +30,6 @@ class ddhbMedium(ddhbVillager):
     votefor_executed_agent: List[Agent] # 前日に追放されたエージェントに投票したエージェント
     strategies: List[bool] # 戦略フラグのリスト
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbMedium."""
         super().__init__()
@@ -42,7 +41,6 @@ class ddhbMedium(ddhbVillager):
         self.latest_result = Species.UNC
         self.votefor_executed_agent = []
         self.strategies = []
-
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -59,12 +57,11 @@ class ddhbMedium(ddhbVillager):
         if self.strategyA:
             self.co_date = 2
 
-
     # 昼スタート
     def day_start(self) -> None:
         super().day_start()
         Util.debug_print("alive_comingout_map:\t", self.alive_comingout_map_str)
-        
+
         self.latest_result = Species.UNC
         self.votefor_executed_agent.clear()
         vote_list = self.game_info.vote_list
@@ -86,13 +83,12 @@ class ddhbMedium(ddhbVillager):
             # スコアの更新
             self.score_matrix.my_identified(self.game_info, self.game_setting, judge.target, judge.result)
 
-
     # CO、結果報告、投票宣言
     def talk(self) -> Content:
         day: int = self.game_info.day
         turn: int = self.talk_turn
         self.vote_candidate = self.vote()
-        # ---------- CO ----------        
+        # ---------- CO ----------
         # 絶対にCOする→1,2,3
         # 1: 予定の日にち
         if not self.has_co and day == self.co_date:
@@ -134,9 +130,7 @@ class ddhbMedium(ddhbVillager):
                     return Content(VoteContentBuilder(self.vote_candidate))
                 else:
                     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
-        
         return CONTENT_SKIP
-
 
     # 投票対象
     def vote(self) -> Agent:

@@ -44,7 +44,6 @@ class ddhbVillager(AbstractPlayer):
     talk_turn: int # talkのターン
     role_predictor: RolePredictor # role_predictor
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbVillager."""
         self.me = AGENT_NONE
@@ -64,7 +63,6 @@ class ddhbVillager(AbstractPlayer):
         # フルオープンしたかどうか
         self.doFO = False
 
-
     # エージェントが生存しているか
     def is_alive(self, agent: Agent) -> bool:
         """Return whether the agent is alive.
@@ -74,7 +72,6 @@ class ddhbVillager(AbstractPlayer):
             True if the agent is alive, otherwise false.
         """
         return self.game_info.status_map[agent] == Status.ALIVE
-
 
     # 自分以外のエージェントリスト
     def get_others(self, agent_list: List[Agent]) -> List[Agent]:
@@ -86,7 +83,6 @@ class ddhbVillager(AbstractPlayer):
         """
         return [a for a in agent_list if a != self.me]
 
-
     # 生存するエージェントリスト
     def get_alive(self, agent_list: List[Agent]) -> List[Agent]:
         """Return a list of alive agents contained in the given list of agents.
@@ -96,7 +92,6 @@ class ddhbVillager(AbstractPlayer):
             A list of alive agents contained in agent_list.
         """
         return [a for a in agent_list if self.is_alive(a)]
-
 
     # 自分以外の生存するエージェントリスト
     def get_alive_others(self, agent_list: List[Agent]) -> List[Agent]:
@@ -110,7 +105,6 @@ class ddhbVillager(AbstractPlayer):
         """
         return self.get_alive(self.get_others(agent_list))
 
-
     # ランダムセレクト
     def random_select(self, agent_list: List[Agent]) -> Agent:
         """Return one agent randomly chosen from the given list of agents.
@@ -121,7 +115,6 @@ class ddhbVillager(AbstractPlayer):
         """
         return random.choice(agent_list) if agent_list else AGENT_NONE
 
-
     def get_co_players(self, agent_list: List[Agent], role: Role = Role.ANY) -> List[Agent]:
         """Return a list of agents who have claimed the given role.
         Args:
@@ -131,7 +124,6 @@ class ddhbVillager(AbstractPlayer):
             A list of agents who have claimed the given role.
         """
         return [a for a in agent_list if (role == Role.ANY and self.comingout_map[a] != Role.UNC) or self.comingout_map[a] == role]
-
 
     def get_counterparts(self, agent_list: List[Agent], agent: Agent) -> List[Agent]:
         """Return a list of agents who have claimed the same role as the given agent.
@@ -147,33 +139,26 @@ class ddhbVillager(AbstractPlayer):
             return []
         return self.get_co_players([a for a in agent_list if a != agent], role)
 
-
     def convert_to_agentids(self, agent_list: List[Agent]) -> List[int]:
         return [f"Agent[{a.agent_idx}]" for a in agent_list]
-
 
     @property
     def alive_comingout_map(self) -> DefaultDict[Agent, Role]:
         return {a: r for a, r in self.comingout_map.items() if self.is_alive(a) and r != Role.UNC}
 
-
     @property
     def alive_comingout_map_str(self) -> DefaultDict[str, str]:
         return {a.agent_idx: r.value for a, r in self.alive_comingout_map.items() if self.is_alive(a) and r != Role.UNC}
-
 
     @property
     def will_vote_reports_str(self) -> Dict[str, str]:
         return {a.agent_idx: t.agent_idx for a, t in self.will_vote_reports.items()}
 
-
     def agent_to_index(self, agent_list: List[Agent]) -> List[int]:
         return [a.agent_idx for a in agent_list]
 
-
     def vote_to_dict(self, vote_list: List[Vote]) -> Dict[int, int]:
         return {v.agent.agent_idx: v.target.agent_idx for v in vote_list}
-
 
     def vote_cnt(self, vote_list: List[Vote]) -> Dict[Agent, int]:
         count: DefaultDict[Agent, int] = defaultdict(int)
@@ -182,10 +167,8 @@ class ddhbVillager(AbstractPlayer):
             count[target] += 1
         return count
 
-
     def vote_print(self, agent_int: DefaultDict[Agent, int]) -> None:
         return {a.agent_idx: i for a, i in agent_int.items()}
-
 
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
     # 注意：include_listのエージェントが、投票対象に含まれていない場合、自分を返す
@@ -209,7 +192,6 @@ class ddhbVillager(AbstractPlayer):
         ret_agent: Agent = max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
         return ret_agent
 
-
     # include_listから、exclude_listを除いた中で、最も処刑されそうなエージェントを返す
     # 投票宣言と投票先の一致率を反映する
     def chooseMostlikelyExecuted2(self, include_list: List[Agent] = None, exclude_list: List[Agent] = None) -> Agent:
@@ -225,13 +207,12 @@ class ddhbVillager(AbstractPlayer):
                 vote_count = Util.vote_count[talker]
                 vote_match_count = Util.vote_match_count[talker]
                 if vote_count > 0:
-                    count[target] += vote_match_count/vote_count
+                    count[target] += vote_match_count / vote_count
         if self.vote_candidate != AGENT_NONE and self.vote_candidate in include_list:
             count[self.vote_candidate] += 1.0
         ret_agent: Agent = max(count.items(), key=lambda x: x[1])[0] if count else AGENT_NONE
         Util.debug_print("executed2:\t", {a.agent_idx: np.round(t, 3) for a, t in count.items()})
         return ret_agent
-
 
     # HPが低いかどうか
     def is_Low_HP(self) -> bool:
@@ -240,7 +221,7 @@ class ddhbVillager(AbstractPlayer):
         if alive_cnt == 0:
             return False
         will_vote_cnt = len(self.will_vote_reports)
-        rate = will_vote_cnt/alive_cnt
+        rate = will_vote_cnt / alive_cnt
         alive_agents: List[Agent] = self.get_alive(self.game_info.agent_list)
         if rate >= 0.5 and self.chooseMostlikelyExecuted2(include_list=alive_agents) == self.me:
             Util.debug_print("is_Low_HP: will_vote")
@@ -255,12 +236,11 @@ class ddhbVillager(AbstractPlayer):
         for vote in vote_list:
             if vote.target == self.me:
                 vote_cnt += 1
-        rate = vote_cnt/vote_len
+        rate = vote_cnt / vote_len
         if rate >= 0.2:
             Util.debug_print("is_Low_HP: latest_vote")
             return True
         return False
-
 
     # 同数投票の時に自分の捨て票を変更する：最大投票以外のエージェントに投票している場合、投票先を変更する
     def changeVote(self, vote_list: List[Vote], role: Role, mostlikely=True) -> Agent:
@@ -296,7 +276,6 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print('vote_candidate:\t', my_target, '→', new_target)
         return new_target if new_target != AGENT_NONE else self.me
 
-
     # 初期化
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         self.game_info = game_info
@@ -309,7 +288,7 @@ class ddhbVillager(AbstractPlayer):
         self.talk_list_head = 0
         # 統計
         Util.game_count += 1
-        
+
         self.will_vote_reports.clear()
         self.talk_list_all = []
         self.talk_turn = 0
@@ -320,12 +299,11 @@ class ddhbVillager(AbstractPlayer):
         self.agent_idx_0based = self.me.agent_idx - 1
 
         ActionLogger.initialize(game_info, game_setting)
-        
+
         # Util.debug_print("game:\t", Util.game_count)
         Util.debug_print("game:\t", Util.game_count - 1)
         Util.debug_print("my role:\t", game_info.my_role)
         Util.debug_print("my idx:\t", self.me)
-
 
     # 昼スタート
     def day_start(self) -> None:
@@ -347,11 +325,11 @@ class ddhbVillager(AbstractPlayer):
             Util.debug_print("vote_count:\t", self.vote_print(Util.vote_count))
             Util.debug_print("vote_match_count:\t", self.vote_print(Util.vote_match_count))
         self.will_vote_reports.clear()
-        
+
         Util.debug_print("")
         Util.debug_print("DayStart:\t", self.game_info.day)
         Util.debug_print("生存者数:\t", len(self.game_info.alive_agent_list))
-        
+
         Util.debug_print("Executed:\t", self.game_info.executed_agent)
         if self.game_info.executed_agent == self.me:
             Util.debug_print("---------- 処刑された ----------")
@@ -370,7 +348,6 @@ class ddhbVillager(AbstractPlayer):
             Util.debug_print("Killed:\t", AGENT_NONE)
         # 噛まれていない違和感を反映
         self.score_matrix.Nth_day_start(self.game_info, self.game_setting)
-
 
     # ゲーム情報の更新
     # talk-listの処理
@@ -437,7 +414,7 @@ class ddhbVillager(AbstractPlayer):
             elif content.topic == Topic.OPERATOR and content.operator == Operator.REQUEST and content.content_list[0].topic == Topic.VOTE:
                 self.score_matrix.talk_will_vote(self.game_info, self.game_setting, talker, content.content_list[0].target, day, turn)
                 self.will_vote_reports[talker] = content.content_list[0].target
-            
+
             action: Action = ActionLogger.update(game_info, tk, content, self)
             score = ActionLogger.get_score(day, turn, talker, action)
             self.score_matrix.apply_action_learning(talker, score)
@@ -450,18 +427,17 @@ class ddhbVillager(AbstractPlayer):
             if Util.timeout("Villager.update", timeout):
                 break
 
-
     # CO、投票宣言
     def talk(self) -> Content:
         day: int = self.game_info.day
-        turn: int = self.talk_turn        
+        turn: int = self.talk_turn
         self.vote_candidate = self.vote()
         # ---------- 5人村 ----------
         if self.N == 5:
-            if day == 1:    
+            if day == 1:
                 if turn == 1:
                     return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
-                elif 2<= turn <= 8:
+                elif 2 <= turn <= 8:
                     rnd = random.randint(0, 2)
                     if rnd == 0:
                         return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
@@ -478,7 +454,7 @@ class ddhbVillager(AbstractPlayer):
                     alive_possessed = self.is_alive(agent_possessed)
                     if turn == 1 and alive_possessed:
                         return Content(ComingoutContentBuilder(self.me, Role.WEREWOLF))
-                if 1<= turn <= 6:
+                if 1 <= turn <= 6:
                     rnd = random.randint(0, 2)
                     if rnd == 0:
                         return Content(EstimateContentBuilder(self.vote_candidate, Role.WEREWOLF))
@@ -489,10 +465,10 @@ class ddhbVillager(AbstractPlayer):
                 else:
                     return CONTENT_SKIP
             else:
-                return CONTENT_SKIP        
+                return CONTENT_SKIP
         # ---------- 15人村 ----------
         elif self.N == 15:
-            if day == 1 and turn == 1: 
+            if day == 1 and turn == 1:
                 return Content(RequestContentBuilder(AGENT_ANY, Content(ComingoutContentBuilder(AGENT_ANY, Role.ANY))))
             # ----- ESTIMATE, VOTE, REQUEST -----
             elif turn <= 7:
@@ -505,9 +481,7 @@ class ddhbVillager(AbstractPlayer):
                     return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
             else:
                 return CONTENT_SKIP
-        
         return CONTENT_SKIP
-
 
     # 投票対象
     def vote(self) -> Agent:
@@ -538,22 +512,17 @@ class ddhbVillager(AbstractPlayer):
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
-
     def attack(self) -> Agent:
         raise NotImplementedError()
-
 
     def divine(self) -> Agent:
         raise NotImplementedError()
 
-
     def guard(self) -> Agent:
         raise NotImplementedError()
 
-
     def whisper(self) -> Content:
         raise NotImplementedError()
-
 
     def finish(self) -> None:
         vote_list: List[Vote] = self.game_info.vote_list
@@ -618,7 +587,7 @@ class ddhbVillager(AbstractPlayer):
         Util.debug_print("\t", "1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F")
         Util.debug_print("actual:\t", actual_assignment)
         Util.debug_print("predicted:\t", predicted_assignment)
-        
+
         # # 一致率を計算
         # score = 0
         # for i in range(self.N):
@@ -628,7 +597,7 @@ class ddhbVillager(AbstractPlayer):
         #         Util.debug_print("")
         #         for r in self.game_info.existing_role_list:
         #             Util.debug_print(self.game_info.agent_list[i], "\t", r, "\t", round(self.role_predictor.getProb(i, r), 2))
-        
+
         # Util.sum_score += score
         # Util.debug_print("")
         # Util.debug_print("score:\t", score, "/", self.N)
@@ -644,7 +613,7 @@ class ddhbVillager(AbstractPlayer):
         # # もし含まれていないなら、含まれていたときのスコアを表示
         # if actual_assignment not in self.role_predictor.assignments:
         #     actual_assignment.evaluate(self.score_matrix)
-        
+
         # 予測の割り当てのスコアを表示 (デバッグモード)
         predicted_assignment.evaluate(self.score_matrix, debug=True)
         Util.debug_print("")
@@ -669,5 +638,3 @@ class ddhbVillager(AbstractPlayer):
 
         # for a in self.get_co_players(self.game_info.agent_list):
         #     Util.debug_print(a, self.comingout_map[a], self.convert_to_agentids(self.get_counterparts(self.game_info.agent_list, a)))
-
-        pass

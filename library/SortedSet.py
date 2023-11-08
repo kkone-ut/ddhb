@@ -4,6 +4,7 @@ from bisect import bisect_left, bisect_right
 from typing import Generic, Iterable, Iterator, List, Tuple, TypeVar, Optional
 T = TypeVar('T')
 
+
 class SortedSet(Generic[T]):
     BUCKET_RATIO = 50
     REBUILD_RATIO = 170
@@ -14,7 +15,7 @@ class SortedSet(Generic[T]):
         size = self.size = len(a)
         bucket_size = int(math.ceil(math.sqrt(size / self.BUCKET_RATIO)))
         self.a = [a[size * i // bucket_size : size * (i + 1) // bucket_size] for i in range(bucket_size)]
-    
+
     def __init__(self, a: Iterable[T] = []) -> None:
         "Make a new SortedSet from iterable. / O(N) if sorted and unique / O(N log N)"
         a = list(a)
@@ -29,16 +30,16 @@ class SortedSet(Generic[T]):
     def __reversed__(self) -> Iterator[T]:
         for i in reversed(self.a):
             for j in reversed(i): yield j
-    
+
     def __eq__(self, other) -> bool:
         return list(self) == list(other)
-    
+
     def __len__(self) -> int:
         return self.size
-    
+
     def __repr__(self) -> str:
         return "SortedSet" + str(self.a)
-    
+
     def __str__(self) -> str:
         s = str(list(self))
         return "{" + s[1 : len(s) - 1] + "}"
@@ -67,7 +68,7 @@ class SortedSet(Generic[T]):
         if len(a) > len(self.a) * self.REBUILD_RATIO:
             self._build()
         return True
-    
+
     def _pop(self, a: List[T], i: int) -> T:
         ans = a.pop(i)
         self.size -= 1
@@ -81,7 +82,7 @@ class SortedSet(Generic[T]):
         if i == len(a) or a[i] != x: return False
         self._pop(a, i)
         return True
-    
+
     def lt(self, x: T) -> Optional[T]:
         "Find the largest element < x, or None if it doesn't exist."
         for a in reversed(self.a):
@@ -105,7 +106,7 @@ class SortedSet(Generic[T]):
         for a in self.a:
             if a[-1] >= x:
                 return a[bisect_left(a, x)]
-    
+
     def __getitem__(self, i: int) -> T:
         "Return the i-th element."
         if i < 0:
@@ -117,7 +118,7 @@ class SortedSet(Generic[T]):
                 if i < len(a): return a[i]
                 i -= len(a)
         raise IndexError
-    
+
     def pop(self, i: int = -1) -> T:
         "Pop and return the i-th element."
         if i < 0:
@@ -129,7 +130,7 @@ class SortedSet(Generic[T]):
                 if i < len(a): return self._pop(a, i)
                 i -= len(a)
         raise IndexError
-    
+
     def index(self, x: T) -> int:
         "Count the number of elements < x."
         ans = 0
