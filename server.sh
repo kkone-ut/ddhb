@@ -1,37 +1,36 @@
-port=10000
-n=15
-view=false
-game=1
-lib=./
-log=./log/
-setting=./SampleSetting.cfg
-client=false
-loop=false
-otherAgents="all"
-
-help=false
+port=10000  # ポート番号
+n=15  # プレイヤー数
+view=false  # ビューモード
+game=1  # ゲーム数
+lib=./  # ライブラリのパス
+log=./log/  # ログの保存先
+setting=./SampleSetting.cfg  # 設定ファイルのパス
+client=false  # クライアントモード
+loop=false  # ループモード
+otherAgents="all"  # 他のエージェントの設定
+help=false  # ヘルプ表示
 
 while getopts ":p:n:vg:a:clh" opt; do
-  case $opt in
-    p) port="$OPTARG"
-    ;;
-    n) n="$OPTARG"
-    ;;
-    v) view="true"
-    ;;
-    g) game="$OPTARG"
-    ;;
-    a) otherAgents="$OPTARG"
-    ;;
-    c) client="true"
-    ;;
-    l) loop="true"
-    ;;
-    h) help="true"
-    ;;
-    \?) echo "Invalid option -$OPTARG" >&2
-    ;;
-  esac
+    case $opt in
+        p) port="$OPTARG"
+        ;;
+        n) n="$OPTARG"
+        ;;
+        v) view="true"
+        ;;
+        g) game="$OPTARG"
+        ;;
+        a) otherAgents="$OPTARG"
+        ;;
+        c) client="true"
+        ;;
+        l) loop="true"
+        ;;
+        h) help="true"
+        ;;
+        \?) echo "Invalid option -$OPTARG" >&2
+        ;;
+    esac
 done
 
 # help を表示
@@ -49,7 +48,7 @@ if "$help"; then
 fi
 
 cd AIWolf-ver0.6.3
-
+# AIWolf-ver0.6.3/AutoStarter.ini に書き込む
 echo "lib=${lib}" > AutoStarter.ini
 echo "log=${log}" >> AutoStarter.ini
 echo "port=${port}" >> AutoStarter.ini
@@ -61,7 +60,7 @@ echo "agent=${n}" >> AutoStarter.ini
 # クライアントを接続しない場合は全プレイヤーを記述
 # クライアントを接続する場合は最後のプレイヤーを除いて記述
 
-# otherAgents が "all" でないなら
+# otherAgents が "all" の場合
 if [ "$otherAgents" = "all" ]; then
     if [ "$n" = 5 ]; then
         echo "BasketPlayer,java,org.aiwolf.Basket.BasketRoleAssignPlayer" >> AutoStarter.ini
@@ -90,6 +89,7 @@ if [ "$otherAgents" = "all" ]; then
         echo "Error: number of players is not 5 or 15"
         exit 1
     fi
+# otherAgents が "all" でないの場合
 else
     for i in $(seq 1 $n)
     do
@@ -122,7 +122,6 @@ fi
 
 while true
 do
-
     # 保存先ファイルを指定
     latest_commit=$(git log -1 --pretty=format:"%h")
     short_commit=${latest_commit:0:7}

@@ -40,7 +40,7 @@ class ActionLog:
     turn: int
     agent: Agent
     action: Action
-    
+
     def __init__(self, game: int, day: int, turn: int, agent: Agent, action: Action):
         self.game = game
         self.day = day
@@ -61,7 +61,6 @@ class ActionLogger:
     action_count_sum: "DefaultDict[(Agent, Role, Action), int]"
     old_role_map: List[Dict[Agent, Role]]
 
-
     @staticmethod
     def init():
         ActionLogger.action_log: Deque[ActionLog] = deque()
@@ -71,7 +70,6 @@ class ActionLogger:
         ActionLogger.action_count_sum: "DefaultDict[(Agent, Role, Action), int]" = defaultdict(int)
         ActionLogger.old_role_map: List[Dict[Agent, Role]] = []
 
-
     @staticmethod
     def initialize(game_info: GameInfo, game_setting: GameSetting):
         ActionLogger.game_info = game_info
@@ -80,7 +78,6 @@ class ActionLogger:
         ActionLogger.M = len(game_info.existing_role_list)
         ActionLogger.MAX_DAY = ActionLogger.N
         ActionLogger.MAX_TURN = 20
-
 
     @staticmethod
     def update(game_info: GameInfo, talk: Talk, content: Content, player) -> Action:
@@ -92,27 +89,24 @@ class ActionLogger:
         if action is not None:
             # ActionLogger.action_count[(day, turn, talker, action)] += 1
             ActionLogger.action_log.append(ActionLog(Util.game_count, day, turn, talker, action))
-
         # 前ゲームのログを action_count_all に反映
         # 現在のターンまでのもののみを処理することで負担を減らす
         oldest_log: ActionLog = ActionLogger.action_log[0] if len(ActionLogger.action_log) > 0 else None
         while oldest_log is not None:
             proceeds = False
             proceeds |= oldest_log.game <= Util.game_count - 2
-            proceeds |= oldest_log.game == Util.game_count - 1 and oldest_log.day <= day 
+            proceeds |= oldest_log.game == Util.game_count - 1 and oldest_log.day <= day
             proceeds |= oldest_log.game == Util.game_count - 1 and oldest_log.day == day and oldest_log.turn <= turn
             if not proceeds:
                 break
-            role: Role = ActionLogger.old_role_map[oldest_log.game-1][oldest_log.agent]
+            role: Role = ActionLogger.old_role_map[oldest_log.game - 1][oldest_log.agent]
             # Util.debug_print("ActionLogger.update", f"game={oldest_log.game}, day={oldest_log.day}, turn={oldest_log.turn}, agent={oldest_log.agent}, role={role}, action={oldest_log.action}")
             ActionLogger.action_count_all[(oldest_log.day, oldest_log.turn, oldest_log.agent, role, oldest_log.action)] += 1
             ActionLogger.action_count_sum[(oldest_log.agent, role, oldest_log.action)] += 1
             ActionLogger.action_log.popleft()
             if len(ActionLogger.action_log) > 0:
                 oldest_log = ActionLogger.action_log[0]
-        
         return action
-
 
     @staticmethod
     def get_score(d: int, t: int, talker: Agent, action: Action) -> DefaultDict[Role, float]:
@@ -126,7 +120,7 @@ class ActionLogger:
         if not is_important and Util.game_count <= 10:
             return score
 
-        if ActionLogger.N == 5 and t >=20:
+        if ActionLogger.N == 5 and t >= 20:
             return score
         elif ActionLogger.N == 15 and (t >= 4 or d >= 4):
             return score
@@ -143,7 +137,7 @@ class ActionLogger:
                 else:
                     count[r] = ActionLogger.action_count_all[(d, t, talker, r, action)] / Util.agent_role_count[talker][r]
             sum += count[r]
-        
+
         if sum > 0:
             # 絶対確率に変換
             for r in role_list:
@@ -164,16 +158,14 @@ class ActionLogger:
                         print('score', score_)
                     else:
                         # 平均以上ならプラス、平均以下ならマイナスにする (デバッグ時にわかりやすくするため)
-                        score[r] = score[r] - 1/len(role_list)
+                        score[r] = score[r] - 1 / len(role_list)
                         # 係数調整
                         score[r] *= 1
         return score
 
-
     @staticmethod
     def finish(game_info: GameInfo):
         ActionLogger.old_role_map.append(game_info.role_map)
-
 
     @staticmethod
     def get_action(content: Content, talker: Agent, day: int, turn: int, player) -> Action:

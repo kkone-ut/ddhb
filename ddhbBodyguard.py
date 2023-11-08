@@ -27,7 +27,6 @@ class ddhbBodyguard(ddhbVillager):
     has_report: bool # 報告したかどうか
     strategies: List[bool] # 戦略フラグのリスト
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbBodyguard."""
         super().__init__()
@@ -39,7 +38,6 @@ class ddhbBodyguard(ddhbVillager):
         self.guard_success_agents = []
         self.has_report = False
         self.strategies = []
-
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -59,24 +57,22 @@ class ddhbBodyguard(ddhbVillager):
         if self.strategyA:
             self.co_date = 10
 
-
     # 昼スタート
     def day_start(self) -> None:
         super().day_start()
         self.guard_success = False
         self.has_report = False
         # 護衛が成功した場合
-        if self.game_info.guarded_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+        if self.game_info.guarded_agent is not None and len(self.game_info.last_dead_agent_list) == 0:
             self.gj_cnt += 1
             self.guard_success = True
             self.guard_success_agents.append(self.game_info.guarded_agent)
             Util.debug_print("護衛成功:\tエージェント" + str(self.game_info.guarded_agent.agent_idx) + "を護衛しました")
             self.score_matrix.my_guarded(self.game_info, self.game_setting, self.game_info.guarded_agent)
         # 護衛が失敗した場合
-        elif self.game_info.guarded_agent != None:
+        elif self.game_info.guarded_agent is not None:
             self.guard_success_agent = AGENT_NONE
             Util.debug_print("護衛失敗:\tエージェント" + str(self.game_info.last_dead_agent_list[0].agent_idx) + "が死亡しました")
-
 
     # CO、報告
     def talk(self) -> Content:
@@ -115,9 +111,7 @@ class ddhbBodyguard(ddhbVillager):
                 return Content(VoteContentBuilder(self.vote_candidate))
             else:
                 return Content(RequestContentBuilder(AGENT_ANY, Content(VoteContentBuilder(self.vote_candidate))))
-        
         return CONTENT_SKIP
-
 
     # 投票対象
     def vote(self) -> Agent:
@@ -147,7 +141,6 @@ class ddhbBodyguard(ddhbVillager):
             self.vote_candidate = self.role_predictor.chooseMostLikely(Role.WEREWOLF, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
-
     # 護衛スコア(=村人スコア＋占い師スコア*3＋霊媒師スコア＋coef*勝率)の高いエージェント
     def get_guard_agent(self, agent_list: List[Agent], coef: float = 1.0) -> Agent:
         p = self.role_predictor.prob_all
@@ -160,7 +153,6 @@ class ddhbBodyguard(ddhbVillager):
                 mx_score = score
                 ret_agent = agent
         return ret_agent
-
 
     # 護衛先
     def guard(self) -> Agent:

@@ -38,14 +38,13 @@ class ddhbWerewolf(ddhbPossessed):
     guard_success: bool # 護衛成功したか
     guard_success_agent: Agent # 護衛成功したエージェント
 
-
     def __init__(self) -> None:
         """Initialize a new instance of ddhbWerewolf."""
         super().__init__()
         self.allies = []
         self.humans = []
         self.attack_vote_candidate = AGENT_NONE
-        
+
         self.agent_possessed = AGENT_NONE
         self.alive_possessed = False
         self.agent_seer = AGENT_NONE
@@ -57,7 +56,6 @@ class ddhbWerewolf(ddhbPossessed):
         self.not_judged_humans = []
         self.guard_success = False
         self.guard_success_agent = AGENT_NONE
-
 
     def initialize(self, game_info: GameInfo, game_setting: GameSetting) -> None:
         super().initialize(game_info, game_setting)
@@ -93,12 +91,11 @@ class ddhbWerewolf(ddhbPossessed):
             # COする日にち：1日目
             self.co_date = 1
             self.kakoi = True
-        
+
         self.strategies = [False, False, False, False, False]
         self.strategyA = self.strategies[0] # 戦略A: 占い重視
         self.strategyB = self.strategies[1] # 戦略B: 霊媒重視
         self.strategyC = self.strategies[2] # 戦略C: 狩人重視
-
 
     # 偽結果生成
     def get_fake_judge(self) -> Judge:
@@ -141,7 +138,6 @@ class ddhbWerewolf(ddhbPossessed):
             return JUDGE_EMPTY
         return Judge(self.me, self.game_info.day, judge_candidate, result)
 
-
     # 結果から狂人推定
     # 「狂人＝人狼に白結果、村陣営に黒結果」のつもりだったが、真占いが村人に黒結果を出す場合もあるため不採用
     # ScoreMatrixに任せる
@@ -171,7 +167,6 @@ class ddhbWerewolf(ddhbPossessed):
         if self.alive_possessed and self.talk_turn >= 12:
             Util.debug_print(f"狂人推定:\t{self.agent_possessed}\t 生存:\t{self.alive_possessed}")
 
-
     # 結果から真占い推定
     # 狂人の誤爆は考えないことにする
     def estimate_seer(self) -> None:
@@ -193,7 +188,6 @@ class ddhbWerewolf(ddhbPossessed):
         if self.alive_seer and self.talk_turn >= 12:
             Util.debug_print(f"真占い推定:\t{self.agent_seer}\t 生存:\t{self.alive_seer}")
 
-
     # 確定狂人の占い結果
     def get_possessed_divination(self) -> Judge:
         ret_judge: Optional[Judge] = JUDGE_EMPTY
@@ -202,7 +196,6 @@ class ddhbWerewolf(ddhbPossessed):
             if judge.agent == self.agent_possessed:
                 ret_judge = judge
         return ret_judge
-
 
     # 昼スタート
     def day_start(self) -> None:
@@ -226,15 +219,14 @@ class ddhbWerewolf(ddhbPossessed):
                 if judge.result == Species.WEREWOLF:
                     self.werewolves.append(judge.target)
         # 襲撃失敗（護衛成功）
-        if self.game_info.attacked_agent != None and len(self.game_info.last_dead_agent_list) == 0:
+        if self.game_info.attacked_agent is not None and len(self.game_info.last_dead_agent_list) == 0:
             self.guard_success = True
             self.guard_success_agent = self.game_info.attacked_agent
             Util.debug_print("襲撃失敗：attacked agent:\t", self.game_info.attacked_agent)
         # 襲撃成功（護衛失敗）
-        if self.game_info.attacked_agent != None and len(self.game_info.last_dead_agent_list) == 1:
+        if self.game_info.attacked_agent is not None and len(self.game_info.last_dead_agent_list) == 1:
             self.guard_success = False
             self.guard_success_agent = AGENT_NONE
-
 
     # CO、結果報告
     def talk(self) -> Content:
@@ -299,7 +291,7 @@ class ddhbWerewolf(ddhbPossessed):
                     self.new_result = Species.HUMAN
                     return Content(DivinedResultContentBuilder(weak_agent, Species.HUMAN))
             # ----- VOTE and REQUEST -----
-            if 2<= turn <= 9:
+            if 2 <= turn <= 9:
                 if self.PP_flag:
                     self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.POSSESSED, self.get_alive_others(self.game_info.agent_list))
                 if turn % 2 == 0:
@@ -376,7 +368,6 @@ class ddhbWerewolf(ddhbPossessed):
                 return CONTENT_SKIP
         return CONTENT_SKIP
 
-
     # 投票対象
     def vote(self) -> Agent:
         # ----------  同数投票の処理 ----------
@@ -398,7 +389,7 @@ class ddhbWerewolf(ddhbPossessed):
             if self.vote_candidate in self.allies:
                 self.vote_candidate = tmp_vote_candidate
             return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
-        
+
         day: int = self.game_info.day
         turn: int = self.talk_turn
         self.estimate_possessed()
@@ -474,7 +465,6 @@ class ddhbWerewolf(ddhbPossessed):
             self.vote_candidate = self.role_predictor.chooseLeastLikely(Role.POSSESSED, vote_candidates)
         return self.vote_candidate if self.vote_candidate != AGENT_NONE else self.me
 
-
     # 襲撃スコア(=スコア + coef*勝率)の高いエージェント
     def get_attack_agent(self, agent_list: List[Agent], coef: float = 3.0) -> Agent:
         p = self.role_predictor.prob_all
@@ -488,7 +478,6 @@ class ddhbWerewolf(ddhbPossessed):
                 ret_agent = agent
         Util.debug_print("襲撃スコア:\t:", self.agent_to_index(agent_list), ret_agent.agent_idx, mx_score)
         return ret_agent
-
 
     # 内通
     # 注意：15人村かつ人狼が複数生きている場合のみ呼ばれる
@@ -543,7 +532,6 @@ class ddhbWerewolf(ddhbPossessed):
         elif turn == 4 and self.alive_seer:
             return Content(EstimateContentBuilder(self.agent_seer, Role.SEER))
         return CONTENT_SKIP
-
 
     # 襲撃
     def attack(self) -> Agent:

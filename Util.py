@@ -31,7 +31,6 @@ class Util:
     vote_count: DefaultDict[Agent, int] = defaultdict(int)
     vote_match_count: DefaultDict[Agent, int] = defaultdict(int)
 
-
     @staticmethod
     def init():
         Util.time_start = {}
@@ -40,14 +39,12 @@ class Util:
         Util.win_rate = defaultdict(float)
         Util.sum_score = 0
 
-
     @staticmethod
     def debug_print(*args, **kwargs):
         # if type(args[0]) == str and ("exec_time" in args[0] or "len(self.assignments)" in args[0]):
         #     return
         if Util.debug_mode:
             print(*args, **kwargs)
-
 
     @staticmethod
     def error_print(*args, **kwargs):
@@ -57,11 +54,9 @@ class Util:
                 traceback.print_stack()
             exit(1)
 
-
     @staticmethod
     def start_timer(func_name):
         Util.time_start[func_name] = time.time()
-
 
     @staticmethod
     def end_timer(func_name, time_threshold=0):
@@ -73,13 +68,11 @@ class Util:
             else:
                 Util.error_print("exec_time:\t", func_name, time_exec)
 
-
     @staticmethod
     def timeout(func_name, time_threshold):
         time_now = time.time()
         time_exec = round((time_now - Util.time_start[func_name]) * 1000, 1)
         return time_exec >= time_threshold
-
 
     @staticmethod
     def update_win_rate(game_info: GameInfo, villager_win: bool):
@@ -100,7 +93,6 @@ class Util:
             Util.debug_print("win_role_rate:\t", agent, role, Util.win_role_rate[agent][role])
         Util.debug_print("------------------")
 
-
     @staticmethod
     def get_strong_agent(agent_list: List[Agent], threshold: float = 0.0) -> Agent:
         rate = threshold
@@ -110,7 +102,6 @@ class Util:
                 rate = Util.win_rate[agent]
                 strong_agent = agent
         return strong_agent
-
 
     @staticmethod
     def get_weak_agent(agent_list: List[Agent], threshold: float = 1.0) -> Agent:
@@ -132,11 +123,11 @@ class Util:
         counter = Counter(lst)
         for pos, val in fixed_positions.items():
             counter[val] -= 1
-        
+
         unique_elems = list(counter.keys())
         counts = list(counter.values())
         n = len(lst)
-        
+
         def _unique_permutations(current_perm, remaining_counts, current_length):
             if current_length == n:
                 yield tuple(current_perm)
@@ -149,5 +140,4 @@ class Util:
                         remaining_counts[idx] -= 1
                         yield from _unique_permutations(current_perm + [elem], remaining_counts, current_length + 1)
                         remaining_counts[idx] += 1
-
         return _unique_permutations([], counts, 0)

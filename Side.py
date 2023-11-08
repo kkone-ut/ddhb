@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List
 
 from Util import Util
 
@@ -17,7 +18,13 @@ class Side(Enum):
     ANY = "ANY"
     """Wildcard."""
 
-    def get_role_list(self, N):
+    def get_role_list(self, N: int) -> List[Role]:
+        """Get role list of the side.
+        Args:
+            N (int): The number of players.
+        Returns:
+            List[Role]: The role list of the side.
+        """
         if self == Side.VILLAGERS:
             if N == 5:
                 return [Role.VILLAGER, Role.SEER]
